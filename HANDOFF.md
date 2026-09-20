@@ -21,6 +21,20 @@ Test widgets in the live `%APPDATA%\MobreadModernDock\config.json`: `sysmontest0
 - Weather widget: the geocoding search in Settings hasn't been exercised by hand (only the fixed-coordinate path was verified live). Worth one manual click-through.
 - Legacy `%APPDATA%\CedroModernDock` folder is left in place after migration (by design).
 
+## Feature batch 10–17 (from the original list): NOT STARTED
+
+**Polish**
+10. Per-monitor dock — a dock instance on each display.
+11. Themes / presets — save and switch named appearance sets (color, opacity, rows, icon size) with one click.
+12. Hotkeys — global keys to toggle dock visibility, open Settings, or launch item N.
+13. Bounce / attention — animate an icon when its app flashes the taskbar for attention.
+14. Import from taskbar — one button in Settings that reads the pinned taskbar shortcuts.
+15. Portable mode — config next to the exe instead of `%APPDATA%`.
+
+**Hardening**
+16. Installer — wire `dotnet/installer/build.ps1` to produce an MSI for this repo; auto-update check against GitHub releases.
+17. Startup delay — wait for explorer before attaching to the desktop (docks can race explorer at login).
+
 ## Ideas not started
 
 - Media widget: seek bar / elapsed time (GSMTC exposes `GetTimelineProperties()`).
