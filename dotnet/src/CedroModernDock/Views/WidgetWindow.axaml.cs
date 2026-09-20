@@ -2,23 +2,28 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using CedroModernDock.Core.Application;
+using CedroModernDock.Core.Models;
 using CedroModernDock.Infrastructure.Windows.Native;
-using CedroModernDock.ViewModels;
+using CedroModernDock.Widgets;
 
 namespace CedroModernDock.Views;
 
 /// <summary>
-/// Floating text widget: a borderless, always-draggable window that displays
-/// user-defined text (host name by default). Shares the dock's Win32 behavior
-/// (no-activate, no taskbar entry, survives Win+D) and persists its position.
+/// Generic floating widget host: a borderless, draggable window with the
+/// dock's chrome (color, transparency, rounding) around provider-supplied
+/// content. Shares the dock's Win32 behavior (no-activate, no taskbar entry,
+/// survives Win+D) and persists its own position per widget id.
 /// </summary>
 public partial class WidgetWindow : Window
 {
     private DockWindowBehavior? _behavior;
     private AppServices? _appServices;
+    private WidgetDefinition? _definition;
     private readonly DispatcherTimer _positionPersistTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
 
     public WidgetWindow()
@@ -32,13 +37,47 @@ public partial class WidgetWindow : Window
         _positionPersistTimer.Tick += (_, _) =>
         {
             _positionPersistTimer.Stop();
-            if (_appServices == null) return;
+            if (_appServices == null || _definition == null) return;
             var (x, y) = _behavior?.GetScreenPosition() ?? (Position.X, Position.Y);
-            _appServices.WidgetService.SetPosition(x, y);
+            _appServices.WidgetService.SetPosition(_definition.Id, x, y);
         };
     }
 
-    public void SetAppServices(AppServices appServices) => _appServices = appServices;
+    public string? WidgetId => _definition?.Id;
+
+    /// <summary>Wires services, the definition and the provider-built content.</summary>
+    public void Initialize(AppServices appServices, WidgetDefinition definition, Control content)
+    {
+        _appServices = appServices;
+        _definition = definition;
+        ContentHost.Content = content;
+        ApplyChrome();
+    }
+
+    /// <summary>Re-applies dock appearance and asks the content to refresh.</summary>
+    public void Refresh()
+    {
+        ApplyChrome();
+        if (_appServices != null && _behavior != null)
+            _behavior.SetAlwaysOnTop(_appServices.AppearanceService.GetAlwaysOnTop());
+        (ContentHost.Content as Control)?.DataContext.As<WidgetViewModelBase>()?.Refresh();
+    }
+
+    private void ApplyChrome()
+    {
+        if (_appServices == null) return;
+        var appearance = _appServices.AppearanceService;
+        Chrome.CornerRadius = new CornerRadius(appearance.GetDockBorderRounding());
+
+        double transparency = appearance.GetDockTransparencyPercentage() / 100.0;
+        byte alpha = (byte)(transparency * 255);
+        var parts = appearance.GetDockColorRGB()
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        byte r = parts.Length > 0 && byte.TryParse(parts[0], out var rv) ? rv : (byte)0;
+        byte g = parts.Length > 1 && byte.TryParse(parts[1], out var gv) ? gv : (byte)0;
+        byte b = parts.Length > 2 && byte.TryParse(parts[2], out var bv) ? bv : (byte)0;
+        Chrome.Background = new SolidColorBrush(Color.FromArgb(alpha, r, g, b));
+    }
 
     protected override void OnOpened(EventArgs e)
     {
@@ -48,19 +87,24 @@ public partial class WidgetWindow : Window
         if (handle != null)
         {
             _behavior = new DockWindowBehavior(handle.Handle);
-            _behavior.Apply();
+            _behavior.Apply(_appServices?.AppearanceService.GetAlwaysOnTop() ?? false);
         }
 
-        if (_appServices != null)
+        if (_appServices != null && _definition != null)
         {
-            var (x, y) = _appServices.WidgetService.GetPosition();
-            // First run: no saved position yet — place it on the primary
-            // monitor's work area rather than at the virtual-desktop origin.
-            if (x == 40 && y == 40)
+            double x, y;
+            if (_definition.HasPosition)
             {
+                (x, y) = (_definition.PositionX, _definition.PositionY);
+            }
+            else
+            {
+                // First show: place on the primary monitor's work area,
+                // staggered so several new widgets don't stack exactly.
                 var bounds = _appServices.PositioningService.GetPrimaryScreenBounds();
-                x = bounds.MinX + 40;
-                y = bounds.MinY + 40;
+                int index = Math.Max(0, IndexOfDefinition());
+                x = bounds.MinX + 40 + index * 30;
+                y = bounds.MinY + 40 + index * 30;
             }
             if (_behavior != null)
                 _behavior.MoveToScreen((int)x, (int)y);
@@ -68,23 +112,45 @@ public partial class WidgetWindow : Window
                 Position = new PixelPoint((int)x, (int)y);
         }
 
-        (DataContext as WidgetViewModel)?.Refresh();
+        Refresh();
     }
 
-    /// <summary>The widget is always freely draggable.</summary>
+    private int IndexOfDefinition()
+    {
+        if (_appServices == null || _definition == null) return 0;
+        int i = 0;
+        foreach (var w in _appServices.WidgetService.GetWidgets())
+        {
+            if (w.Id == _definition.Id) return i;
+            i++;
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Drag the window from its background. Presses on interactive content
+    /// (buttons inside the widget) are left to the content.
+    /// </summary>
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!e.Pointer.IsPrimary) return;
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (e.Source is Visual source && source.FindAncestorOfType<Button>(includeSelf: true) != null)
+            return;
         BeginMoveDrag(e);
     }
 
     protected override void OnClosed(EventArgs e)
     {
         _positionPersistTimer.Stop();
-        (DataContext as WidgetViewModel)?.Shutdown();
+        (ContentHost.Content as Control)?.DataContext.As<WidgetViewModelBase>()?.Shutdown();
         _behavior?.Dispose();
         _behavior = null;
         base.OnClosed(e);
     }
+}
+
+internal static class ObjectExtensions
+{
+    public static T? As<T>(this object? o) where T : class => o as T;
 }

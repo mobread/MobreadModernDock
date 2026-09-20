@@ -326,6 +326,10 @@
                                   IsChecked="{Binding ShowUnpinnedRunningApps}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
                         <CheckBox Content="{Binding ArrangeVerticalText}"
                                   IsChecked="{Binding IsVerticalDock}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
+                        <CheckBox Content="{Binding AlwaysOnTopText}"
+                                  IsChecked="{Binding AlwaysOnTop}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
+                        <CheckBox Content="{Binding HideTaskbarText}"
+                                  IsChecked="{Binding HideTaskbar}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
                         <Button Content="{Binding AcknowledgementsText}" Click="OnAcknowledgements"
                                 Background="#007ACC" Foreground="White" BorderBrush="Transparent"
                                 Padding="16,8" HorizontalAlignment="Left" Margin="0,8,0,0"/>
@@ -335,24 +339,31 @@
                     </StackPanel>
                 </TabItem>
 
-                <!-- Tab 6: Widget -->
+                <!-- Tab 6: Widgets -->
                 <TabItem Header="{Binding TabWidget}">
-                    <StackPanel Orientation="Vertical" Spacing="16" Margin="16,12">
-                        <CheckBox Content="{Binding WidgetEnableText}" IsChecked="{Binding WidgetEnabled}" Foreground="#CCCCCC"/>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding WidgetTextTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding WidgetTextHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <TextBox Text="{Binding WidgetText}" Margin="0,8,0,0" Width="320" HorizontalAlignment="Left"/>
+                    <Grid ColumnDefinitions="260,16,*" Margin="16,12">
+                        <StackPanel Grid.Column="0" Spacing="8">
+                            <TextBlock Text="{Binding WidgetsTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
+                            <TextBlock Text="{Binding WidgetsHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
+                            <ListBox x:Name="WidgetsList" Height="220" Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1"
+                                     SelectionChanged="OnWidgetSelectionChanged"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ComboBox x:Name="WidgetTypeCombo" MinWidth="130"/>
+                                <Button Content="{Binding WidgetAddText}" Click="OnAddWidget"
+                                        Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6"/>
+                            </StackPanel>
+                            <Button x:Name="RemoveWidgetButton" Content="{Binding WidgetRemoveText}" Click="OnRemoveWidget"
+                                    Background="#3A3A3A" Foreground="White" BorderBrush="Transparent" Padding="12,6"
+                                    HorizontalAlignment="Left" IsEnabled="False"/>
                         </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding WidgetPreviewTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding WidgetPreviewText}" Foreground="White" FontSize="{Binding WidgetFontSize}"/>
+
+                        <StackPanel Grid.Column="2" Spacing="12">
+                            <CheckBox x:Name="WidgetEnabledCheck" Content="{Binding WidgetEnabledText}" Foreground="#CCCCCC"
+                                      IsCheckedChanged="OnWidgetEnabledChanged" IsEnabled="False"/>
+                            <TextBlock x:Name="WidgetNoSelection" Text="{Binding WidgetNoSelectionText}" FontSize="11" Foreground="#888888"/>
+                            <ContentControl x:Name="WidgetSettingsHost"/>
                         </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding WidgetFontSizeTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <Slider Minimum="8" Maximum="72" Value="{Binding WidgetFontSize}" Margin="0,8,0,0"/>
-                        </StackPanel>
-                    </StackPanel>
+                    </Grid>
                 </TabItem>
             </TabControl>
         </StackPanel>

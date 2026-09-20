@@ -106,13 +106,14 @@ public partial class MainWindow : Window
         }
 
         _dockBehavior = new DockWindowBehavior(handle.Handle, UpdateStatus);
-        _dockBehavior.Apply();
+        _dockBehavior.Apply(_appServices?.AppearanceService.GetAlwaysOnTop() ?? false);
 
         // Initialize the dock ViewModel (loads items, starts indicator watcher).
         if (DataContext is MainWindowViewModel vm)
         {
             vm.OpenSettingsAction = () => OpenSettings(vm);
             vm.RepositionAction = () => ApplyDockPosition();
+            vm.LayerRefreshAction = ApplyAlwaysOnTop;
             vm.PreviewDismissAction = HidePreview;
             vm.Initialize();
         }
@@ -672,6 +673,13 @@ public partial class MainWindow : Window
 
     /// <summary>Current absolute screen position, for callers outside the window (App).</summary>
     public (int X, int Y) CurrentScreenPosition => GetScreenPosition();
+
+    /// <summary>Re-reads the always-on-top setting and switches the window layer live.</summary>
+    public void ApplyAlwaysOnTop()
+    {
+        if (_appServices == null || _dockBehavior == null) return;
+        _dockBehavior.SetAlwaysOnTop(_appServices.AppearanceService.GetAlwaysOnTop());
+    }
 
     protected override void OnClosed(EventArgs e)
     {

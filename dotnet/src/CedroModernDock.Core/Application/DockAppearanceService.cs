@@ -76,6 +76,22 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    public bool GetAlwaysOnTop() => GetDock().AlwaysOnTop;
+
+    public void SetAlwaysOnTop(bool value)
+    {
+        GetDock().AlwaysOnTop = value;
+        _dockService.SaveChanges();
+    }
+
+    public bool GetHideTaskbar() => GetDock().HideTaskbar;
+
+    public void SetHideTaskbar(bool value)
+    {
+        GetDock().HideTaskbar = value;
+        _dockService.SaveChanges();
+    }
+
     public bool GetTintIcons() => GetDock().TintIcons;
 
     public void SetTintIcons(bool value)

@@ -1,8 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:CedroModernDock.ViewModels"
         x:Class="CedroModernDock.Views.WidgetWindow"
-        x:DataType="vm:WidgetViewModel"
         Title="Cedro Widget"
         Icon="/Assets/icons/cedro/logo_256.png"
         CanResize="False"
@@ -14,17 +12,11 @@
         PointerPressed="OnPointerPressed">
 
     <!-- Same visual language as the dock bar: dock color + transparency +
-         rounding, so the widget reads as part of the same UI. -->
-    <Border Background="{Binding Background}"
-            CornerRadius="{Binding CornerRadius}"
-            Padding="14,8"
+         rounding (set from code-behind), around provider-supplied content. -->
+    <Border x:Name="Chrome"
+            Padding="10,6"
             HorizontalAlignment="Center"
             VerticalAlignment="Center">
-        <TextBlock Text="{Binding Text}"
-                   FontSize="{Binding FontSize}"
-                   FontWeight="SemiBold"
-                   Foreground="White"
-                   TextAlignment="Center"
-                   IsHitTestVisible="False"/>
+        <ContentControl x:Name="ContentHost"/>
     </Border>
 </Window>

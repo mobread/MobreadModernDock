@@ -8,10 +8,12 @@ using Avalonia.Platform;
 using Avalonia.Markup.Xaml;
 using CedroModernDock.Core.Application;
 using CedroModernDock.Core.Models;
-using CedroModernDock.Infrastructure.Windows.Adapters;
+using CedroModernDock.Infrastructure.Windows.Adapters;
+using CedroModernDock.Infrastructure.Windows.Native;
 using CedroModernDock.Infrastructure.Windows.Persistence;
 using CedroModernDock.ViewModels;
 using CedroModernDock.Views;
+using CedroModernDock.Widgets;
 
 namespace CedroModernDock;
 
@@ -52,8 +54,14 @@ public partial class App : Application
             desktop.MainWindow = mainWindow;
 
             // Widget: show at startup if enabled, and follow the toggle.
-            appServices.WidgetService.AddListener(SyncWidgetWindow);
-            mainWindow.Opened += (_, _) => SyncWidgetWindow();
+            appServices.WidgetService.AddListener(SyncWidgetWindows);
+            mainWindow.Opened += (_, _) =>
+            {
+                SyncWidgetWindows();
+                ApplyTaskbarVisibility();
+            };
+            desktop.ShutdownRequested += (_, _) => TaskbarVisibility.Restore();
+            desktop.Exit += (_, _) => TaskbarVisibility.Restore();
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -176,46 +184,84 @@ public partial class App : Application
             WindowPreviewService: new WindowPreviewService(new Win32WindowQueryGateway()),
             IconGateway: new CachedWindowsIconGateway(),
             LocalizationService: new LocalizationService(dockService),
-            WidgetService: new WidgetService(dockService)
+            WidgetService: new WidgetService(dockService),
+            TrayIconGateway: new UiaTrayIconGateway()
         );
     }
 
-    // --- Floating text widget lifecycle ---
+    // --- Floating widget lifecycle ---
 
-    private static WidgetWindow? _widgetWindow;
+    private static readonly WidgetRegistry _widgetRegistry = WidgetRegistry.CreateDefault();
+    private static readonly Dictionary<string, WidgetWindow> _widgetWindows = new();
+
+    public static WidgetRegistry WidgetRegistry => _widgetRegistry;
 
     /// <summary>
-    /// Shows or hides the widget window to match the enabled setting. Called
-    /// once at startup and again whenever the setting changes. The window is
-    /// created lazily and closed (not hidden) when disabled so its native
-    /// subclass is released.
+    /// Reconciles open widget windows with the persisted definitions: opens a
+    /// window for each enabled definition that has none, closes windows whose
+    /// definition was disabled or removed, and refreshes the rest. Called at
+    /// startup and on every WidgetService change.
     /// </summary>
-    private static void SyncWidgetWindow()
+    private static void SyncWidgetWindows()
     {
         if (_appServices == null) return;
-        bool enabled = _appServices.WidgetService.IsEnabled();
+        var definitions = _appServices.WidgetService.GetWidgets();
+        var wanted = new HashSet<string>();
 
-        if (enabled && _widgetWindow == null)
+        foreach (var def in definitions)
         {
-            var vm = new WidgetViewModel(_appServices);
-            var window = new WidgetWindow { DataContext = vm };
-            window.SetAppServices(_appServices);
-            window.Closed += (_, _) => { if (_widgetWindow == window) _widgetWindow = null; };
-            _widgetWindow = window;
+            if (!def.Enabled) continue;
+            var provider = _widgetRegistry.Get(def.Type);
+            if (provider == null) continue;
+            wanted.Add(def.Id);
+
+            if (_widgetWindows.TryGetValue(def.Id, out var existing))
+            {
+                existing.Refresh();
+                continue;
+            }
+
+            var window = new WidgetWindow();
+            window.Initialize(_appServices, def, provider.CreateView(def, _appServices));
+            string id = def.Id;
+            window.Closed += (_, _) =>
+            {
+                if (_widgetWindows.TryGetValue(id, out var w) && w == window)
+                    _widgetWindows.Remove(id);
+            };
+            _widgetWindows[def.Id] = window;
             window.Show();
         }
-        else if (!enabled && _widgetWindow != null)
+
+        foreach (var id in _widgetWindows.Keys.ToList())
         {
-            var window = _widgetWindow;
-            _widgetWindow = null;
+            if (wanted.Contains(id)) continue;
+            var window = _widgetWindows[id];
+            _widgetWindows.Remove(id);
             window.Close();
         }
     }
 
-    /// <summary>Dock appearance changed: the widget mirrors dock color/rounding.</summary>
+    /// <summary>Dock appearance changed: widgets mirror dock color/rounding.</summary>
     public static void RefreshWidgetAppearance()
     {
-        (_widgetWindow?.DataContext as WidgetViewModel)?.Refresh();
+        foreach (var window in _widgetWindows.Values)
+            window.Refresh();
+    }
+
+    /// <summary>
+    /// Hides or restores the Windows taskbar to match the setting. At startup
+    /// this also repairs a taskbar left hidden by a previous unclean exit when
+    /// the setting is off.
+    /// </summary>
+    public static void ApplyTaskbarVisibility()
+    {
+        if (_appServices == null) return;
+        bool hide = _appServices.AppearanceService.GetHideTaskbar();
+        if (hide)
+            TaskbarVisibility.Hide();
+        else
+            TaskbarVisibility.RestoreIfLeftHidden();
     }
 
     private void DisableAvaloniaDataAnnotationValidation()

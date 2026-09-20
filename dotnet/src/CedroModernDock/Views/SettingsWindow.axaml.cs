@@ -57,6 +57,7 @@ public partial class SettingsWindow : Window
         _instance = window;
         window.Closed += (_, _) => _instance = null;
         vm.Initialize();
+        window.InitializeWidgetsTab();
         window.Show(owner);
     }
 
@@ -231,6 +232,140 @@ public partial class SettingsWindow : Window
     {
         if (_appServices != null)
             AcknowledgementsWindow.Open(this, _appServices.LocalizationService);
+    }
+
+    // --- Widgets tab ---
+
+    private sealed record WidgetListEntry(string Id, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    private sealed record WidgetTypeEntry(string TypeKey, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    private bool _widgetsInitialized;
+    private bool _suppressWidgetEvents;
+
+    /// <summary>Populates the type combo and the widget list; safe to call repeatedly.</summary>
+    private void InitializeWidgetsTab()
+    {
+        if (_appServices == null) return;
+        if (!_widgetsInitialized)
+        {
+            _widgetsInitialized = true;
+            foreach (var provider in App.WidgetRegistry.All)
+                WidgetTypeCombo.Items.Add(new WidgetTypeEntry(provider.TypeKey, Vm.WidgetTypeName(provider.TypeKey)));
+            if (WidgetTypeCombo.Items.Count > 0) WidgetTypeCombo.SelectedIndex = 0;
+        }
+        RefreshWidgetList();
+    }
+
+    private void RefreshWidgetList(string? selectId = null)
+    {
+        if (_appServices == null) return;
+        string? previous = selectId ?? (WidgetsList.SelectedItem as WidgetListEntry)?.Id;
+        _suppressWidgetEvents = true;
+        WidgetsList.Items.Clear();
+        int index = 0, selectIndex = -1;
+        foreach (var def in _appServices.WidgetService.GetWidgets())
+        {
+            string label = Vm.WidgetTypeName(def.Type);
+            if (def.Type == Core.Application.WidgetTypes.Text)
+            {
+                string preview = Core.Application.WidgetService.ResolveText(
+                    def.GetSetting(Core.Application.TextWidgetSettings.Template, "{host}"));
+                if (!string.IsNullOrEmpty(preview)) label += $" — {preview}";
+            }
+            if (!def.Enabled) label += "  (off)";
+            WidgetsList.Items.Add(new WidgetListEntry(def.Id, label));
+            if (def.Id == previous) selectIndex = index;
+            index++;
+        }
+        _suppressWidgetEvents = false;
+        WidgetsList.SelectedIndex = selectIndex;
+        ShowWidgetSettings((WidgetsList.SelectedItem as WidgetListEntry)?.Id);
+    }
+
+    private void OnWidgetSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressWidgetEvents) return;
+        ShowWidgetSettings((WidgetsList.SelectedItem as WidgetListEntry)?.Id);
+    }
+
+    private void ShowWidgetSettings(string? id)
+    {
+        var def = id != null ? _appServices?.WidgetService.Find(id) : null;
+        bool has = def != null;
+        RemoveWidgetButton.IsEnabled = has;
+        WidgetEnabledCheck.IsEnabled = has;
+        WidgetNoSelection.IsVisible = !has;
+
+        _suppressWidgetEvents = true;
+        WidgetEnabledCheck.IsChecked = def?.Enabled ?? false;
+        _suppressWidgetEvents = false;
+
+        if (def == null || _appServices == null)
+        {
+            WidgetSettingsHost.Content = null;
+            return;
+        }
+        var provider = App.WidgetRegistry.Get(def.Type);
+        WidgetSettingsHost.Content = provider?.CreateSettingsView(def, _appServices,
+            onChanged: () => RefreshWidgetListLabelOnly(def.Id));
+    }
+
+    /// <summary>Updates list labels without rebuilding the settings panel (keeps focus in text boxes).</summary>
+    private void RefreshWidgetListLabelOnly(string id)
+    {
+        if (_appServices == null) return;
+        var def = _appServices.WidgetService.Find(id);
+        if (def == null) return;
+        for (int i = 0; i < WidgetsList.Items.Count; i++)
+        {
+            if (WidgetsList.Items[i] is WidgetListEntry entry && entry.Id == id)
+            {
+                string label = Vm.WidgetTypeName(def.Type);
+                if (def.Type == Core.Application.WidgetTypes.Text)
+                {
+                    string preview = Core.Application.WidgetService.ResolveText(
+                        def.GetSetting(Core.Application.TextWidgetSettings.Template, "{host}"));
+                    if (!string.IsNullOrEmpty(preview)) label += $" — {preview}";
+                }
+                if (!def.Enabled) label += "  (off)";
+                _suppressWidgetEvents = true;
+                WidgetsList.Items[i] = new WidgetListEntry(id, label);
+                WidgetsList.SelectedIndex = i;
+                _suppressWidgetEvents = false;
+                break;
+            }
+        }
+    }
+
+    private void OnAddWidget(object? sender, RoutedEventArgs e)
+    {
+        if (_appServices == null || WidgetTypeCombo.SelectedItem is not WidgetTypeEntry type) return;
+        var provider = App.WidgetRegistry.Get(type.TypeKey);
+        if (provider == null) return;
+        var def = _appServices.WidgetService.Add(type.TypeKey, provider.DefaultSettings());
+        RefreshWidgetList(def.Id);
+    }
+
+    private void OnRemoveWidget(object? sender, RoutedEventArgs e)
+    {
+        if (_appServices == null || WidgetsList.SelectedItem is not WidgetListEntry entry) return;
+        _appServices.WidgetService.Remove(entry.Id);
+        RefreshWidgetList();
+    }
+
+    private void OnWidgetEnabledChanged(object? sender, RoutedEventArgs e)
+    {
+        if (_suppressWidgetEvents || _appServices == null) return;
+        if (WidgetsList.SelectedItem is not WidgetListEntry entry) return;
+        _appServices.WidgetService.SetEnabled(entry.Id, WidgetEnabledCheck.IsChecked == true);
+        RefreshWidgetListLabelOnly(entry.Id);
     }
 
     private void OnPresetColorPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)

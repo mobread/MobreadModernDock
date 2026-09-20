@@ -3,9 +3,9 @@ namespace CedroModernDock.Core.Application;
 using CedroModernDock.Core.Models;
 
 /// <summary>
-/// Settings and text resolution for the floating text widget — a second,
-/// independent window that shows a short line of user-defined text (by
-/// default the machine's host name). Persists through the shared DockModel.
+/// CRUD layer over the persisted widget list plus change notification.
+/// Widget types are identified by a string key (see <see cref="WidgetTypes"/>);
+/// the UI layer maps keys to providers that build the actual windows.
 /// </summary>
 public class WidgetService
 {
@@ -15,53 +15,109 @@ public class WidgetService
     public WidgetService(DockService dockService)
     {
         _dockService = dockService;
+        MigrateLegacyTextWidget();
     }
 
     private DockModel Dock => _dockService.GetDock();
 
-    public bool IsEnabled() => Dock.WidgetEnabled;
+    public IReadOnlyList<WidgetDefinition> GetWidgets() => Dock.Widgets;
 
-    public void SetEnabled(bool value)
+    public WidgetDefinition? Find(string id) => Dock.Widgets.FirstOrDefault(w => w.Id == id);
+
+    public WidgetDefinition Add(string type, Dictionary<string, string>? settings = null)
     {
-        Dock.WidgetEnabled = value;
-        _dockService.SaveChanges();
-        NotifyListeners();
+        var def = new WidgetDefinition { Type = type };
+        if (settings != null)
+            foreach (var (k, v) in settings) def.Settings[k] = v;
+        Dock.Widgets.Add(def);
+        Save();
+        return def;
     }
 
-    public string GetTextTemplate() => Dock.WidgetText;
-
-    public void SetTextTemplate(string value)
+    public void Remove(string id)
     {
-        Dock.WidgetText = value ?? "";
-        _dockService.SaveChanges();
-        NotifyListeners();
+        int removed = Dock.Widgets.RemoveAll(w => w.Id == id);
+        if (removed > 0) Save();
     }
 
-    public int GetFontSize() => Dock.WidgetFontSize;
-
-    public void SetFontSize(int value)
+    public void SetEnabled(string id, bool enabled)
     {
-        Dock.WidgetFontSize = Math.Clamp(value, 8, 96);
-        _dockService.SaveChanges();
-        NotifyListeners();
+        var def = Find(id);
+        if (def == null || def.Enabled == enabled) return;
+        def.Enabled = enabled;
+        Save();
     }
 
-    public (double X, double Y) GetPosition() => (Dock.WidgetPositionX, Dock.WidgetPositionY);
-
-    public void SetPosition(double x, double y)
+    /// <summary>Position updates persist without notifying: windows own their own position.</summary>
+    public void SetPosition(string id, double x, double y)
     {
-        Dock.WidgetPositionX = x;
-        Dock.WidgetPositionY = y;
+        var def = Find(id);
+        if (def == null) return;
+        def.PositionX = x;
+        def.PositionY = y;
         _dockService.SaveChanges();
+    }
+
+    public void UpdateSetting(string id, string key, string value)
+    {
+        var def = Find(id);
+        if (def == null) return;
+        if (def.Settings.TryGetValue(key, out var existing) && existing == value) return;
+        def.Settings[key] = value;
+        Save();
+    }
+
+    public void AddListener(Action listener) => _listeners.Add(listener);
+    public void RemoveListener(Action listener) => _listeners.Remove(listener);
+
+    private void Save()
+    {
+        _dockService.SaveChanges();
+        foreach (var listener in _listeners.ToList())
+            listener();
     }
 
     /// <summary>
-    /// Resolves the template to display text: <c>{host}</c> → machine name,
-    /// <c>{user}</c> → user name. An empty template falls back to the host name.
+    /// Converts the pre-framework single text widget (widgetEnabled/widgetText/…)
+    /// into a "text" WidgetDefinition and clears the legacy fields so they are
+    /// no longer serialized.
     /// </summary>
-    public string ResolveText() => ResolveText(GetTextTemplate());
+    private void MigrateLegacyTextWidget()
+    {
+        var dock = Dock;
+        bool hasLegacy = dock.WidgetEnabled != null || dock.WidgetText != null
+                      || dock.WidgetFontSize != null || dock.WidgetPositionX != null;
+        if (!hasLegacy) return;
 
-    public static string ResolveText(string template)
+        if (dock.WidgetEnabled == true || !string.IsNullOrEmpty(dock.WidgetText))
+        {
+            var def = new WidgetDefinition
+            {
+                Type = WidgetTypes.Text,
+                Enabled = dock.WidgetEnabled ?? false,
+                PositionX = dock.WidgetPositionX ?? double.NaN,
+                PositionY = dock.WidgetPositionY ?? double.NaN,
+            };
+            def.SetSetting(TextWidgetSettings.Template, dock.WidgetText ?? "{host}");
+            def.SetSetting(TextWidgetSettings.FontSize, (dock.WidgetFontSize ?? 14).ToString());
+            dock.Widgets.Add(def);
+        }
+
+        dock.WidgetEnabled = null;
+        dock.WidgetText = null;
+        dock.WidgetFontSize = null;
+        dock.WidgetPositionX = null;
+        dock.WidgetPositionY = null;
+        _dockService.SaveChanges();
+    }
+
+    // --- Text widget helpers (kept here so Core tests can cover them) ---
+
+    /// <summary>
+    /// Resolves a text template: <c>{host}</c> → machine name, <c>{user}</c> →
+    /// user name. An empty template falls back to the host name.
+    /// </summary>
+    public static string ResolveText(string? template)
     {
         if (string.IsNullOrWhiteSpace(template))
             template = "{host}";
@@ -69,13 +125,25 @@ public class WidgetService
             .Replace("{host}", Environment.MachineName, StringComparison.OrdinalIgnoreCase)
             .Replace("{user}", Environment.UserName, StringComparison.OrdinalIgnoreCase);
     }
+}
 
-    public void AddListener(Action listener) => _listeners.Add(listener);
-    public void RemoveListener(Action listener) => _listeners.Remove(listener);
+/// <summary>Well-known widget type keys.</summary>
+public static class WidgetTypes
+{
+    public const string Text = "text";
+    public const string Tray = "tray";
+}
 
-    private void NotifyListeners()
-    {
-        foreach (var listener in _listeners.ToList())
-            listener();
-    }
+public static class TextWidgetSettings
+{
+    public const string Template = "template";
+    public const string FontSize = "fontSize";
+}
+
+public static class TrayWidgetSettings
+{
+    public const string IconSize = "iconSize";
+    public const string Spacing = "spacing";
+    public const string Vertical = "vertical";
+    public const string ShowSystemIcons = "showSystemIcons";
 }

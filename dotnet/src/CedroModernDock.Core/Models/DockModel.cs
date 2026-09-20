@@ -89,26 +89,46 @@ public class DockModel
     [JsonPropertyName("tintColorRGB")]
     public string TintColorRGB { get; set; } = "0, 80, 140";
 
-    // --- Floating text widget ---
-
-    [JsonPropertyName("widgetEnabled")]
-    public bool WidgetEnabled { get; set; }
-
     /// <summary>
-    /// Widget text template. Supports the placeholders <c>{host}</c> (machine
-    /// name) and <c>{user}</c> (user name). Empty means "{host}".
+    /// When true the dock and all widgets float above every other window
+    /// (topmost). When false (default) they live on the desktop layer behind
+    /// normal windows, like the desktop icons.
     /// </summary>
+    [JsonPropertyName("alwaysOnTop")]
+    public bool AlwaysOnTop { get; set; }
+
+    /// <summary>Hides the Windows taskbar on every monitor while the app runs; restored on exit.</summary>
+    [JsonPropertyName("hideTaskbar")]
+    public bool HideTaskbar { get; set; }
+
+    // --- Floating widgets ---
+
+    [JsonPropertyName("widgets")]
+    public List<WidgetDefinition> Widgets { get; set; } = new();
+
+    // Legacy single text-widget fields (pre-widget-framework configs). Kept
+    // so existing configs still deserialize; WidgetService migrates them
+    // into a "text" WidgetDefinition on first load and they are not written
+    // back once null.
+    [JsonPropertyName("widgetEnabled")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? WidgetEnabled { get; set; }
+
     [JsonPropertyName("widgetText")]
-    public string WidgetText { get; set; } = "{host}";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? WidgetText { get; set; }
 
     [JsonPropertyName("widgetFontSize")]
-    public int WidgetFontSize { get; set; } = 14;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? WidgetFontSize { get; set; }
 
     [JsonPropertyName("widgetPositionX")]
-    public double WidgetPositionX { get; set; } = 40;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? WidgetPositionX { get; set; }
 
     [JsonPropertyName("widgetPositionY")]
-    public double WidgetPositionY { get; set; } = 40;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? WidgetPositionY { get; set; }
 
     public void AddItem(DockItem item) => Items.Add(item);
 

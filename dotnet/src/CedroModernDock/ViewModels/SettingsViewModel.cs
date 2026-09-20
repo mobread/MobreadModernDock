@@ -167,21 +167,19 @@ public partial class SettingsViewModel : ViewModelBase
     public string TabDockPositioning => T("settings.tab.dockPositioning");
     public string TabGeneral => T("settings.tab.general");
     public string TabWidget => T("settings.tab.widget");
-    public string WidgetEnableText => T("settings.widget.enable");
-    public string WidgetTextTitle => T("settings.widget.text.title");
-    public string WidgetTextHelper => T("settings.widget.text.helper");
-    public string WidgetFontSizeTitle => T("settings.widget.fontSize.title");
-    public string WidgetPreviewTitle => T("settings.widget.preview.title");
-    public string WidgetPreviewText => WidgetService.ResolveText(WidgetText);
+    public string WidgetsTitle => T("settings.widgets.title");
+    public string WidgetsHelper => T("settings.widgets.helper");
+    public string WidgetAddText => T("settings.widgets.add");
+    public string WidgetRemoveText => T("settings.widgets.remove");
+    public string WidgetEnabledText => T("settings.widgets.enabled");
+    public string WidgetNoSelectionText => T("settings.widgets.noSelection");
 
-    private bool _widgetEnabled;
-    public bool WidgetEnabled { get => _widgetEnabled; set => SetProperty(ref _widgetEnabled, value); }
-
-    private string _widgetText = "{host}";
-    public string WidgetText { get => _widgetText; set => SetProperty(ref _widgetText, value); }
-
-    private int _widgetFontSize = 14;
-    public int WidgetFontSize { get => _widgetFontSize; set => SetProperty(ref _widgetFontSize, value); }
+    /// <summary>Localized display name for a widget type key.</summary>
+    public string WidgetTypeName(string typeKey)
+    {
+        var provider = App.WidgetRegistry.Get(typeKey);
+        return provider != null ? T(provider.DisplayNameKey) : typeKey;
+    }
     // --- continued below ---
     public string ItemsTitle => T("settings.icons.items.title");
     public string ItemsHelper => T("settings.icons.items.helper");
@@ -227,6 +225,8 @@ public partial class SettingsViewModel : ViewModelBase
     public string StartWithWindowsText => T("settings.general.startWithWindows");
     public string ShowUnpinnedRunningAppsText => T("settings.general.showUnpinnedRunningApps");
     public string ArrangeVerticalText => T("settings.general.arrangeVertical");
+    public string AlwaysOnTopText => T("settings.general.alwaysOnTop");
+    public string HideTaskbarText => T("settings.general.hideTaskbar");
     public string CustomColorText => T("settings.customColor");
 
     private bool _isAutoStartEnabled;
@@ -242,6 +242,12 @@ public partial class SettingsViewModel : ViewModelBase
         get => _showUnpinnedRunningApps;
         set => SetProperty(ref _showUnpinnedRunningApps, value);
     }
+
+    private bool _hideTaskbar;
+    public bool HideTaskbar { get => _hideTaskbar; set => SetProperty(ref _hideTaskbar, value); }
+
+    private bool _alwaysOnTop;
+    public bool AlwaysOnTop { get => _alwaysOnTop; set => SetProperty(ref _alwaysOnTop, value); }
 
     private bool _isVerticalDock;
     public bool IsVerticalDock
@@ -287,10 +293,8 @@ public partial class SettingsViewModel : ViewModelBase
         IsAutoStartEnabled = Infrastructure.Windows.Adapters.AutoStartHelper.IsAutoStartEnabled();
         ShowUnpinnedRunningApps = app.GetShowUnpinnedRunningApps();
         IsVerticalDock = app.GetVerticalDock();
-        var widget = _appServices.WidgetService;
-        WidgetEnabled = widget.IsEnabled();
-        WidgetText = widget.GetTextTemplate();
-        WidgetFontSize = widget.GetFontSize();
+        AlwaysOnTop = app.GetAlwaysOnTop();
+        HideTaskbar = app.GetHideTaskbar();
         _isInitialized = true;
     }
 
@@ -313,12 +317,8 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(IsAutoStartEnabled): OnAutoStartChanged(); break;
             case nameof(ShowUnpinnedRunningApps): OnShowUnpinnedRunningAppsChanged(); break;
             case nameof(IsVerticalDock): OnVerticalDockChanged(); break;
-            case nameof(WidgetEnabled): _appServices.WidgetService.SetEnabled(WidgetEnabled); break;
-            case nameof(WidgetText):
-                _appServices.WidgetService.SetTextTemplate(WidgetText);
-                OnPropertyChanged(nameof(WidgetPreviewText));
-                break;
-            case nameof(WidgetFontSize): _appServices.WidgetService.SetFontSize(WidgetFontSize); break;
+            case nameof(AlwaysOnTop): OnAlwaysOnTopChanged(); break;
+            case nameof(HideTaskbar): OnHideTaskbarChanged(); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
             case nameof(VerticalAnchor): OnVerticalAnchorChanged(); break;
             case nameof(HorizontalAnchor): OnHorizontalAnchorChanged(); break;
@@ -363,6 +363,18 @@ public partial class SettingsViewModel : ViewModelBase
     public void OnShowUnpinnedRunningAppsChanged()
     {
         _appServices.AppearanceService.SetShowUnpinnedRunningApps(ShowUnpinnedRunningApps);
+        _dockRefreshAction();
+    }
+
+    public void OnHideTaskbarChanged()
+    {
+        _appServices.AppearanceService.SetHideTaskbar(HideTaskbar);
+        App.ApplyTaskbarVisibility();
+    }
+
+    public void OnAlwaysOnTopChanged()
+    {
+        _appServices.AppearanceService.SetAlwaysOnTop(AlwaysOnTop);
         _dockRefreshAction();
     }
 

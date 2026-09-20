@@ -30,7 +30,10 @@ public sealed class DockWindowBehavior : IDisposable
         _onStatus = onStatus;
     }
 
-    public void Apply()
+    /// <summary>True while the window floats above all others instead of living on the desktop.</summary>
+    public bool AlwaysOnTop { get; private set; }
+
+    public void Apply(bool alwaysOnTop = false)
     {
         if (_hwnd == IntPtr.Zero)
         {
@@ -39,7 +42,7 @@ public sealed class DockWindowBehavior : IDisposable
         }
 
         ApplyExtendedStyles();
-        AttachToDesktop();
+        SetAlwaysOnTop(alwaysOnTop, initial: true);
 
         // Store the delegate in a field so it is not garbage-collected while
         // the native subclass is active (would cause a crash on next message).
@@ -47,6 +50,46 @@ public sealed class DockWindowBehavior : IDisposable
         _subclassed = Comctl32.SetWindowSubclass(_hwnd, _subclassProc, UIntPtr.Zero, IntPtr.Zero);
 
         _onStatus?.Invoke($"HWND=0x{_hwnd:X} | Subclass={(_subclassed ? "OK" : "FAIL")}");
+    }
+
+    /// <summary>
+    /// Switches between the two layering modes while preserving the window's
+    /// absolute screen position:
+    /// <list type="bullet">
+    /// <item><b>Desktop</b> (default): owned by the desktop icons window, so it
+    /// sits behind every normal window and survives Win+D.</item>
+    /// <item><b>Always on top</b>: a plain top-level window with HWND_TOPMOST,
+    /// so it floats above active windows. It cannot also be desktop-owned, so
+    /// Win+D minimizes it like any other window; the subclass restores it.</item>
+    /// </list>
+    /// </summary>
+    public void SetAlwaysOnTop(bool alwaysOnTop, bool initial = false)
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        if (!initial && alwaysOnTop == AlwaysOnTop) return;
+
+        var (x, y) = GetScreenPosition();
+        AlwaysOnTop = alwaysOnTop;
+
+        if (alwaysOnTop)
+        {
+            if (_desktopParent != IntPtr.Zero)
+            {
+                User32.SetParent(_hwnd, IntPtr.Zero);
+                _desktopParent = IntPtr.Zero;
+            }
+            User32.SetWindowPos(_hwnd, Win32Constants.HWND_TOPMOST, x, y, 0, 0,
+                Win32Constants.SWP_NOSIZE | Win32Constants.SWP_NOACTIVATE | Win32Constants.SWP_SHOWWINDOW);
+            _onStatus?.Invoke("Layer: always on top");
+        }
+        else
+        {
+            User32.SetWindowPos(_hwnd, Win32Constants.HWND_NOTOPMOST, 0, 0, 0, 0,
+                Win32Constants.SWP_NOSIZE | Win32Constants.SWP_NOMOVE | Win32Constants.SWP_NOACTIVATE);
+            AttachToDesktop();
+            MoveToScreen(x, y);
+            _onStatus?.Invoke("Layer: desktop");
+        }
     }
 
     private void ApplyExtendedStyles()
