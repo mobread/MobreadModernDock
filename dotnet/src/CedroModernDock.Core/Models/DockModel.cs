@@ -109,6 +109,10 @@ public class DockModel
     [JsonPropertyName("hideInFullscreen")]
     public bool HideInFullscreen { get; set; } = true;
 
+    /// <summary>Slide the dock off the nearest screen edge when the pointer leaves it; reveal on edge hover.</summary>
+    [JsonPropertyName("autoHide")]
+    public bool AutoHide { get; set; }
+
     /// <summary>
     /// Whole-window opacity (icons, text and background together) for the dock
     /// and for widgets that follow the global value. 0.2..1.0. Distinct from

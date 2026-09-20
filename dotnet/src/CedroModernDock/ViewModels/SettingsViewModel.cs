@@ -239,6 +239,7 @@ public partial class SettingsViewModel : ViewModelBase
     public string AlwaysOnTopText => T("settings.general.alwaysOnTop");
     public string HideTaskbarText => T("settings.general.hideTaskbar");
     public string HideInFullscreenText => T("settings.general.hideInFullscreen");
+    public string AutoHideText => T("settings.general.autoHide");
     public string CustomColorText => T("settings.customColor");
 
     private bool _isAutoStartEnabled;
@@ -254,6 +255,9 @@ public partial class SettingsViewModel : ViewModelBase
         get => _showUnpinnedRunningApps;
         set => SetProperty(ref _showUnpinnedRunningApps, value);
     }
+
+    private bool _autoHide;
+    public bool AutoHide { get => _autoHide; set => SetProperty(ref _autoHide, value); }
 
     private bool _hideInFullscreen = true;
     public bool HideInFullscreen { get => _hideInFullscreen; set => SetProperty(ref _hideInFullscreen, value); }
@@ -313,6 +317,7 @@ public partial class SettingsViewModel : ViewModelBase
         AlwaysOnTop = app.GetAlwaysOnTop();
         HideTaskbar = app.GetHideTaskbar();
         HideInFullscreen = app.GetHideInFullscreen();
+        AutoHide = app.GetAutoHide();
         _isInitialized = true;
     }
 
@@ -340,6 +345,7 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(AlwaysOnTop): OnAlwaysOnTopChanged(); break;
             case nameof(HideTaskbar): OnHideTaskbarChanged(); break;
             case nameof(HideInFullscreen): _appServices.AppearanceService.SetHideInFullscreen(HideInFullscreen); break;
+            case nameof(AutoHide): _appServices.AppearanceService.SetAutoHide(AutoHide); _dockRefreshAction(); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
             case nameof(VerticalAnchor): OnVerticalAnchorChanged(); break;
             case nameof(HorizontalAnchor): OnHorizontalAnchorChanged(); break;

@@ -34,6 +34,8 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _previewCloseRefresh = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly DispatcherTimer _positionPersistTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
 
+    private DockAutoHideController? _autoHide;
+
     // --- Drag-to-reorder state for pinned dock icons ---
     private const double ReorderDragThresholdPixels = 6;
     private int _reorderSourceIndex = -1;
@@ -114,12 +116,24 @@ public partial class MainWindow : Window
         {
             vm.OpenSettingsAction = () => OpenSettings(vm);
             vm.RepositionAction = () => ApplyDockPosition();
-            vm.LayerRefreshAction = ApplyAlwaysOnTop;
+            vm.LayerRefreshAction = () => { ApplyAlwaysOnTop(); ApplyAutoHideSetting(); };
             vm.PreviewDismissAction = HidePreview;
             vm.Initialize();
         }
 
         ApplyDockPosition(force: true);
+
+        _autoHide = new DockAutoHideController(
+            behavior: () => _dockBehavior,
+            size: () => ((int)Math.Round(Bounds.Width), (int)Math.Round(Bounds.Height)),
+            restPosition: RestPosition,
+            screenBounds: () =>
+            {
+                var sb = _appServices!.PositioningService.GetPrimaryScreenBounds();
+                return ((int)sb.MinX, (int)sb.MinY, (int)sb.MaxX, (int)sb.MaxY);
+            },
+            blockHide: () => _previewPopup?.IsVisible == true || _reorderInProgress);
+        ApplyAutoHideSetting();
 
         // Static anchors must use the finalized window size, which SizeToContent
         // only produces after the first layout pass. Re-apply once layout settles
@@ -142,7 +156,30 @@ public partial class MainWindow : Window
         if (_appServices == null) return;
         if (!force && _appServices.PositioningService.IsDynamicPositioning()) return;
         var (x, y) = _appServices.PositioningService.ResolvePosition(Width, Height);
+        if (_autoHide is { IsEnabled: true, IsHidden: true })
+        {
+            _autoHide.OnLayoutChanged();
+            return;
+        }
         SetScreenPosition((int)x, (int)y);
+    }
+
+    /// <summary>
+    /// Where the dock sits when fully shown: the anchored position in STATIC
+    /// mode, the persisted position in DYNAMIC mode. Auto-hide slides away
+    /// from and back to this point.
+    /// </summary>
+    private (int X, int Y) RestPosition()
+    {
+        if (_appServices == null) return GetScreenPosition();
+        var (x, y) = _appServices.PositioningService.ResolvePosition(Bounds.Width, Bounds.Height);
+        return ((int)x, (int)y);
+    }
+
+    private void ApplyAutoHideSetting()
+    {
+        if (_appServices == null || _autoHide == null) return;
+        _autoHide.SetEnabled(_appServices.AppearanceService.GetAutoHide());
     }
 
     /// <summary>
@@ -413,6 +450,18 @@ public partial class MainWindow : Window
             horizontalAnchor: _appServices.PositioningService.GetHorizontalAnchor());
     }
 
+    protected override void OnPointerEntered(PointerEventArgs e)
+    {
+        base.OnPointerEntered(e);
+        _autoHide?.OnPointerEntered();
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        _autoHide?.OnPointerExited();
+    }
+
     /// <summary>Allows dragging the borderless dock window (DYNAMIC mode only).</summary>
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -657,6 +706,8 @@ public partial class MainWindow : Window
     {
         if (_appServices == null) return;
         if (!_appServices.PositioningService.IsDynamicPositioning()) return;
+        // Auto-hide moves the window itself; those moves are not user drags.
+        if (_autoHide is { IsEnabled: true }) return;
         var (x, y) = GetScreenPosition();
         _appServices.DockService.SetDockPosition(x, y);
     }
@@ -712,6 +763,8 @@ public partial class MainWindow : Window
         HidePreview();
         if (DataContext is MainWindowViewModel vm)
             vm.Shutdown();
+        _autoHide?.Dispose();
+        _autoHide = null;
         _dockBehavior?.Dispose();
         _dockBehavior = null;
         base.OnClosed(e);

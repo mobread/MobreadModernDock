@@ -101,6 +101,14 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    public bool GetAutoHide() => GetDock().AutoHide;
+
+    public void SetAutoHide(bool value)
+    {
+        GetDock().AutoHide = value;
+        _dockService.SaveChanges();
+    }
+
     public bool GetHideInFullscreen() => GetDock().HideInFullscreen;
 
     public void SetHideInFullscreen(bool value)
