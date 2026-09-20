@@ -67,6 +67,7 @@
                                 RenderTransformOrigin="50%, 50%"
                                 PointerEntered="OnItemPointerEntered"
                                 PointerExited="OnItemPointerExited"
+                                PointerWheelChanged="OnItemPointerWheel"
                                 ContextRequested="OnPinnedItemContextRequested">
 
                             <!-- Hover scale animation. Both scale states come from styles:

@@ -13,6 +13,9 @@ public interface IWindowQueryGateway
     List<RunningWindowInfo> FindTaskbarWindows();
     void Activate(WindowInfo windowInfo);
     void Close(WindowInfo windowInfo);
+    void Minimize(WindowInfo windowInfo) { }
+    bool IsForeground(WindowInfo windowInfo) => false;
+    bool IsMinimized(WindowInfo windowInfo) => false;
 }
 
 /// <summary>Minimal info required to activate and label a window.</summary>

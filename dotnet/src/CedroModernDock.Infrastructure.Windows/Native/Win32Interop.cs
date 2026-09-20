@@ -28,6 +28,7 @@ public static class Win32Constants
     public const int SW_RESTORE = 9;
     public const int SW_SHOW = 5;
     public const int SW_HIDE = 0;
+    public const int SW_MINIMIZE = 6;
     public const int SW_SHOWNOACTIVATE = 4;
 
     // SetWindowPos flags
@@ -216,6 +217,18 @@ public static class User32
     public static extern IntPtr GetForegroundWindow();
 
     [DllImport("user32.dll")]
+    public static extern IntPtr GetAncestor(IntPtr hWnd, uint gaFlags);
+
+    [DllImport("user32.dll")]
+    public static extern bool IsIconic(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+    [DllImport("user32.dll")]
+    public static extern bool BringWindowToTop(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
     public static extern int GetSystemMetrics(int nIndex);
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -324,6 +337,9 @@ internal static class Kernel32
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern IntPtr GetModuleHandle(string? lpModuleName);
+
+    [DllImport("kernel32.dll")]
+    public static extern uint GetCurrentThreadId();
 }
 
 internal static class Comctl32

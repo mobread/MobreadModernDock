@@ -32,4 +32,23 @@ public class Win32WindowQueryGateway : IWindowQueryGateway
     {
         Win32WindowQuery.CloseWindow(windowInfo.Handle);
     }
+
+    public void Minimize(WindowInfo windowInfo)
+    {
+        if (windowInfo.Handle != IntPtr.Zero)
+            User32.ShowWindow(windowInfo.Handle, Win32Constants.SW_MINIMIZE);
+    }
+
+    public bool IsForeground(WindowInfo windowInfo)
+    {
+        IntPtr fg = User32.GetForegroundWindow();
+        if (fg == IntPtr.Zero || windowInfo.Handle == IntPtr.Zero) return false;
+        // The foreground window may be an owned popup of the target; walk up.
+        return fg == windowInfo.Handle || User32.GetAncestor(fg, GA_ROOTOWNER) == windowInfo.Handle;
+    }
+
+    public bool IsMinimized(WindowInfo windowInfo) =>
+        windowInfo.Handle != IntPtr.Zero && User32.IsIconic(windowInfo.Handle);
+
+    private const uint GA_ROOTOWNER = 3;
 }

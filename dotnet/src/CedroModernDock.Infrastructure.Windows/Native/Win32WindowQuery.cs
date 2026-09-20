@@ -272,8 +272,26 @@ public static class Win32WindowQuery
         if (hwnd == IntPtr.Zero)
             return;
 
-        User32.ShowWindow(hwnd, Win32Constants.SW_RESTORE);
-        User32.SetForegroundWindow(hwnd);
+        if (User32.IsIconic(hwnd))
+            User32.ShowWindow(hwnd, Win32Constants.SW_RESTORE);
+
+        // SetForegroundWindow is refused unless the caller owns the foreground
+        // (the dock never does: WS_EX_NOACTIVATE). Briefly attach to the
+        // foreground thread's input queue, which grants the permission the
+        // taskbar has natively.
+        IntPtr fg = User32.GetForegroundWindow();
+        uint fgThread = fg != IntPtr.Zero ? User32.GetWindowThreadProcessId(fg, out _) : 0;
+        uint me = Kernel32.GetCurrentThreadId();
+        bool attached = fgThread != 0 && fgThread != me && User32.AttachThreadInput(me, fgThread, true);
+        try
+        {
+            User32.BringWindowToTop(hwnd);
+            User32.SetForegroundWindow(hwnd);
+        }
+        finally
+        {
+            if (attached) User32.AttachThreadInput(me, fgThread, false);
+        }
     }
 
     /// <summary>

@@ -651,6 +651,18 @@ public partial class MainWindow : Window
 
     private void HideDropIndicator() => DropIndicator.IsVisible = false;
 
+    /// <summary>Scroll over a running program's icon to step through its windows.</summary>
+    private void OnItemPointerWheel(object? sender, PointerWheelEventArgs e)
+    {
+        if (sender is not Button { DataContext: DockItemViewModel { Item: DockProgramItemModel item } } || _appServices == null) return;
+        int direction = e.Delta.Y > 0 ? -1 : e.Delta.Y < 0 ? 1 : 0;
+        if (direction == 0) return;
+        e.Handled = true;
+        HidePreview();
+        var svc = _appServices.WindowPreviewService;
+        Task.Run(() => svc.CycleWindows(item, direction));
+    }
+
     // --- Right-click context menus: pin / unpin ---
 
     private void OnPinnedItemContextRequested(object? sender, ContextRequestedEventArgs e)

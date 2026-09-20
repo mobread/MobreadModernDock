@@ -366,6 +366,15 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (param is DockItemViewModel itemVm && _appServices != null)
         {
+            // Taskbar semantics for running programs: focus / minimize /
+            // cycle instead of launching another instance.
+            if (itemVm.Item is DockProgramItemModel running
+                && _appServices.WindowPreviewService.ClickRunning(running))
+            {
+                PreviewDismissAction?.Invoke();
+                return;
+            }
+
             bool launched = _appServices.ItemActionService.Execute(
                 itemVm.Item, () => OpenSettingsAction?.Invoke());
 
