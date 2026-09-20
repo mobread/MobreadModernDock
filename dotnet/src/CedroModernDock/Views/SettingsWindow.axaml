@@ -6,8 +6,9 @@
         x:DataType="vm:SettingsViewModel"
         Title="{Binding WindowTitle}"
         Icon="/Assets/icons/cedro/logo_256.png"
-        Width="780" Height="544"
-        CanResize="False"
+        Width="860" Height="700"
+        MinWidth="720" MinHeight="520"
+        CanResize="True"
         WindowStartupLocation="CenterScreen"
         Background="#1E1E1E"
         Closed="OnClosed">
@@ -357,7 +358,7 @@
                         <StackPanel Grid.Column="0" Spacing="8">
                             <TextBlock Text="{Binding WidgetsTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
                             <TextBlock Text="{Binding WidgetsHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <ListBox x:Name="WidgetsList" Height="220" Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1"
+                            <ListBox x:Name="WidgetsList" MinHeight="160" MaxHeight="360" Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1"
                                      SelectionChanged="OnWidgetSelectionChanged"/>
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <ComboBox x:Name="WidgetTypeCombo" MinWidth="130"/>
