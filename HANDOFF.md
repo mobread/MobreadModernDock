@@ -1,39 +1,33 @@
 # Handoff — MobreadModernDock
 
-_Saved 2026-09-20 (session 2)._
+_Saved 2026-09-20 (session 3)._
 
-## Branch state
+## State
 
-| Branch | State |
-|---|---|
-| `main` | Upstream verbatim. |
-| `chore/kofi-funding` | Pushed. **[PR #1](https://github.com/mobread/MobreadModernDock/pull/1) open, not yet merged** — merge it to make the Sponsor button live. |
-| `feature/mobread-customizations` | Pushed, head **`f9564a5`**. Everything through #5 system monitor. 78/78 tests. |
+- Repo: `github.com/mobread/MobreadModernDock` (detached from the Cedro fork). Local: `C:\Users\micha\claude-projects\MobreadModernDock`.
+- `main` and `feature/mobread-customizations` are kept in sync by no-ff merges; `main` is the default branch and renders the README.
+- 78/78 tests. TFM is now `net9.0-windows10.0.19041.0` (WinRT projection for media session).
 
-Untracked docs in the working tree: `CUSTOMIZATIONS.md`, `HANDOFF.md` (this file).
+## Feature batch 1–9: DONE
 
-## Ko-fi
+All nine shipped. Widgets: text, tray, clock, sysmon, media, weather, quicklaunch, calendar.
 
-- `.github/FUNDING.yml` on `chore/kofi-funding`: `ko_fi: mobreadmeo`. README support section is on the feature branch.
-- Open question: whether Sponsor buttons render on **forks**. If not after merging PR #1, detach the fork relationship in Settings › General.
+Test widgets in the live `%APPDATA%\MobreadModernDock\config.json`: `sysmontest0001`, `mediatest0001`, `weathertest01` (Denver), `quicktest0001`, `caltest000001`. Remove from Settings › Widgets when done evaluating.
 
-## Item #5 — system monitor widget (DONE, `f9564a5`)
+## Loose ends
 
-Compiled first try. One runtime fix: GPU always read 0% because `GPU Engine\Utilization Percentage` is a rate counter and the code created a fresh `PerformanceCounter` per sample (first `NextValue()` on a rate counter is always 0). Counters now persist in a dictionary, re-enumerated every 5 s. Verified via UIA: `CPU 6% | RAM 22.4/64 GB | GPU 2% | NET ↓4K ↑6K`.
+- **Sponsor button** still doesn't render on the repo page (`showSponsorButton:false`) despite FUNDING.yml on `main`, repo detached, API reporting the Ko-fi link. Last idea: Settings › General › Features › Sponsorships checkbox. README badge works regardless.
+- `dotnet/installer/build.ps1` defaults to `1.2.0` — bump to `1.3.0` for the first release, then remove the "no packaged release yet" line from the README.
+- Weather widget: the geocoding search in Settings hasn't been exercised by hand (only the fixed-coordinate path was verified live). Worth one manual click-through.
+- Legacy `%APPDATA%\CedroModernDock` folder is left in place after migration (by design).
 
-A `sysmon` test widget (`id: sysmontest0001`) is in the live `%APPDATA%\MobreadModernDock\config.json`; a pre-change backup is at `config.json.bak`.
+## Ideas not started
 
-## Remaining feature batch
-
-6. media now-playing · 7. weather · 8. quick-launch grid · 9. calendar
+- Media widget: seek bar / elapsed time (GSMTC exposes `GetTimelineProperties()`).
+- Weather: hourly strip; auto-locate via `Windows.Devices.Geolocation`.
+- Calendar: Outlook/Google events would need OAuth — out of scope unless asked.
+- Quick launch: drag-drop reordering in the widget itself (currently ▲▼ in settings).
 
 ## Next session
 
-Load the `mobread-modern-dock-dev` skill first. Then: _"continue the 1–9 feature batch from #6."_
-
-Pattern for a new widget (see `Widgets/SystemMonitor/` for the template):
-1. `WidgetTypes.X = "key"` in `WidgetService.cs`
-2. `Widgets/X/XWidgetProvider.cs` implementing `IWidgetProvider` (CreateView + CreateSettingsView + DefaultSettings)
-3. Register in `WidgetRegistry.CreateDefault()`
-4. i18n keys `widget.type.<key>` + `settings.widget.<key>.*` in all 21 bundles (copy `$LOCALAPPDATA/hermes/cache/scratch/i18n_sysmon.py`)
-5. Any OS access goes through a `Core/Domain/I*Gateway` + `Infrastructure.Windows/Adapters/*` impl, wired in `AppServices` + `App.axaml.cs`
+Load the `mobread-modern-dock-dev` skill first — it has the build workflow, widget-authoring pattern and Win11 pitfalls.
