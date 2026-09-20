@@ -92,6 +92,14 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    public bool GetHideInFullscreen() => GetDock().HideInFullscreen;
+
+    public void SetHideInFullscreen(bool value)
+    {
+        GetDock().HideInFullscreen = value;
+        _dockService.SaveChanges();
+    }
+
     public bool GetHideTaskbar() => GetDock().HideTaskbar;
 
     public void SetHideTaskbar(bool value)

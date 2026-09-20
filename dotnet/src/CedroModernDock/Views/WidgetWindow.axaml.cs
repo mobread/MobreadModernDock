@@ -45,6 +45,9 @@ public partial class WidgetWindow : Window
 
     public string? WidgetId => _definition?.Id;
 
+    /// <summary>Fullscreen auto-hide: show/hide the native window without changing layering.</summary>
+    public void SetNativeVisible(bool visible) => _behavior?.SetNativeVisible(visible);
+
     /// <summary>Wires services, the definition and the provider-built content.</summary>
     public void Initialize(AppServices appServices, WidgetDefinition definition, Control content)
     {

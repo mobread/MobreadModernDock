@@ -213,6 +213,9 @@ public static class User32
     public static extern bool SetCursorPos(int x, int y);
 
     [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
     public static extern int GetSystemMetrics(int nIndex);
 
     [DllImport("user32.dll", SetLastError = true)]

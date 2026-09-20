@@ -198,6 +198,17 @@ public sealed class DockWindowBehavior : IDisposable
         return (rect.Left, rect.Top);
     }
 
+    /// <summary>
+    /// Shows or hides the native window without touching Avalonia's window
+    /// state (Avalonia's Hide/Show would re-create layering and lose the
+    /// desktop attachment). Used for fullscreen auto-hide.
+    /// </summary>
+    public void SetNativeVisible(bool visible)
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        User32.ShowWindow(_hwnd, visible ? Win32Constants.SW_SHOWNOACTIVATE : Win32Constants.SW_HIDE);
+    }
+
     private IntPtr HandleMessage(
         IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam,
         UIntPtr uIdSubclass, IntPtr dwRefData)

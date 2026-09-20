@@ -59,6 +59,7 @@ public partial class App : Application
             {
                 SyncWidgetWindows();
                 ApplyTaskbarVisibility();
+                StartFullscreenWatcher();
             };
             desktop.ShutdownRequested += (_, _) => TaskbarVisibility.Restore();
             desktop.Exit += (_, _) => TaskbarVisibility.Restore();
@@ -251,6 +252,8 @@ public partial class App : Application
             };
             _widgetWindows[def.Id] = window;
             window.Show();
+            if (_hiddenForFullscreen)
+                window.Opened += (_, _) => window.SetNativeVisible(false);
         }
 
         foreach (var id in _widgetWindows.Keys.ToList())
@@ -283,6 +286,40 @@ public partial class App : Application
         else
             TaskbarVisibility.RestoreIfLeftHidden();
     }
+
+    // --- Fullscreen auto-hide ---
+
+    private static System.Threading.Timer? _fullscreenPoll;
+    private static bool _hiddenForFullscreen;
+
+    /// <summary>
+    /// Polls the shell for a fullscreen foreground app and hides/shows the
+    /// dock and every widget window accordingly. Polling is cheap (two Win32
+    /// calls) and avoids the fragility of WinEvent hooks; 500ms is fast enough
+    /// that the dock is gone before a game finishes its first frame.
+    /// </summary>
+    private static void StartFullscreenWatcher()
+    {
+        _fullscreenPoll ??= new System.Threading.Timer(_ =>
+        {
+            if (_appServices == null || _shuttingDown) return;
+            bool enabled = _appServices.AppearanceService.GetHideInFullscreen();
+            bool shouldHide = enabled && FullscreenDetector.IsFullscreenAppActive();
+            if (shouldHide == _hiddenForFullscreen) return;
+            _hiddenForFullscreen = shouldHide;
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => SetAllVisible(!shouldHide));
+        }, null, 1000, 500);
+    }
+
+    private static void SetAllVisible(bool visible)
+    {
+        _mainWindow?.SetNativeVisible(visible);
+        foreach (var w in _widgetWindows.Values)
+            w.SetNativeVisible(visible);
+    }
+
+    /// <summary>Whether windows are currently hidden because a fullscreen app is active.</summary>
+    public static bool IsHiddenForFullscreen => _hiddenForFullscreen;
 
     private void DisableAvaloniaDataAnnotationValidation()
     {

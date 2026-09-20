@@ -675,6 +675,9 @@ public partial class MainWindow : Window
     /// <summary>Current absolute screen position, for callers outside the window (App).</summary>
     public (int X, int Y) CurrentScreenPosition => GetScreenPosition();
 
+    /// <summary>Fullscreen auto-hide: show/hide the native window without changing layering.</summary>
+    public void SetNativeVisible(bool visible) => _dockBehavior?.SetNativeVisible(visible);
+
     /// <summary>Re-reads the always-on-top setting and switches the window layer live.</summary>
     public void ApplyAlwaysOnTop()
     {

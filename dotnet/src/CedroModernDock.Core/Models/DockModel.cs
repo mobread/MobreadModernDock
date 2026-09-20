@@ -105,6 +105,10 @@ public class DockModel
     [JsonPropertyName("hideTaskbar")]
     public bool HideTaskbar { get; set; }
 
+    /// <summary>Hide the dock and widgets while a fullscreen app (game, video) is in the foreground.</summary>
+    [JsonPropertyName("hideInFullscreen")]
+    public bool HideInFullscreen { get; set; } = true;
+
     // --- Floating widgets ---
 
     [JsonPropertyName("widgets")]
