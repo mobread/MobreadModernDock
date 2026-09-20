@@ -228,70 +228,37 @@ public partial class WindowPreviewPopup : Window
         int w = (int)(DesiredSize.Width * scale);
         int h = (int)(DesiredSize.Height * scale);
 
-        var anchorCenter = anchor.PointToScreen(new Point(anchor.Bounds.Width / 2, anchor.Bounds.Height / 2));
+        // True screen rects: the dock is desktop-parented, so Avalonia's
+        // PointToScreen/Screens are offset by the virtual-desktop origin on
+        // multi-monitor layouts (see ScreenGeometry).
+        var a = ScreenGeometry.ControlScreenRect(anchor);
+        var dock = TopLevel.GetTopLevel(anchor) is Window root ? ScreenGeometry.WindowScreenRect(root) : a;
+        var anchorCenter = new PixelPoint(a.X + a.Width / 2, a.Y + a.Height / 2);
+        var work = ScreenGeometry.WorkAreaAt(anchorCenter);
 
-        var screens = Screens;
-        var screen = screens.ScreenFromPoint(anchorCenter);
-        if (screen is null && screens.All.Count > 0)
-            screen = screens.All[0];
-
-        // Gap (DIPs) between the item button and the dock window's own border:
-        // the popup must sit outside the dock, not just below the button.
-        double gapBelow = 0, gapAbove = 0, gapLeft = 0, gapRight = 0;
-        if (TopLevel.GetTopLevel(anchor) is { } root &&
-            anchor.TransformToVisual(root) is { } transform)
+        int popupX, popupY;
+        if (_verticalDock)
         {
-            var topLeft = new Point(0, 0).Transform(transform);
-            var bottomRight = new Point(anchor.Bounds.Width, anchor.Bounds.Height).Transform(transform);
-            gapBelow = root.Bounds.Height - bottomRight.Y;
-            gapAbove = topLeft.Y;
-            gapLeft = topLeft.X;
-            gapRight = root.Bounds.Width - bottomRight.X;
+            // Vertical dock: popup to the left/right of the bar's outer edge.
+            // Dock on the left edge -> popup on the right; right edge -> left.
+            int popupRightX = dock.Right + 4;
+            int popupLeftX = dock.X - w - 4;
+            bool placeRight = _horizontalAnchor != DockHorizontalAnchor.RIGHT;
+            int px = placeRight ? popupRightX : popupLeftX;
+            if (placeRight && px + w > work.Right) px = popupLeftX;
+            else if (!placeRight && px < work.X) px = popupRightX;
+            popupX = Math.Max(work.X + 4, Math.Min(px, work.Right - w - 4));
+            popupY = Math.Max(work.Y + 4, Math.Min(anchorCenter.Y - h / 2, work.Bottom - h - 4));
         }
-
-        // Place below the dock by default; above when the dock is in the lower half.
-        var anchorBottom = anchor.PointToScreen(new Point(anchor.Bounds.Width / 2, anchor.Bounds.Height));
-        int popupX = anchorCenter.X - w / 2;
-        int popupY = (int)(anchorBottom.Y + gapBelow * scale) + 4;
-        if (screen is not null)
+        else
         {
-            var work = screen.WorkingArea;
-            if (_verticalDock)
-            {
-                // Vertical dock: popup to the left/right of the dock, flush
-                // against the bar's outer edge with the same 4px gap horizontal
-                // mode uses below the dock. Dock on the left edge -> popup on
-                // the right; dock on the right edge -> popup on the left.
-                int popupRightX = (int)(anchor.PointToScreen(
-                    new Point(anchor.Bounds.Width, anchor.Bounds.Height / 2)).X
-                    + gapRight * scale) + 4;
-                int popupLeftX = (int)(anchor.PointToScreen(
-                    new Point(0, anchor.Bounds.Height / 2)).X
-                    - gapLeft * scale) - w - 4;
-
-                bool placeRight = _horizontalAnchor != DockHorizontalAnchor.RIGHT;
-                int px = placeRight ? popupRightX : popupLeftX;
-                int py = anchorCenter.Y - h / 2;
-
-                if (placeRight && px + w > work.Right)
-                    px = popupLeftX;
-                else if (!placeRight && px < work.X)
-                    px = popupRightX;
-
-                popupX = Math.Max(work.X + 4, Math.Min(px, work.Right - w - 4));
-                popupY = Math.Max(work.Y + 4, Math.Min(py, work.Bottom - h - 4));
-            }
-            else
-            {
-                if (popupY + h > work.Bottom)
-                {
-                    var anchorTop = anchor.PointToScreen(new Point(anchor.Bounds.Width / 2, 0));
-                    popupY = (int)(anchorTop.Y - gapAbove * scale) - h - 4;
-                }
-
-                popupX = Math.Max(work.X + 4, Math.Min(popupX, work.Right - w - 4));
-                popupY = Math.Max(work.Y + 4, popupY);
-            }
+            // Below the dock by default; above when it would not fit.
+            popupX = anchorCenter.X - w / 2;
+            popupY = dock.Bottom + 4;
+            if (popupY + h > work.Bottom)
+                popupY = dock.Y - h - 4;
+            popupX = Math.Max(work.X + 4, Math.Min(popupX, work.Right - w - 4));
+            popupY = Math.Max(work.Y + 4, popupY);
         }
         Position = new PixelPoint(popupX, popupY);
     }
