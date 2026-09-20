@@ -334,6 +334,26 @@
                         <TextBlock Text="{Binding ContactText}" Foreground="#CCCCCC"/>
                     </StackPanel>
                 </TabItem>
+
+                <!-- Tab 6: Widget -->
+                <TabItem Header="{Binding TabWidget}">
+                    <StackPanel Orientation="Vertical" Spacing="16" Margin="16,12">
+                        <CheckBox Content="{Binding WidgetEnableText}" IsChecked="{Binding WidgetEnabled}" Foreground="#CCCCCC"/>
+                        <StackPanel Orientation="Vertical" Spacing="4">
+                            <TextBlock Text="{Binding WidgetTextTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
+                            <TextBlock Text="{Binding WidgetTextHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
+                            <TextBox Text="{Binding WidgetText}" Margin="0,8,0,0" Width="320" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Vertical" Spacing="4">
+                            <TextBlock Text="{Binding WidgetPreviewTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
+                            <TextBlock Text="{Binding WidgetPreviewText}" Foreground="White" FontSize="{Binding WidgetFontSize}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Vertical" Spacing="4">
+                            <TextBlock Text="{Binding WidgetFontSizeTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
+                            <Slider Minimum="8" Maximum="72" Value="{Binding WidgetFontSize}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </TabItem>
             </TabControl>
         </StackPanel>
     </ScrollViewer>

@@ -89,6 +89,27 @@ public class DockModel
     [JsonPropertyName("tintColorRGB")]
     public string TintColorRGB { get; set; } = "0, 80, 140";
 
+    // --- Floating text widget ---
+
+    [JsonPropertyName("widgetEnabled")]
+    public bool WidgetEnabled { get; set; }
+
+    /// <summary>
+    /// Widget text template. Supports the placeholders <c>{host}</c> (machine
+    /// name) and <c>{user}</c> (user name). Empty means "{host}".
+    /// </summary>
+    [JsonPropertyName("widgetText")]
+    public string WidgetText { get; set; } = "{host}";
+
+    [JsonPropertyName("widgetFontSize")]
+    public int WidgetFontSize { get; set; } = 14;
+
+    [JsonPropertyName("widgetPositionX")]
+    public double WidgetPositionX { get; set; } = 40;
+
+    [JsonPropertyName("widgetPositionY")]
+    public double WidgetPositionY { get; set; } = 40;
+
     public void AddItem(DockItem item) => Items.Add(item);
 
     public void RemoveItem(int index) => Items.RemoveAt(index);

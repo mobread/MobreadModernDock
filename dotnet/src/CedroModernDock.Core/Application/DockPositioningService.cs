@@ -94,7 +94,23 @@ public class DockPositioningService
         DockModel dock = _dockService.GetDock();
 
         if (dock.PositioningMode == DockPositioningMode.DYNAMIC)
-            return (SnapToPixel(dock.DockPositionX), SnapToPixel(dock.DockPositionY));
+        {
+            var saved = (SnapToPixel(dock.DockPositionX), SnapToPixel(dock.DockPositionY));
+            // A saved position that no longer lies on any part of the primary
+            // screen (monitor layout changed, or was persisted with a wrong
+            // offset) would leave the dock stranded; fall back to the primary
+            // screen's bottom-center in that case.
+            if (_screenBoundsProvider != null)
+            {
+                var b = _screenBoundsProvider.GetPrimaryScreenBounds();
+                bool onScreen = saved.Item1 + windowWidth > b.MinX && saved.Item1 < b.MaxX
+                             && saved.Item2 + windowHeight > b.MinY && saved.Item2 < b.MaxY;
+                if (!onScreen)
+                    return (SnapToPixel(b.MinX + (b.Width - windowWidth) / 2),
+                            SnapToPixel(b.MaxY - windowHeight - dock.BottomSpacing));
+            }
+            return saved;
+        }
 
         if (_screenBoundsProvider == null)
             return (0, 0);
@@ -104,6 +120,10 @@ public class DockPositioningService
         double y = SnapToPixel(ResolveVerticalPosition(bounds, windowHeight, dock));
         return (x, y);
     }
+
+    /// <summary>Primary screen work area (or a 1920x1080 fallback when no provider is wired).</summary>
+    public ScreenBounds GetPrimaryScreenBounds() =>
+        _screenBoundsProvider?.GetPrimaryScreenBounds() ?? new ScreenBounds(0, 0, 1920, 1080);
 
     public static double SnapToPixel(double value) => Math.Round(value, MidpointRounding.AwayFromZero);
 

@@ -50,6 +50,10 @@ public partial class App : Application
             mainWindow.SetAppServices(appServices);
             _mainWindow = mainWindow;
             desktop.MainWindow = mainWindow;
+
+            // Widget: show at startup if enabled, and follow the toggle.
+            appServices.WidgetService.AddListener(SyncWidgetWindow);
+            mainWindow.Opened += (_, _) => SyncWidgetWindow();
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -137,7 +141,8 @@ public partial class App : Application
         var currentMode = _appServices.PositioningService.GetPositioningMode();
         if (currentMode == DockPositioningMode.STATIC && mode == DockPositioningMode.DYNAMIC)
         {
-            _appServices.DockService.SetDockPosition(_mainWindow.Position.X, _mainWindow.Position.Y);
+            var (x, y) = _mainWindow.CurrentScreenPosition;
+            _appServices.DockService.SetDockPosition(x, y);
         }
         _appServices.PositioningService.SetPositioningMode(mode);
     }
@@ -170,8 +175,47 @@ public partial class App : Application
             ),
             WindowPreviewService: new WindowPreviewService(new Win32WindowQueryGateway()),
             IconGateway: new CachedWindowsIconGateway(),
-            LocalizationService: new LocalizationService(dockService)
+            LocalizationService: new LocalizationService(dockService),
+            WidgetService: new WidgetService(dockService)
         );
+    }
+
+    // --- Floating text widget lifecycle ---
+
+    private static WidgetWindow? _widgetWindow;
+
+    /// <summary>
+    /// Shows or hides the widget window to match the enabled setting. Called
+    /// once at startup and again whenever the setting changes. The window is
+    /// created lazily and closed (not hidden) when disabled so its native
+    /// subclass is released.
+    /// </summary>
+    private static void SyncWidgetWindow()
+    {
+        if (_appServices == null) return;
+        bool enabled = _appServices.WidgetService.IsEnabled();
+
+        if (enabled && _widgetWindow == null)
+        {
+            var vm = new WidgetViewModel(_appServices);
+            var window = new WidgetWindow { DataContext = vm };
+            window.SetAppServices(_appServices);
+            window.Closed += (_, _) => { if (_widgetWindow == window) _widgetWindow = null; };
+            _widgetWindow = window;
+            window.Show();
+        }
+        else if (!enabled && _widgetWindow != null)
+        {
+            var window = _widgetWindow;
+            _widgetWindow = null;
+            window.Close();
+        }
+    }
+
+    /// <summary>Dock appearance changed: the widget mirrors dock color/rounding.</summary>
+    public static void RefreshWidgetAppearance()
+    {
+        (_widgetWindow?.DataContext as WidgetViewModel)?.Refresh();
     }
 
     private void DisableAvaloniaDataAnnotationValidation()

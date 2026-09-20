@@ -31,8 +31,16 @@
             ClipToBounds="True">
 
         <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}">
-            <!-- Pinned dock items -->
-            <ItemsControl ItemsSource="{Binding Items}">
+            <!-- Pinned dock items. Drag an icon past a small threshold to
+                 reorder it in place; a plain click still launches. The Panel
+                 overlays a thin drop indicator at the target gap. -->
+            <Panel>
+            <ItemsControl x:Name="PinnedItems"
+                          ItemsSource="{Binding Items}"
+                          DragDrop.AllowDrop="True"
+                          DragDrop.DragOver="OnPinnedDragOver"
+                          DragDrop.DragLeave="OnPinnedDragLeave"
+                          DragDrop.Drop="OnPinnedDrop">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}" />
@@ -50,7 +58,8 @@
                                 ToolTip.Tip="{Binding Label}"
                                 RenderTransformOrigin="50%, 50%"
                                 PointerEntered="OnItemPointerEntered"
-                                PointerExited="OnItemPointerExited">
+                                PointerExited="OnItemPointerExited"
+                                ContextRequested="OnPinnedItemContextRequested">
 
                             <!-- Hover scale animation. Both scale states come from styles:
                                  a local RenderTransform would win over the :pointerover
@@ -97,6 +106,15 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+            <!-- Drop indicator: a thin bar at the target gap while an icon is
+                 being dragged. Positioned via Margin from code-behind; its
+                 orientation follows the dock (vertical bar for a horizontal
+                 dock, horizontal bar for a vertical one). -->
+            <Border x:Name="DropIndicator" IsVisible="False"
+                    Background="White" Opacity="0.85" CornerRadius="1"
+                    IsHitTestVisible="False"
+                    HorizontalAlignment="Left" VerticalAlignment="Top" />
+            </Panel>
 
             <!-- Separator between pinned items and running apps -->
             <Image Source="/Assets/icons/open-softwares-separator-1.png"
@@ -134,7 +152,8 @@
                                 RenderTransformOrigin="50%, 50%"
                                 Click="OnRunningAppClicked"
                                 PointerEntered="OnRunningAppPointerEntered"
-                                PointerExited="OnItemPointerExited">
+                                PointerExited="OnItemPointerExited"
+                                ContextRequested="OnRunningAppContextRequested">
 
                             <Button.Transitions>
                                 <Transitions>

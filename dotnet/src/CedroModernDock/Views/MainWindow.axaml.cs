@@ -33,9 +33,26 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _previewCloseRefresh = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly DispatcherTimer _positionPersistTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
 
+    // --- Drag-to-reorder state for pinned dock icons ---
+    private const double ReorderDragThresholdPixels = 6;
+    private int _reorderSourceIndex = -1;
+    private Point _reorderPressPoint;
+    private bool _reorderInProgress;
+
     public MainWindow()
     {
         InitializeComponent();
+        // Button marks PointerPressed as handled (it owns the click), so the
+        // reorder gesture subscribes at the ItemsControl level with
+        // handledEventsToo — the same approach the Settings list uses.
+        PinnedItems.AddHandler(InputElement.PointerPressedEvent, OnPinnedPointerPressed,
+            RoutingStrategies.Bubble, handledEventsToo: true);
+        PinnedItems.AddHandler(InputElement.PointerMovedEvent, OnPinnedPointerMoved,
+            RoutingStrategies.Bubble, handledEventsToo: true);
+        PinnedItems.AddHandler(InputElement.PointerReleasedEvent, OnPinnedPointerReleased,
+            RoutingStrategies.Bubble, handledEventsToo: true);
+        PinnedItems.AddHandler(InputElement.PointerCaptureLostEvent, OnPinnedPointerCaptureLost,
+            RoutingStrategies.Bubble, handledEventsToo: true);
         PositionChanged += OnDockPositionChanged;
         _positionPersistTimer.Tick += (_, _) =>
         {
@@ -123,8 +140,25 @@ public partial class MainWindow : Window
         if (_appServices == null) return;
         if (!force && _appServices.PositioningService.IsDynamicPositioning()) return;
         var (x, y) = _appServices.PositioningService.ResolvePosition(Width, Height);
-        Position = new PixelPoint((int)x, (int)y);
+        SetScreenPosition((int)x, (int)y);
     }
+
+    /// <summary>
+    /// Positions the window in absolute screen coordinates. Once attached to
+    /// the desktop, Avalonia's Position is parent-relative and lands on the
+    /// wrong monitor when the primary display is not at the virtual origin;
+    /// DockWindowBehavior converts through the parent so it stays absolute.
+    /// </summary>
+    private void SetScreenPosition(int x, int y)
+    {
+        if (_dockBehavior != null)
+            _dockBehavior.MoveToScreen(x, y);
+        else
+            Position = new PixelPoint(x, y);
+    }
+
+    private (int X, int Y) GetScreenPosition() =>
+        _dockBehavior?.GetScreenPosition() ?? (Position.X, Position.Y);
 
     private void OnDockSizeChanged(object? sender, SizeChangedEventArgs e)
     {
@@ -394,6 +428,195 @@ public partial class MainWindow : Window
         BeginMoveDrag(e);
     }
 
+    // --- Drag-to-reorder pinned icons directly on the dock bar ---
+
+    private bool IsVerticalDock => (DataContext as MainWindowViewModel)?.IsVerticalDock == true;
+
+    private void OnPinnedPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (e.Source is not Visual source) return;
+        var button = source.FindAncestorOfType<Button>(includeSelf: true);
+        if (button is null) return;
+        int index = IndexOfPinnedButton(button);
+        if (index < 0) return;
+        _reorderSourceIndex = index;
+        _reorderPressPoint = e.GetPosition(PinnedItems);
+        _reorderInProgress = false;
+    }
+
+    private async void OnPinnedPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_reorderSourceIndex < 0 || _reorderInProgress) return;
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+
+        var current = e.GetPosition(PinnedItems);
+        if (Math.Abs(current.X - _reorderPressPoint.X) < ReorderDragThresholdPixels &&
+            Math.Abs(current.Y - _reorderPressPoint.Y) < ReorderDragThresholdPixels)
+            return;
+
+        // Past the threshold: this is a reorder, not a click. Dismiss any
+        // window preview so it does not float over the drag.
+        _reorderInProgress = true;
+        HidePreview();
+        var data = new DataTransfer();
+        data.Add(DataTransferItem.CreateText(_reorderSourceIndex.ToString()));
+        await DragDrop.DoDragDropAsync(e, data, DragDropEffects.Move);
+        _reorderInProgress = false;
+        _reorderSourceIndex = -1;
+        HideDropIndicator();
+    }
+
+    private void OnPinnedPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        _reorderSourceIndex = -1;
+        _reorderInProgress = false;
+    }
+
+    private void OnPinnedPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        // DoDragDropAsync itself takes the capture; only reset when no drag
+        // is running, otherwise the source index would be lost mid-drag.
+        if (_reorderInProgress) return;
+        _reorderSourceIndex = -1;
+        HideDropIndicator();
+    }
+
+    private void OnPinnedDragOver(object? sender, DragEventArgs e)
+    {
+        if (!_reorderInProgress || !e.DataTransfer.Contains(DataFormat.Text))
+        {
+            e.DragEffects = DragDropEffects.None;
+            return;
+        }
+        e.DragEffects = DragDropEffects.Move;
+        ShowDropIndicatorAt(e.GetPosition(PinnedItems));
+        e.Handled = true;
+    }
+
+    private void OnPinnedDragLeave(object? sender, DragEventArgs e) => HideDropIndicator();
+
+    private void OnPinnedDrop(object? sender, DragEventArgs e)
+    {
+        HideDropIndicator();
+        if (!_reorderInProgress) return;
+        string? sourceText = e.DataTransfer.TryGetText();
+        if (sourceText is null || !int.TryParse(sourceText, out int fromIndex)) return;
+
+        var (gapIndex, _) = ResolvePinnedDropGap(e.GetPosition(PinnedItems));
+        (DataContext as MainWindowViewModel)?.MoveItem(fromIndex, gapIndex);
+        e.DragEffects = DragDropEffects.Move;
+        e.Handled = true;
+    }
+
+    private int IndexOfPinnedButton(Button button)
+    {
+        if (button.DataContext is not DockItemViewModel vm) return -1;
+        if (DataContext is not MainWindowViewModel mainVm) return -1;
+        return mainVm.Items.IndexOf(vm);
+    }
+
+    /// <summary>
+    /// Maps a pointer position inside the pinned ItemsControl to a gap index
+    /// (0..Count) plus the axis coordinate of that gap. Each icon is split at
+    /// its midpoint along the dock axis to decide before/after.
+    /// </summary>
+    private (int GapIndex, double GapOffset) ResolvePinnedDropGap(Point position)
+    {
+        bool vertical = IsVerticalDock;
+        double pos = vertical ? position.Y : position.X;
+        int count = (DataContext as MainWindowViewModel)?.Items.Count ?? 0;
+        if (count == 0) return (0, 0);
+
+        var slots = new List<(int Index, double Start, double Length)>();
+        foreach (var container in PinnedItems.GetRealizedContainers())
+        {
+            if (container is not Control c) continue;
+            int index = PinnedItems.IndexFromContainer(c);
+            if (index < 0) continue;
+            if (c.TranslatePoint(new Point(0, 0), PinnedItems) is not Point topLeft) continue;
+            double start = vertical ? topLeft.Y : topLeft.X;
+            double length = vertical ? c.Bounds.Height : c.Bounds.Width;
+            if (length <= 0) continue;
+            slots.Add((index, start, length));
+        }
+        if (slots.Count == 0) return (0, 0);
+        slots.Sort((a, b) => a.Index.CompareTo(b.Index));
+
+        var first = slots[0];
+        if (pos < first.Start) return (first.Index, first.Start);
+
+        foreach (var slot in slots)
+        {
+            double end = slot.Start + slot.Length;
+            if (pos <= end)
+            {
+                double mid = slot.Start + slot.Length / 2;
+                return pos <= mid ? (slot.Index, slot.Start) : (slot.Index + 1, end);
+            }
+        }
+
+        var last = slots[^1];
+        return (Math.Min(last.Index + 1, count), last.Start + last.Length);
+    }
+
+    private void ShowDropIndicatorAt(Point position)
+    {
+        var (_, offset) = ResolvePinnedDropGap(position);
+        if (IsVerticalDock)
+        {
+            DropIndicator.Width = PinnedItems.Bounds.Width;
+            DropIndicator.Height = 2;
+            DropIndicator.Margin = new Thickness(0, Math.Max(0, offset - 1), 0, 0);
+        }
+        else
+        {
+            DropIndicator.Width = 2;
+            DropIndicator.Height = PinnedItems.Bounds.Height;
+            DropIndicator.Margin = new Thickness(Math.Max(0, offset - 1), 0, 0, 0);
+        }
+        DropIndicator.IsVisible = true;
+    }
+
+    private void HideDropIndicator() => DropIndicator.IsVisible = false;
+
+    // --- Right-click context menus: pin / unpin ---
+
+    private void OnPinnedItemContextRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        if (sender is not Button button || _appServices == null) return;
+        if (button.DataContext is not DockItemViewModel vm) return;
+        if (DataContext is not MainWindowViewModel mainVm) return;
+        e.Handled = true;
+        // Only program items are unpinnable from the dock; the Settings item
+        // and Windows modules keep no menu (Settings manages those).
+        if (vm.Item is not DockProgramItemModel) return;
+
+        HidePreview();
+        var loc = _appServices.LocalizationService;
+        var menu = new ContextMenu();
+        var unpin = new MenuItem { Header = loc.Text("dock.context.unpin") };
+        unpin.Click += (_, _) => mainVm.UnpinItem(vm);
+        menu.Items.Add(unpin);
+        menu.Open(button);
+    }
+
+    private void OnRunningAppContextRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        if (sender is not Button button || _appServices == null) return;
+        if (button.DataContext is not RunningAppViewModel vm) return;
+        if (DataContext is not MainWindowViewModel mainVm) return;
+        e.Handled = true;
+
+        HidePreview();
+        var loc = _appServices.LocalizationService;
+        var menu = new ContextMenu();
+        var pin = new MenuItem { Header = loc.Text("dock.context.pin") };
+        pin.Click += (_, _) => mainVm.PinRunningApp(vm);
+        menu.Items.Add(pin);
+        menu.Open(button);
+    }
+
     /// <summary>
     /// PositionChanged fires for every move — including each WM_MOVE delivered
     /// while the OS move-drag loop runs. The drag blocks the UI thread, so a
@@ -412,7 +635,8 @@ public partial class MainWindow : Window
     {
         if (_appServices == null) return;
         if (!_appServices.PositioningService.IsDynamicPositioning()) return;
-        _appServices.DockService.SetDockPosition(Position.X, Position.Y);
+        var (x, y) = GetScreenPosition();
+        _appServices.DockService.SetDockPosition(x, y);
     }
 
     private void UpdateStatus(string status)
@@ -440,10 +664,14 @@ public partial class MainWindow : Window
         var currentMode = _appServices.PositioningService.GetPositioningMode();
         if (currentMode == DockPositioningMode.STATIC && mode == DockPositioningMode.DYNAMIC)
         {
-            _appServices.DockService.SetDockPosition(Position.X, Position.Y);
+            var (x, y) = GetScreenPosition();
+            _appServices.DockService.SetDockPosition(x, y);
         }
         _appServices.PositioningService.SetPositioningMode(mode);
     }
+
+    /// <summary>Current absolute screen position, for callers outside the window (App).</summary>
+    public (int X, int Y) CurrentScreenPosition => GetScreenPosition();
 
     protected override void OnClosed(EventArgs e)
     {

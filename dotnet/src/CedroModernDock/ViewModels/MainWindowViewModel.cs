@@ -123,6 +123,65 @@ public partial class MainWindowViewModel : ViewModelBase
         StartIndicatorWatcher();
     }
 
+    /// <summary>
+    /// Drag-reorder on the dock bar: moves the pinned item shown at
+    /// <paramref name="fromIndex"/> (index into <see cref="Items"/>) into the
+    /// gap at <paramref name="toIndex"/> (0..Items.Count). Indices are mapped
+    /// to the underlying model list so a view-model that was skipped during
+    /// creation can never shift the target. Persists and rebuilds the dock.
+    /// </summary>
+    public void MoveItem(int fromIndex, int toIndex)
+    {
+        if (_appServices == null) return;
+        if (fromIndex < 0 || fromIndex >= Items.Count) return;
+        toIndex = Math.Clamp(toIndex, 0, Items.Count);
+        if (fromIndex == toIndex || fromIndex + 1 == toIndex) return;
+
+        var modelItems = _appServices.DockService.GetItems();
+        int modelFrom = modelItems.IndexOf(Items[fromIndex].Item);
+        int modelTo = toIndex < Items.Count
+            ? modelItems.IndexOf(Items[toIndex].Item)
+            : modelItems.Count;
+        if (modelFrom < 0 || modelTo < 0) return;
+
+        _appServices.DockService.MoveItem(modelFrom, modelTo);
+        UpdateDockUI();
+    }
+
+    /// <summary>
+    /// Pins a running-but-unpinned app: adds it as a program item at the end
+    /// of the pinned list, persists, and rebuilds the dock. The running-apps
+    /// watcher drops it from the right-hand section on its next pass.
+    /// </summary>
+    public void PinRunningApp(RunningAppViewModel app)
+    {
+        if (_appServices == null || string.IsNullOrWhiteSpace(app.ExecutablePath)) return;
+        var sel = ProgramSelectionResolver.Resolve(app.ExecutablePath);
+        bool alreadyPinned = _appServices.DockService.GetItems()
+            .OfType<DockProgramItemModel>()
+            .Any(p => string.Equals(p.ExecutablePath, sel.ExecutablePath, StringComparison.OrdinalIgnoreCase));
+        if (alreadyPinned) return;
+
+        _appServices.DockService.AddItem(new DockProgramItemModel(sel.Label, sel.ExecutablePath));
+        UpdateDockUI();
+        Task.Run(RefreshRunningApps);
+    }
+
+    /// <summary>
+    /// Unpins a program item from the dock. Only program items can be
+    /// unpinned this way; the Settings item and Windows modules are managed
+    /// from the Settings window.
+    /// </summary>
+    public void UnpinItem(DockItemViewModel item)
+    {
+        if (_appServices == null || item.Item is not DockProgramItemModel) return;
+        int index = _appServices.DockService.GetItems().IndexOf(item.Item);
+        if (index < 0) return;
+        _appServices.DockService.RemoveItem(index);
+        UpdateDockUI();
+        Task.Run(RefreshRunningApps);
+    }
+
     public void UpdateDockUI()
     {
         if (_appServices == null) return;
@@ -150,6 +209,7 @@ public partial class MainWindowViewModel : ViewModelBase
         ApplyAppearance();
         RepositionAction?.Invoke();
         PreviewDismissAction?.Invoke();
+        App.RefreshWidgetAppearance();
     }
     // --- continued below ---
 

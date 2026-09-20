@@ -166,6 +166,22 @@ public partial class SettingsViewModel : ViewModelBase
     public string TabDockCustomization => T("settings.tab.dockCustomization");
     public string TabDockPositioning => T("settings.tab.dockPositioning");
     public string TabGeneral => T("settings.tab.general");
+    public string TabWidget => T("settings.tab.widget");
+    public string WidgetEnableText => T("settings.widget.enable");
+    public string WidgetTextTitle => T("settings.widget.text.title");
+    public string WidgetTextHelper => T("settings.widget.text.helper");
+    public string WidgetFontSizeTitle => T("settings.widget.fontSize.title");
+    public string WidgetPreviewTitle => T("settings.widget.preview.title");
+    public string WidgetPreviewText => WidgetService.ResolveText(WidgetText);
+
+    private bool _widgetEnabled;
+    public bool WidgetEnabled { get => _widgetEnabled; set => SetProperty(ref _widgetEnabled, value); }
+
+    private string _widgetText = "{host}";
+    public string WidgetText { get => _widgetText; set => SetProperty(ref _widgetText, value); }
+
+    private int _widgetFontSize = 14;
+    public int WidgetFontSize { get => _widgetFontSize; set => SetProperty(ref _widgetFontSize, value); }
     // --- continued below ---
     public string ItemsTitle => T("settings.icons.items.title");
     public string ItemsHelper => T("settings.icons.items.helper");
@@ -271,6 +287,10 @@ public partial class SettingsViewModel : ViewModelBase
         IsAutoStartEnabled = Infrastructure.Windows.Adapters.AutoStartHelper.IsAutoStartEnabled();
         ShowUnpinnedRunningApps = app.GetShowUnpinnedRunningApps();
         IsVerticalDock = app.GetVerticalDock();
+        var widget = _appServices.WidgetService;
+        WidgetEnabled = widget.IsEnabled();
+        WidgetText = widget.GetTextTemplate();
+        WidgetFontSize = widget.GetFontSize();
         _isInitialized = true;
     }
 
@@ -293,6 +313,12 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(IsAutoStartEnabled): OnAutoStartChanged(); break;
             case nameof(ShowUnpinnedRunningApps): OnShowUnpinnedRunningAppsChanged(); break;
             case nameof(IsVerticalDock): OnVerticalDockChanged(); break;
+            case nameof(WidgetEnabled): _appServices.WidgetService.SetEnabled(WidgetEnabled); break;
+            case nameof(WidgetText):
+                _appServices.WidgetService.SetTextTemplate(WidgetText);
+                OnPropertyChanged(nameof(WidgetPreviewText));
+                break;
+            case nameof(WidgetFontSize): _appServices.WidgetService.SetFontSize(WidgetFontSize); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
             case nameof(VerticalAnchor): OnVerticalAnchorChanged(); break;
             case nameof(HorizontalAnchor): OnHorizontalAnchorChanged(); break;

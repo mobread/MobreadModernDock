@@ -19,6 +19,7 @@ using System.Text;
 public sealed class DockWindowBehavior : IDisposable
 {
     private IntPtr _hwnd;
+    private IntPtr _desktopParent;
     private readonly Action<string>? _onStatus;
     private SubclassProc? _subclassProc; // kept alive to prevent GC of the native callback
     private bool _subclassed;
@@ -75,6 +76,7 @@ public sealed class DockWindowBehavior : IDisposable
         }
 
         User32.SetParent(_hwnd, desktop);
+        _desktopParent = desktop;
         _onStatus?.Invoke($"Attached to desktop 0x{desktop:X}");
     }
 
@@ -113,6 +115,44 @@ public sealed class DockWindowBehavior : IDisposable
             return true;
         }, IntPtr.Zero);
         return found;
+    }
+
+    /// <summary>
+    /// Moves the window to absolute screen coordinates. After AttachToDesktop
+    /// the window is a child of Progman/WorkerW, so positions set through the
+    /// framework (Avalonia's Window.Position → SetWindowPos) are interpreted
+    /// relative to the parent's client origin. Progman spans the whole virtual
+    /// desktop, so on multi-monitor layouts where the primary monitor is not
+    /// at the virtual origin (e.g. a monitor to the left of the primary), the
+    /// window ends up shifted by that offset. Converting through the parent's
+    /// client space makes the position truly screen-absolute.
+    /// </summary>
+    public void MoveToScreen(int screenX, int screenY)
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        int x = screenX, y = screenY;
+        // GetParent() returns nothing for an overlapped-style window even after
+        // SetParent, so use the desktop handle recorded at attach time.
+        IntPtr parent = _desktopParent != IntPtr.Zero ? _desktopParent : User32.GetParent(_hwnd);
+        if (parent != IntPtr.Zero)
+        {
+            var pt = new POINT { X = screenX, Y = screenY };
+            if (User32.ScreenToClient(parent, ref pt))
+            {
+                x = pt.X;
+                y = pt.Y;
+            }
+        }
+        User32.SetWindowPos(_hwnd, IntPtr.Zero, x, y, 0, 0,
+            Win32Constants.SWP_NOSIZE | Win32Constants.SWP_NOZORDER | Win32Constants.SWP_NOACTIVATE);
+    }
+
+    /// <summary>The window's current top-left corner in absolute screen coordinates.</summary>
+    public (int X, int Y) GetScreenPosition()
+    {
+        if (_hwnd == IntPtr.Zero || !User32.GetWindowRect(_hwnd, out RECT rect))
+            return (0, 0);
+        return (rect.Left, rect.Top);
     }
 
     private IntPtr HandleMessage(
