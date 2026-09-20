@@ -2,7 +2,7 @@
 
 What this fork adds on top of [Cedro-Software/cedro-modern-dock](https://github.com/Cedro-Software/cedro-modern-dock).
 
-**18 feature commits · ~6,100 lines across 84 files · 78 tests passing**
+**19 feature commits · ~8,000 lines across 95 files · 78 tests passing**
 
 All work lives on `feature/mobread-customizations`. `main` tracks upstream verbatim (plus `.github/FUNDING.yml`).
 
@@ -38,6 +38,10 @@ A generic `IWidgetProvider` + `WidgetWindow` system — each provider supplies a
 | **System tray** | Reads the Win11 notification area via **UI Automation** — the XAML island is invisible to Win32 enumeration. Icon bitmaps come from the shell's own cache (`HKCU\Control Panel\NotifyIconSettings\*\IconSnapshot`) because DWM excludes the taskbar from screen capture. Left-click = UIA Invoke; right-click = synthesized click at the icon's physical position, read under per-monitor DPI awareness. |
 | **Clock** | 10 layout presets (12/24 h, seconds, weekday, short/long/ISO date) plus free .NET format strings, listed with live samples. Optional second date line. Ticks align to the wall clock — per-second only when the format shows seconds. Invalid patterns fall back to `HH:mm`. |
 | **System monitor** | CPU / RAM / GPU / network as colour-coded bars (green → amber → red) via Windows performance counters. Per-metric toggles, compact (bars-only) mode, 0.5–5 s refresh. CPU uses `% Processor Utility` to match Task Manager; GPU sums `engtype_3D` engine instances (counters persist between samples — rate counters read 0 on first call); network bar scales against a decaying peak. |
+| **Now Playing** | `GlobalSystemMediaTransportControlsSessionManager` (WinRT; TFM is `net9.0-windows10.0.19041.0` for the projection). Tracks the manager's current session, re-subscribes on `CurrentSessionChanged`, caches the thumbnail by title+artist so play/pause doesn't re-decode art. Controls call `TryTogglePlayPauseAsync` etc. |
+| **Weather** | Open-Meteo forecast + geocoding, no key. `IWeatherGateway` in Core (pure HTTP). Polls on a per-widget interval with exponential backoff (capped at the interval) when offline; the last good report stays on screen. WMO weather codes mapped to 13 localised descriptions + glyphs. |
+| **Calendar** | Always renders 6 rows so the widget doesn't resize month to month. A `DispatcherTimer` re-armed each tick fires at local midnight to move the "today" highlight. |
+| **Quick Launch** | Items are a JSON array in one setting (`items`). Same `.lnk` → target/args resolution as "Add Program"; launches go through `DockItemActionService` so elevation and Squirrel handling match the dock. Icons extracted on first render if missing from the cache. |
 
 ## Windows integration
 

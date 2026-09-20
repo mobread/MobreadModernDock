@@ -33,6 +33,10 @@ Free-floating panels that follow the dock's colour and corner rounding. Each rem
 | Widget | What it does |
 |---|---|
 | **Clock** | 10 layout presets — 12/24 h, seconds, weekday, short / long / ISO date — or any .NET format string, previewed live as you type. Optional second line for the date. |
+| **Now Playing** | Whatever Windows is playing — Spotify, browser, VLC — with album art, title and artist, and previous / play-pause / next buttons. Same source as the volume flyout's media card. |
+| **Weather** | Current conditions, today's high/low, humidity and wind, plus a 5-day strip. Type a city name to set the location; °C/°F toggle. Powered by Open-Meteo — no API key needed. |
+| **Calendar** | Month grid with today highlighted. Flip months with ‹ ›, click the title to jump back. Optional ISO week numbers, and a first-day-of-week override. |
+| **Quick Launch** | A second tier of shortcuts as a compact grid — programs, `.lnk` shortcuts or folders — with adjustable columns, icon size and optional labels. |
 | **System monitor** | CPU, RAM, GPU and network as bars that shift green → amber → red with load. Toggle each metric, a compact bars-only mode, 0.5–5 s refresh. CPU matches Task Manager's number; the network bar auto-scales to your link speed. |
 | **System tray** | See above. |
 | **Text** | Any text, with `{host}` and `{user}` placeholders. |

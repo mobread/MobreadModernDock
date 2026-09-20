@@ -21,5 +21,9 @@ public sealed class WidgetRegistry
         .Register(new Text.TextWidgetProvider())
         .Register(new Tray.TrayWidgetProvider())
         .Register(new Clock.ClockWidgetProvider())
-        .Register(new SystemMonitor.SystemMonitorWidgetProvider());
+        .Register(new SystemMonitor.SystemMonitorWidgetProvider())
+        .Register(new Media.MediaWidgetProvider())
+        .Register(new Weather.WeatherWidgetProvider())
+        .Register(new QuickLaunch.QuickLaunchWidgetProvider())
+        .Register(new Calendar.CalendarWidgetProvider());
 }
