@@ -186,6 +186,11 @@
                             <Slider Minimum="0" Maximum="20" Value="{Binding IconSpacing}" Margin="0,8,0,0"/>
                         </StackPanel>
                         <StackPanel Orientation="Vertical" Spacing="4">
+                            <TextBlock Text="{Binding DockRowsTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
+                            <TextBlock Text="{Binding DockRowsHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
+                            <Slider Minimum="1" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding DockRows}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Vertical" Spacing="4">
                             <CheckBox Content="{Binding TintIconsTitle}" IsChecked="{Binding TintIcons}" Foreground="#CCCCCC"/>
                             <StackPanel Orientation="Vertical" Spacing="4" IsVisible="{Binding TintIcons}">
                                 <TextBlock Text="{Binding TintColorHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>

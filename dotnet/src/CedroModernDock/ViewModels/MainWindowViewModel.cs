@@ -59,6 +59,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 OnPropertyChanged(nameof(DockOrientation));
                 OnPropertyChanged(nameof(ShowHorizontalSeparator));
                 OnPropertyChanged(nameof(ShowVerticalSeparator));
+                NotifyGridShape();
             }
         }
     }
@@ -73,12 +74,53 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Separator is only shown between pinned items and displayed unpinned running apps.</summary>
     public bool ShowVerticalSeparator => HasRunningApps && IsVerticalDock;
 
+    // --- Multi-row layout of the pinned items ---
+    // The pinned ItemsControl uses a UniformGrid. For a horizontal dock the
+    // configured value is the number of rows and columns follow from the item
+    // count; for a vertical dock it is the number of columns.
+    private int _dockLines = 1;
+    public int DockLines
+    {
+        get => _dockLines;
+        set
+        {
+            if (SetProperty(ref _dockLines, Math.Max(1, value)))
+                NotifyGridShape();
+        }
+    }
+
+    public int GridRows => IsVerticalDock ? CeilDiv(Items.Count, DockLines) : DockLines;
+    public int GridColumns => IsVerticalDock ? DockLines : CeilDiv(Items.Count, DockLines);
+
+    /// <summary>
+    /// Half the configured spacing on every side of each pinned item, so
+    /// neighbours in the UniformGrid are exactly <see cref="Spacing"/> apart
+    /// in both directions.
+    /// </summary>
+    public Thickness CellMargin => new(Spacing / 2.0);
+
+    private static int CeilDiv(int a, int b) => b <= 0 ? a : (a + b - 1) / b;
+
+    private void NotifyGridShape()
+    {
+        OnPropertyChanged(nameof(GridRows));
+        OnPropertyChanged(nameof(GridColumns));
+    }
+
     public int IconsSize
     {
         get => _iconsSize;
         set => SetProperty(ref _iconsSize, value);
     }
-    public int Spacing { get => _spacing; set => SetProperty(ref _spacing, value); }
+    public int Spacing
+    {
+        get => _spacing;
+        set
+        {
+            if (SetProperty(ref _spacing, value))
+                OnPropertyChanged(nameof(CellMargin));
+        }
+    }
     public int BorderRounding
     {
         get => _borderRounding;
@@ -209,6 +251,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 Items.Add(vm);
             }
         }
+        NotifyGridShape();
         ApplyAppearance();
         RepositionAction?.Invoke();
         PreviewDismissAction?.Invoke();
@@ -286,6 +329,7 @@ public partial class MainWindowViewModel : ViewModelBase
         foreach (var app in RunningApps)
             app.IconSize = IconsSize;
         Spacing = appearance.GetSpacingBetweenIcons();
+        DockLines = appearance.GetDockRows();
         BorderRounding = appearance.GetDockBorderRounding();
 
         // Re-tint the persistent running-apps VMs with the current tint

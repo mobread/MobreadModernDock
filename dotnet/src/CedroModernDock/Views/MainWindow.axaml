@@ -43,7 +43,13 @@
                           DragDrop.Drop="OnPinnedDrop">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}" />
+                        <!-- UniformGrid wraps the pinned icons into N rows
+                             (horizontal dock) or N columns (vertical dock).
+                             Rows=1 reproduces the classic single line.
+                             Cell spacing is the item margin (see
+                             ItemContainerTheme below) since UniformGrid has
+                             no Spacing property. -->
+                        <UniformGrid Rows="{Binding GridRows}" Columns="{Binding GridColumns}" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
 
@@ -54,6 +60,7 @@
                                 Background="Transparent"
                                 BorderBrush="Transparent"
                                 Padding="4"
+                                Margin="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).CellMargin}"
                                 Cursor="Hand"
                                 ToolTip.Tip="{Binding Label}"
                                 RenderTransformOrigin="50%, 50%"

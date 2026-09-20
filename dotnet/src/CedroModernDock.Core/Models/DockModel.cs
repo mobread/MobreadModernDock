@@ -97,6 +97,10 @@ public class DockModel
     [JsonPropertyName("alwaysOnTop")]
     public bool AlwaysOnTop { get; set; }
 
+    /// <summary>Number of rows (horizontal dock) or columns (vertical dock) the pinned icons wrap into. 1 = classic single line.</summary>
+    [JsonPropertyName("dockRows")]
+    public int DockRows { get; set; } = 1;
+
     /// <summary>Hides the Windows taskbar on every monitor while the app runs; restored on exit.</summary>
     [JsonPropertyName("hideTaskbar")]
     public bool HideTaskbar { get; set; }

@@ -84,6 +84,14 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    public int GetDockRows() => Math.Clamp(GetDock().DockRows, 1, 4);
+
+    public void SetDockRows(int value)
+    {
+        GetDock().DockRows = Math.Clamp(value, 1, 4);
+        _dockService.SaveChanges();
+    }
+
     public bool GetHideTaskbar() => GetDock().HideTaskbar;
 
     public void SetHideTaskbar(bool value)

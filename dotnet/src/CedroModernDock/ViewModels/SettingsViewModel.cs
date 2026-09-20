@@ -83,6 +83,8 @@ public partial class SettingsViewModel : ViewModelBase
 
     public int IconSize { get => _iconSize; set => SetProperty(ref _iconSize, value); }
     public int IconSpacing { get => _iconSpacing; set => SetProperty(ref _iconSpacing, value); }
+    private int _dockRows = 1;
+    public int DockRows { get => _dockRows; set => SetProperty(ref _dockRows, value); }
     public int Transparency { get => _transparency; set => SetProperty(ref _transparency, value); }
     public int BorderRounding { get => _borderRounding; set => SetProperty(ref _borderRounding, value); }
 
@@ -192,6 +194,8 @@ public partial class SettingsViewModel : ViewModelBase
     public string AddModuleText => T("settings.icons.addWindowsModule");
     public string RemoveText => T("settings.icons.removeSelected");
     public string IconSizeTitle => T("settings.iconsCustomization.size.title");
+    public string DockRowsTitle => T("settings.iconsCustomization.rows.title");
+    public string DockRowsHelper => T("settings.iconsCustomization.rows.helper");
     public string IconSizeHelper => T("settings.iconsCustomization.size.helper");
     public string SpacingTitle => T("settings.iconsCustomization.spacing.title");
     public string SpacingHelper => T("settings.iconsCustomization.spacing.helper");
@@ -273,6 +277,7 @@ public partial class SettingsViewModel : ViewModelBase
         var app = _appServices.AppearanceService;
         IconSize = app.GetIconsSize();
         IconSpacing = app.GetSpacingBetweenIcons();
+        DockRows = app.GetDockRows();
         Transparency = app.GetDockTransparencyPercentage();
         BorderRounding = app.GetDockBorderRounding();
         DockColor = ParseRgbColor(app.GetDockColorRGB());
@@ -308,6 +313,7 @@ public partial class SettingsViewModel : ViewModelBase
         {
             case nameof(IconSize): OnIconSizeChanged(); break;
             case nameof(IconSpacing): OnIconSpacingChanged(); break;
+            case nameof(DockRows): _appServices.AppearanceService.SetDockRows(DockRows); _dockRefreshAction(); break;
             case nameof(Transparency): OnTransparencyChanged(); break;
             case nameof(BorderRounding): OnBorderRoundingChanged(); break;
             case nameof(DockColor): OnDockColorChanged(); OnPropertyChanged(nameof(DockColorBrush)); break;

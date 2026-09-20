@@ -518,64 +518,65 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Maps a pointer position inside the pinned ItemsControl to a gap index
-    /// (0..Count) plus the axis coordinate of that gap. Each icon is split at
-    /// its midpoint along the dock axis to decide before/after.
+    /// A realized pinned item's cell rectangle, in PinnedItems coordinates.
     /// </summary>
-    private (int GapIndex, double GapOffset) ResolvePinnedDropGap(Point position)
-    {
-        bool vertical = IsVerticalDock;
-        double pos = vertical ? position.Y : position.X;
-        int count = (DataContext as MainWindowViewModel)?.Items.Count ?? 0;
-        if (count == 0) return (0, 0);
+    private sealed record Cell(int Index, Rect Bounds);
 
-        var slots = new List<(int Index, double Start, double Length)>();
+    private List<Cell> RealizedCells()
+    {
+        var cells = new List<Cell>();
         foreach (var container in PinnedItems.GetRealizedContainers())
         {
             if (container is not Control c) continue;
             int index = PinnedItems.IndexFromContainer(c);
             if (index < 0) continue;
             if (c.TranslatePoint(new Point(0, 0), PinnedItems) is not Point topLeft) continue;
-            double start = vertical ? topLeft.Y : topLeft.X;
-            double length = vertical ? c.Bounds.Height : c.Bounds.Width;
-            if (length <= 0) continue;
-            slots.Add((index, start, length));
+            if (c.Bounds.Width <= 0 || c.Bounds.Height <= 0) continue;
+            cells.Add(new Cell(index, new Rect(topLeft, c.Bounds.Size)));
         }
-        if (slots.Count == 0) return (0, 0);
-        slots.Sort((a, b) => a.Index.CompareTo(b.Index));
+        cells.Sort((a, b) => a.Index.CompareTo(b.Index));
+        return cells;
+    }
 
-        var first = slots[0];
-        if (pos < first.Start) return (first.Index, first.Start);
+    /// <summary>
+    /// Maps a pointer position inside the pinned ItemsControl to a gap index
+    /// (0..Count) plus the on-screen line where the gap lies. Items are laid
+    /// out in a UniformGrid (possibly several rows/columns), so the nearest
+    /// cell is found by distance and the drop goes before or after it along
+    /// the dock's main axis. Works for 1 line too.
+    /// </summary>
+    private (int GapIndex, Rect GapLine) ResolvePinnedDropGap(Point position)
+    {
+        var cells = RealizedCells();
+        int count = (DataContext as MainWindowViewModel)?.Items.Count ?? 0;
+        if (cells.Count == 0 || count == 0) return (0, new Rect(0, 0, 2, PinnedItems.Bounds.Height));
 
-        foreach (var slot in slots)
+        bool vertical = IsVerticalDock;
+        Cell nearest = cells[0];
+        double best = double.MaxValue;
+        foreach (var cell in cells)
         {
-            double end = slot.Start + slot.Length;
-            if (pos <= end)
-            {
-                double mid = slot.Start + slot.Length / 2;
-                return pos <= mid ? (slot.Index, slot.Start) : (slot.Index + 1, end);
-            }
+            var cx = Math.Clamp(position.X, cell.Bounds.Left, cell.Bounds.Right);
+            var cy = Math.Clamp(position.Y, cell.Bounds.Top, cell.Bounds.Bottom);
+            double d = (cx - position.X) * (cx - position.X) + (cy - position.Y) * (cy - position.Y);
+            if (d < best) { best = d; nearest = cell; }
         }
 
-        var last = slots[^1];
-        return (Math.Min(last.Index + 1, count), last.Start + last.Length);
+        var b = nearest.Bounds;
+        bool after = vertical ? position.Y > b.Center.Y : position.X > b.Center.X;
+        int gap = Math.Min(nearest.Index + (after ? 1 : 0), count);
+        Rect line = vertical
+            ? new Rect(b.Left, (after ? b.Bottom : b.Top) - 1, b.Width, 2)
+            : new Rect((after ? b.Right : b.Left) - 1, b.Top, 2, b.Height);
+        return (gap, line);
     }
 
     private void ShowDropIndicatorAt(Point position)
     {
-        var (_, offset) = ResolvePinnedDropGap(position);
-        if (IsVerticalDock)
-        {
-            DropIndicator.Width = PinnedItems.Bounds.Width;
-            DropIndicator.Height = 2;
-            DropIndicator.Margin = new Thickness(0, Math.Max(0, offset - 1), 0, 0);
-        }
-        else
-        {
-            DropIndicator.Width = 2;
-            DropIndicator.Height = PinnedItems.Bounds.Height;
-            DropIndicator.Margin = new Thickness(Math.Max(0, offset - 1), 0, 0, 0);
-        }
+        var (_, line) = ResolvePinnedDropGap(position);
+        DropIndicator.Width = line.Width;
+        DropIndicator.Height = line.Height;
+        DropIndicator.Margin = new Thickness(Math.Max(0, line.X), Math.Max(0, line.Y), 0, 0);
         DropIndicator.IsVisible = true;
     }
 
