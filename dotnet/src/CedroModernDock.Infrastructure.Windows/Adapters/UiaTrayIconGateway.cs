@@ -104,18 +104,21 @@ public sealed class UiaTrayIconGateway : ITrayIconGateway
             if (!_elementsByKey.TryGetValue(key, out var el)) return false;
             try
             {
-                // A hidden taskbar has no on-screen icon to click. Show it for
-                // the duration of the menu, then hide it again once the menu
-                // has been dismissed (menus are tracked as foreground popups).
+                // A hidden taskbar has no on-screen icon to click. Show it just
+                // long enough for the synthesized click to land, then hide it
+                // again the moment the app's menu is up. The menu is the app's
+                // own top-level popup and stays open after the taskbar goes.
                 bool wasHidden = TaskbarVisibility.IsHidden;
+                HashSet<IntPtr>? before = null;
                 if (wasHidden)
                 {
                     TaskbarVisibility.ShowTemporarily();
-                    Thread.Sleep(120); // let the shell lay the icons out again
+                    Thread.Sleep(SettleAfterShowMs);
+                    before = VisibleTopLevelWindows();
                 }
                 bool ok = ClickAt(el, rightButton: true);
                 if (wasHidden)
-                    Task.Run(() => RehideAfterMenuCloses());
+                    Task.Run(() => RehideWhenMenuAppears(before!));
                 return ok;
             }
             catch (Exception e)
@@ -126,19 +129,26 @@ public sealed class UiaTrayIconGateway : ITrayIconGateway
         }
     }
 
+    // Tuned on Win11 24H2: the XAML tray needs ~30ms after ShowWindow before
+    // its buttons hit-test at their laid-out positions.
+    private const int SettleAfterShowMs = 35;
+
     /// <summary>
-    /// Waits for the context menu opened by a synthesized right-click to close,
-    /// then re-hides the taskbar. A menu is a top-level "#32768" window; we
-    /// wait for it to appear (bounded) and then to disappear (bounded).
+    /// Re-hides the taskbar as soon as the context menu opened by the
+    /// synthesized right-click is on screen (bounded wait), so the taskbar is
+    /// visible for ~100ms total. Apps that show no menu (or take longer) fall
+    /// through to the timeout and are re-hidden then.
     /// </summary>
-    private static void RehideAfterMenuCloses()
+    private static void RehideWhenMenuAppears(HashSet<IntPtr> before)
     {
         try
         {
-            var appeared = DateTime.UtcNow.AddSeconds(2);
-            while (DateTime.UtcNow < appeared && !IsMenuOpen()) Thread.Sleep(50);
-            var deadline = DateTime.UtcNow.AddSeconds(30);
-            while (DateTime.UtcNow < deadline && IsMenuOpen()) Thread.Sleep(100);
+            var deadline = DateTime.UtcNow.AddMilliseconds(1500);
+            while (DateTime.UtcNow < deadline && !NewPopupAppeared(before)) Thread.Sleep(15);
+            // One more beat so the menu has finished its own show/animate and
+            // has captured the mouse; hiding a window under a menu mid-open
+            // can make some Win32 menus cancel.
+            Thread.Sleep(60);
         }
         finally
         {
@@ -147,27 +157,43 @@ public sealed class UiaTrayIconGateway : ITrayIconGateway
     }
 
     /// <summary>
-    /// True while a visible popup menu is on screen. "#32768" windows exist
-    /// dormant (hidden) most of the time, so only visible ones count; the
-    /// Win11 tray also uses XAML popups for some icons.
+    /// Snapshot of visible top-level window handles, taken before the click so
+    /// the menu can be recognized as "a window that wasn't there before".
+    /// Tray apps use every kind of menu (Win32 #32768, Electron/Chromium
+    /// popups, SDL, XAML), so class-name matching is not reliable.
     /// </summary>
-    private static bool IsMenuOpen()
+    private static HashSet<IntPtr> VisibleTopLevelWindows()
     {
-        bool open = false;
+        var set = new HashSet<IntPtr>();
         User32.EnumWindows((h, _) =>
         {
-            if (!User32.IsWindowVisible(h)) return true;
-            var cls = new System.Text.StringBuilder(64);
-            User32.GetClassName(h, cls, cls.Capacity);
-            string c = cls.ToString();
-            if (c == "#32768" || c == "Xaml_WindowedPopupClass")
+            if (User32.IsWindowVisible(h)) set.Add(h);
+            return true;
+        }, IntPtr.Zero);
+        return set;
+    }
+
+    /// <summary>
+    /// True when a new, visible, popup-sized top-level window has appeared
+    /// since <paramref name="before"/> was captured.
+    /// </summary>
+    private static bool NewPopupAppeared(HashSet<IntPtr> before)
+    {
+        bool found = false;
+        User32.EnumWindows((h, _) =>
+        {
+            if (!User32.IsWindowVisible(h) || before.Contains(h)) return true;
+            if (!User32.GetWindowRect(h, out RECT r)) return true;
+            int w = r.Right - r.Left, ht = r.Bottom - r.Top;
+            // Menus are small; ignore full windows the app might raise instead.
+            if (w > 20 && w < 900 && ht > 12 && ht < 900)
             {
-                open = true;
+                found = true;
                 return false;
             }
             return true;
         }, IntPtr.Zero);
-        return open;
+        return found;
     }
 
     // --- UIA ---
