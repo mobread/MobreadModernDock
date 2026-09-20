@@ -127,6 +127,26 @@ public class WidgetService
     }
 }
 
+/// <summary>Settings shared by every widget type (read by the host window).</summary>
+public static class CommonWidgetSettings
+{
+    /// <summary>"global" (default) or "custom".</summary>
+    public const string OpacityMode = "opacityMode";
+    /// <summary>Percentage 20..100, used when OpacityMode is "custom".</summary>
+    public const string Opacity = "opacity";
+
+    public const string OpacityModeGlobal = "global";
+    public const string OpacityModeCustom = "custom";
+
+    /// <summary>Resolves the opacity a widget should render at, given the global percentage.</summary>
+    public static double EffectiveOpacity(Models.WidgetDefinition def, int globalPercentage)
+    {
+        bool custom = def.GetSetting(OpacityMode, OpacityModeGlobal) == OpacityModeCustom;
+        int pct = custom ? def.GetSettingInt(Opacity, 100) : globalPercentage;
+        return Math.Clamp(pct, 20, 100) / 100.0;
+    }
+}
+
 /// <summary>Well-known widget type keys.</summary>
 public static class WidgetTypes
 {

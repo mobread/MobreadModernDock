@@ -313,8 +313,57 @@ public partial class SettingsWindow : Window
             return;
         }
         var provider = App.WidgetRegistry.Get(def.Type);
-        WidgetSettingsHost.Content = provider?.CreateSettingsView(def, _appServices,
+        var typePanel = provider?.CreateSettingsView(def, _appServices,
             onChanged: () => RefreshWidgetListLabelOnly(def.Id));
+
+        // Opacity is common to every widget type: follow the global slider
+        // (default) or pick a per-widget value.
+        var panel = new StackPanel { Spacing = 16 };
+        panel.Children.Add(BuildWidgetOpacitySection(def));
+        if (typePanel != null) panel.Children.Add(typePanel);
+        WidgetSettingsHost.Content = panel;
+    }
+
+    private Control BuildWidgetOpacitySection(Core.Models.WidgetDefinition def)
+    {
+        var vm = Vm;
+        var widgets = _appServices!.WidgetService;
+        bool custom = def.GetSetting(Core.Application.CommonWidgetSettings.OpacityMode,
+            Core.Application.CommonWidgetSettings.OpacityModeGlobal) == Core.Application.CommonWidgetSettings.OpacityModeCustom;
+
+        var follow = new RadioButton { Content = vm.WidgetOpacityFollowGlobal, IsChecked = !custom, Foreground = Avalonia.Media.Brushes.White, GroupName = "opacity-" + def.Id };
+        var own = new RadioButton { Content = vm.WidgetOpacityCustom, IsChecked = custom, Foreground = Avalonia.Media.Brushes.White, GroupName = "opacity-" + def.Id };
+        var slider = new Slider
+        {
+            Minimum = 20, Maximum = 100,
+            Value = def.GetSettingInt(Core.Application.CommonWidgetSettings.Opacity, 100),
+            IsEnabled = custom, Margin = new Thickness(0, 4, 0, 0),
+        };
+
+        follow.IsCheckedChanged += (_, _) =>
+        {
+            if (follow.IsChecked != true) return;
+            slider.IsEnabled = false;
+            widgets.UpdateSetting(def.Id, Core.Application.CommonWidgetSettings.OpacityMode, Core.Application.CommonWidgetSettings.OpacityModeGlobal);
+        };
+        own.IsCheckedChanged += (_, _) =>
+        {
+            if (own.IsChecked != true) return;
+            slider.IsEnabled = true;
+            widgets.UpdateSetting(def.Id, Core.Application.CommonWidgetSettings.Opacity, ((int)Math.Round(slider.Value)).ToString());
+            widgets.UpdateSetting(def.Id, Core.Application.CommonWidgetSettings.OpacityMode, Core.Application.CommonWidgetSettings.OpacityModeCustom);
+        };
+        slider.ValueChanged += (_, _) =>
+        {
+            if (own.IsChecked == true)
+                widgets.UpdateSetting(def.Id, Core.Application.CommonWidgetSettings.Opacity, ((int)Math.Round(slider.Value)).ToString());
+        };
+
+        var section = new StackPanel { Spacing = 4 };
+        section.Children.Add(new TextBlock { Text = vm.WidgetOpacityTitle, FontWeight = Avalonia.Media.FontWeight.SemiBold, Foreground = new Avalonia.Media.SolidColorBrush(Color.Parse("#CCCCCC")) });
+        section.Children.Add(new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 16, Children = { follow, own } });
+        section.Children.Add(slider);
+        return section;
     }
 
     /// <summary>Updates list labels without rebuilding the settings panel (keeps focus in text boxes).</summary>

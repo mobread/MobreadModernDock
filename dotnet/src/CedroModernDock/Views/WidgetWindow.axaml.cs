@@ -80,6 +80,9 @@ public partial class WidgetWindow : Window
         byte g = parts.Length > 1 && byte.TryParse(parts[1], out var gv) ? gv : (byte)0;
         byte b = parts.Length > 2 && byte.TryParse(parts[2], out var bv) ? bv : (byte)0;
         Chrome.Background = new SolidColorBrush(Color.FromArgb(alpha, r, g, b));
+
+        if (_definition != null)
+            Chrome.Opacity = CommonWidgetSettings.EffectiveOpacity(_definition, appearance.GetGlobalOpacityPercentage());
     }
 
     protected override void OnOpened(EventArgs e)

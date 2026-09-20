@@ -109,6 +109,14 @@ public class DockModel
     [JsonPropertyName("hideInFullscreen")]
     public bool HideInFullscreen { get; set; } = true;
 
+    /// <summary>
+    /// Whole-window opacity (icons, text and background together) for the dock
+    /// and for widgets that follow the global value. 0.2..1.0. Distinct from
+    /// DockTransparency, which only affects the background fill.
+    /// </summary>
+    [JsonPropertyName("globalOpacity")]
+    public double GlobalOpacity { get; set; } = 1.0;
+
     // --- Floating widgets ---
 
     [JsonPropertyName("widgets")]

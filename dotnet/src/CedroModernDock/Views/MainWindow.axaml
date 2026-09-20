@@ -23,6 +23,7 @@
 
     <!-- Dock bar: rounded background with items -->
     <Border x:Name="DockBar"
+            Opacity="{Binding WindowOpacity}"
             Background="{Binding DockBackground}"
             CornerRadius="{Binding DockCornerRadius}"
             Padding="10"

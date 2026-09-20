@@ -234,6 +234,11 @@
                             <Slider Minimum="0" Maximum="100" Value="{Binding Transparency}" Margin="0,8,0,0"/>
                         </StackPanel>
                         <StackPanel Orientation="Vertical" Spacing="4">
+                            <TextBlock Text="{Binding GlobalOpacityTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
+                            <TextBlock Text="{Binding GlobalOpacityHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
+                            <Slider Minimum="20" Maximum="100" Value="{Binding GlobalOpacity}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Vertical" Spacing="4">
                             <TextBlock Text="{Binding RoundingTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
                             <TextBlock Text="{Binding RoundingHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
                             <Slider Minimum="0" Maximum="30" Value="{Binding BorderRounding}" Margin="0,8,0,0"/>

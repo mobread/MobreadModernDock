@@ -132,6 +132,10 @@ public partial class MainWindowViewModel : ViewModelBase
     }
     public CornerRadius DockCornerRadius => new CornerRadius(BorderRounding);
     public IBrush DockBackground { get => _dockBackground; set => SetProperty(ref _dockBackground, value); }
+
+    private double _windowOpacity = 1.0;
+    /// <summary>Whole-dock opacity (icons + background), from the global opacity setting.</summary>
+    public double WindowOpacity { get => _windowOpacity; set => SetProperty(ref _windowOpacity, value); }
     public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
 
     public ICommand LaunchCommand { get; }
@@ -330,6 +334,7 @@ public partial class MainWindowViewModel : ViewModelBase
             app.IconSize = IconsSize;
         Spacing = appearance.GetSpacingBetweenIcons();
         DockLines = appearance.GetDockRows();
+        WindowOpacity = appearance.GetGlobalOpacityPercentage() / 100.0;
         BorderRounding = appearance.GetDockBorderRounding();
 
         // Re-tint the persistent running-apps VMs with the current tint

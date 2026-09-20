@@ -92,6 +92,15 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    /// <summary>Global whole-window opacity as a percentage (20..100).</summary>
+    public int GetGlobalOpacityPercentage() => (int)Math.Round(Math.Clamp(GetDock().GlobalOpacity, 0.2, 1.0) * 100);
+
+    public void SetGlobalOpacityPercentage(int value)
+    {
+        GetDock().GlobalOpacity = Math.Clamp(value, 20, 100) / 100.0;
+        _dockService.SaveChanges();
+    }
+
     public bool GetHideInFullscreen() => GetDock().HideInFullscreen;
 
     public void SetHideInFullscreen(bool value)
