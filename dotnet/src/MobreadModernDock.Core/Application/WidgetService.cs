@@ -154,6 +154,10 @@ public static class WidgetTypes
     public const string Tray = "tray";
     public const string Clock = "clock";
     public const string SystemMonitor = "sysmon";
+    public const string Media = "media";
+    public const string Weather = "weather";
+    public const string QuickLaunch = "quicklaunch";
+    public const string Calendar = "calendar";
 }
 
 public static class TextWidgetSettings

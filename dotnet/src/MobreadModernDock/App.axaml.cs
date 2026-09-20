@@ -207,7 +207,9 @@ public partial class App : Application
             LocalizationService: new LocalizationService(dockService),
             WidgetService: new WidgetService(dockService),
             TrayIconGateway: new UiaTrayIconGateway(),
-            SystemStatsGateway: new PerformanceCounterStatsGateway()
+            SystemStatsGateway: new PerformanceCounterStatsGateway(),
+            MediaSessionGateway: new GsmtcMediaSessionGateway(),
+            WeatherGateway: new OpenMeteoWeatherGateway()
         );
     }
 
