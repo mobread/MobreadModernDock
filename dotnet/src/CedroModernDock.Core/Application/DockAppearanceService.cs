@@ -101,6 +101,14 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    public bool GetFolderStacks() => GetDock().FolderStacks;
+
+    public void SetFolderStacks(bool value)
+    {
+        GetDock().FolderStacks = value;
+        _dockService.SaveChanges();
+    }
+
     public bool GetAutoHide() => GetDock().AutoHide;
 
     public void SetAutoHide(bool value)

@@ -12,7 +12,10 @@ internal static class Shell32
 {
     private const int SHGFI_ICON = 0x000000100;
     internal const int SHGFI_SYSICONINDEX = 0x000004000;
+    internal const int SHGFI_USEFILEATTRIBUTES = 0x000000010;
     internal const int FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
+    internal const int FILE_ATTRIBUTE_NORMAL = 0x00000080;
+    internal const int SHIL_EXTRALARGE = 0x2;
     internal const int SHIL_JUMBO = 0x4;
     internal const int ILD_TRANSPARENT = 0x00000001;
 

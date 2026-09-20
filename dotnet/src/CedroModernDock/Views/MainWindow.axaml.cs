@@ -35,6 +35,8 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _positionPersistTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
 
     private DockAutoHideController? _autoHide;
+    private FolderStackPopup? _folderStack;
+    private Button? _lastPressedPinned;
 
     // --- Drag-to-reorder state for pinned dock icons ---
     private const double ReorderDragThresholdPixels = 6;
@@ -117,6 +119,7 @@ public partial class MainWindow : Window
             vm.OpenSettingsAction = () => OpenSettings(vm);
             vm.RepositionAction = () => ApplyDockPosition();
             vm.LayerRefreshAction = () => { ApplyAlwaysOnTop(); ApplyAutoHideSetting(); };
+            vm.ShowFolderStackAction = ShowFolderStack;
             vm.PreviewDismissAction = HidePreview;
             vm.Initialize();
         }
@@ -132,7 +135,7 @@ public partial class MainWindow : Window
                 var sb = _appServices!.PositioningService.GetPrimaryScreenBounds();
                 return ((int)sb.MinX, (int)sb.MinY, (int)sb.MaxX, (int)sb.MaxY);
             },
-            blockHide: () => _previewPopup?.IsVisible == true || _reorderInProgress);
+            blockHide: () => _previewPopup?.IsVisible == true || _folderStack?.IsVisible == true || _reorderInProgress);
         ApplyAutoHideSetting();
 
         // Static anchors must use the finalized window size, which SizeToContent
@@ -343,6 +346,35 @@ public partial class MainWindow : Window
             _previewHideDebounce.Start();
     }
 
+    /// <summary>Folder item clicked: toggle its stack popup anchored to the icon.</summary>
+    private bool ShowFolderStack(DockItemViewModel vm)
+    {
+        if (_appServices == null || vm.Item is not DockFolderItemModel folder) return false;
+        if (!System.IO.Directory.Exists(folder.FolderPath)) return false;
+        // Resolve the icon's Button from the item container (works for real
+        // clicks and for accessibility/automation invokes alike).
+        Button? anchor = null;
+        if (DataContext is MainWindowViewModel mainVm)
+        {
+            int idx = mainVm.Items.IndexOf(vm);
+            if (idx >= 0 && PinnedItems.ContainerFromIndex(idx) is Control container)
+                anchor = container as Button ?? container.GetVisualDescendants().OfType<Button>().FirstOrDefault();
+        }
+        anchor ??= _lastPressedPinned;
+        if (anchor == null) return false;
+
+        _folderStack ??= new FolderStackPopup();
+        if (_folderStack.IsShowingFolder(folder.FolderPath))
+        {
+            _folderStack.HidePopup();
+            return true;
+        }
+        HidePreview();
+        _folderStack.ShowFor(_appServices, folder.FolderPath, vm.Label, anchor,
+            _appServices.AppearanceService.GetVerticalDock());
+        return true;
+    }
+
     private void HidePreview()
     {
         ++_previewRequestId;
@@ -491,6 +523,7 @@ public partial class MainWindow : Window
         if (button is null) return;
         int index = IndexOfPinnedButton(button);
         if (index < 0) return;
+        _lastPressedPinned = button;
         // The Settings gear is pinned to the end and not draggable.
         if (button.DataContext is DockItemViewModel { Item: DockSettingsItemModel }) return;
         _reorderSourceIndex = index;
@@ -777,6 +810,8 @@ public partial class MainWindow : Window
             vm.Shutdown();
         _autoHide?.Dispose();
         _autoHide = null;
+        _folderStack?.Close();
+        _folderStack = null;
         _dockBehavior?.Dispose();
         _dockBehavior = null;
         base.OnClosed(e);

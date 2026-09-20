@@ -247,17 +247,51 @@ public static class WindowsIconExtractor
 
     private static Bitmap? ExtractFolderIconWithShellApi(string folderPath)
     {
+        return ExtractShellIcon(folderPath, isDirectory: true, Shell32.SHIL_JUMBO);
+    }
+
+    /// <summary>
+    /// Icon for any file or folder via the shell image list (same icon
+    /// Explorer shows). Cached as PNG under the icon cache; returns the
+    /// cached path or null.
+    /// </summary>
+    public static string? ExtractAndCacheFileIcon(string path)
+    {
+        try
+        {
+            string? cached = GetCachedPath(path, "file_v1");
+            if (cached == null) return null;
+            if (File.Exists(cached)) return cached;
+            bool isDir = Directory.Exists(path);
+            if (!isDir && !File.Exists(path)) return null;
+            using var bmp = ExtractShellIcon(path, isDir, Shell32.SHIL_EXTRALARGE);
+            if (bmp == null) return null;
+            bmp.Save(cached, ImageFormat.Png);
+            return cached;
+        }
+        catch (Exception e)
+        {
+            System.Diagnostics.Debug.WriteLine($"ExtractAndCacheFileIcon error: {e.Message}");
+            return null;
+        }
+    }
+
+    private static Bitmap? ExtractShellIcon(string path, bool isDirectory, int imageListSize)
+    {
         var shFileInfo = new SHFILEINFO();
+        int attrs = isDirectory ? Shell32.FILE_ATTRIBUTE_DIRECTORY : Shell32.FILE_ATTRIBUTE_NORMAL;
+        // SHGFI_USEFILEATTRIBUTES lets the shell pick an icon by extension
+        // without opening the file (fast, and works for files on slow media).
         IntPtr result = Shell32.SHGetFileInfoW(
-            folderPath, Shell32.FILE_ATTRIBUTE_DIRECTORY, ref shFileInfo,
+            path, attrs, ref shFileInfo,
             System.Runtime.InteropServices.Marshal.SizeOf<SHFILEINFO>(),
-            Shell32.SHGFI_SYSICONINDEX);
+            Shell32.SHGFI_SYSICONINDEX | (isDirectory ? 0 : Shell32.SHGFI_USEFILEATTRIBUTES));
 
         if (result == IntPtr.Zero)
             return null;
 
         var iid = new Guid(IidImageList);
-        int hr = Shell32.SHGetImageList(Shell32.SHIL_JUMBO, in iid, out IntPtr imageList);
+        int hr = Shell32.SHGetImageList(imageListSize, in iid, out IntPtr imageList);
         if (hr != 0 || imageList == IntPtr.Zero)
             return null;
 

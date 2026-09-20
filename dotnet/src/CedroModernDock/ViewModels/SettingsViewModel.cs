@@ -240,6 +240,7 @@ public partial class SettingsViewModel : ViewModelBase
     public string HideTaskbarText => T("settings.general.hideTaskbar");
     public string HideInFullscreenText => T("settings.general.hideInFullscreen");
     public string AutoHideText => T("settings.general.autoHide");
+    public string FolderStacksText => T("settings.general.folderStacks");
     public string CustomColorText => T("settings.customColor");
 
     private bool _isAutoStartEnabled;
@@ -255,6 +256,9 @@ public partial class SettingsViewModel : ViewModelBase
         get => _showUnpinnedRunningApps;
         set => SetProperty(ref _showUnpinnedRunningApps, value);
     }
+
+    private bool _folderStacks = true;
+    public bool FolderStacks { get => _folderStacks; set => SetProperty(ref _folderStacks, value); }
 
     private bool _autoHide;
     public bool AutoHide { get => _autoHide; set => SetProperty(ref _autoHide, value); }
@@ -318,6 +322,7 @@ public partial class SettingsViewModel : ViewModelBase
         HideTaskbar = app.GetHideTaskbar();
         HideInFullscreen = app.GetHideInFullscreen();
         AutoHide = app.GetAutoHide();
+        FolderStacks = app.GetFolderStacks();
         _isInitialized = true;
     }
 
@@ -346,6 +351,7 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(HideTaskbar): OnHideTaskbarChanged(); break;
             case nameof(HideInFullscreen): _appServices.AppearanceService.SetHideInFullscreen(HideInFullscreen); break;
             case nameof(AutoHide): _appServices.AppearanceService.SetAutoHide(AutoHide); _dockRefreshAction(); break;
+            case nameof(FolderStacks): _appServices.AppearanceService.SetFolderStacks(FolderStacks); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
             case nameof(VerticalAnchor): OnVerticalAnchorChanged(); break;
             case nameof(HorizontalAnchor): OnHorizontalAnchorChanged(); break;

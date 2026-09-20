@@ -149,6 +149,9 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Set by MainWindow — re-applies the always-on-top / desktop layer.</summary>
     public Action? LayerRefreshAction { get; set; }
 
+    /// <summary>Set by MainWindow — shows a folder stack popup for a folder item. Return false to fall back to Explorer.</summary>
+    public Func<DockItemViewModel, bool>? ShowFolderStackAction { get; set; }
+
     /// <summary>Set by MainWindow — dismisses the window-preview popup (dock refresh).</summary>
     public Action? PreviewDismissAction { get; set; }
 
@@ -366,6 +369,11 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (param is DockItemViewModel itemVm && _appServices != null)
         {
+            if (itemVm.Item is DockFolderItemModel
+                && _appServices.AppearanceService.GetFolderStacks()
+                && ShowFolderStackAction?.Invoke(itemVm) == true)
+                return;
+
             // Taskbar semantics for running programs: focus / minimize /
             // cycle instead of launching another instance.
             if (itemVm.Item is DockProgramItemModel running

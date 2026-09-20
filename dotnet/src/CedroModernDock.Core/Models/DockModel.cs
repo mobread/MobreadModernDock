@@ -113,6 +113,10 @@ public class DockModel
     [JsonPropertyName("autoHide")]
     public bool AutoHide { get; set; }
 
+    /// <summary>Clicking a folder item shows its contents in a popup ("stack") instead of opening Explorer.</summary>
+    [JsonPropertyName("folderStacks")]
+    public bool FolderStacks { get; set; } = true;
+
     /// <summary>
     /// Whole-window opacity (icons, text and background together) for the dock
     /// and for widgets that follow the global value. 0.2..1.0. Distinct from
