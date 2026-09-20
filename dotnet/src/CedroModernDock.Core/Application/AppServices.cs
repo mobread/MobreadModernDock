@@ -16,5 +16,6 @@ public sealed record AppServices(
     IIconGateway IconGateway,
     LocalizationService LocalizationService,
     WidgetService WidgetService,
-    ITrayIconGateway TrayIconGateway
+    ITrayIconGateway TrayIconGateway,
+    ISystemStatsGateway SystemStatsGateway
 );

@@ -206,7 +206,8 @@ public partial class App : Application
             IconGateway: new CachedWindowsIconGateway(),
             LocalizationService: new LocalizationService(dockService),
             WidgetService: new WidgetService(dockService),
-            TrayIconGateway: new UiaTrayIconGateway()
+            TrayIconGateway: new UiaTrayIconGateway(),
+            SystemStatsGateway: new PerformanceCounterStatsGateway()
         );
     }
 

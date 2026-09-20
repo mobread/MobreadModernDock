@@ -153,6 +153,7 @@ public static class WidgetTypes
     public const string Text = "text";
     public const string Tray = "tray";
     public const string Clock = "clock";
+    public const string SystemMonitor = "sysmon";
 }
 
 public static class TextWidgetSettings

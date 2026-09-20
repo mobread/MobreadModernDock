@@ -20,5 +20,6 @@ public sealed class WidgetRegistry
     public static WidgetRegistry CreateDefault() => new WidgetRegistry()
         .Register(new Text.TextWidgetProvider())
         .Register(new Tray.TrayWidgetProvider())
-        .Register(new Clock.ClockWidgetProvider());
+        .Register(new Clock.ClockWidgetProvider())
+        .Register(new SystemMonitor.SystemMonitorWidgetProvider());
 }
