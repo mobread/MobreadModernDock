@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MobreadModernDock.Views.WidgetWindow"
+        Title="Mobread Widget"
+        Icon="/Assets/icons/mobread/logo_256.png"
+        CanResize="False"
+        SystemDecorations="None"
+        ShowInTaskbar="False"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent"
+        SizeToContent="WidthAndHeight"
+        PointerPressed="OnPointerPressed">
+
+    <!-- Same visual language as the dock bar: dock color + transparency +
+         rounding (set from code-behind), around provider-supplied content. -->
+    <Border x:Name="Chrome"
+            Padding="10,6"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+        <ContentControl x:Name="ContentHost"/>
+    </Border>
+</Window>
