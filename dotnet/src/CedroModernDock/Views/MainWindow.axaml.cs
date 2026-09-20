@@ -691,5 +691,11 @@ public partial class MainWindow : Window
         _dockBehavior?.Dispose();
         _dockBehavior = null;
         base.OnClosed(e);
+
+        // The dock IS the application: closing it (WM_CLOSE from the shell,
+        // Alt+F4, a task manager "End task") must end the process — otherwise
+        // widget windows keep it alive with no dock to exit from, and a hidden
+        // taskbar would stay hidden.
+        App.RequestShutdown();
     }
 }

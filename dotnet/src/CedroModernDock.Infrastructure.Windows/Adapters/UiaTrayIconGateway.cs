@@ -102,13 +102,72 @@ public sealed class UiaTrayIconGateway : ITrayIconGateway
         lock (_sync)
         {
             if (!_elementsByKey.TryGetValue(key, out var el)) return false;
-            try { return ClickAt(el, rightButton: true); }
+            try
+            {
+                // A hidden taskbar has no on-screen icon to click. Show it for
+                // the duration of the menu, then hide it again once the menu
+                // has been dismissed (menus are tracked as foreground popups).
+                bool wasHidden = TaskbarVisibility.IsHidden;
+                if (wasHidden)
+                {
+                    TaskbarVisibility.ShowTemporarily();
+                    Thread.Sleep(120); // let the shell lay the icons out again
+                }
+                bool ok = ClickAt(el, rightButton: true);
+                if (wasHidden)
+                    Task.Run(() => RehideAfterMenuCloses());
+                return ok;
+            }
             catch (Exception e)
             {
                 Debug.WriteLine($"[UiaTrayIconGateway] context menu failed: {e.Message}");
                 return false;
             }
         }
+    }
+
+    /// <summary>
+    /// Waits for the context menu opened by a synthesized right-click to close,
+    /// then re-hides the taskbar. A menu is a top-level "#32768" window; we
+    /// wait for it to appear (bounded) and then to disappear (bounded).
+    /// </summary>
+    private static void RehideAfterMenuCloses()
+    {
+        try
+        {
+            var appeared = DateTime.UtcNow.AddSeconds(2);
+            while (DateTime.UtcNow < appeared && !IsMenuOpen()) Thread.Sleep(50);
+            var deadline = DateTime.UtcNow.AddSeconds(30);
+            while (DateTime.UtcNow < deadline && IsMenuOpen()) Thread.Sleep(100);
+        }
+        finally
+        {
+            TaskbarVisibility.RehideIfTemporarilyShown();
+        }
+    }
+
+    /// <summary>
+    /// True while a visible popup menu is on screen. "#32768" windows exist
+    /// dormant (hidden) most of the time, so only visible ones count; the
+    /// Win11 tray also uses XAML popups for some icons.
+    /// </summary>
+    private static bool IsMenuOpen()
+    {
+        bool open = false;
+        User32.EnumWindows((h, _) =>
+        {
+            if (!User32.IsWindowVisible(h)) return true;
+            var cls = new System.Text.StringBuilder(64);
+            User32.GetClassName(h, cls, cls.Capacity);
+            string c = cls.ToString();
+            if (c == "#32768" || c == "Xaml_WindowedPopupClass")
+            {
+                open = true;
+                return false;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return open;
     }
 
     // --- UIA ---

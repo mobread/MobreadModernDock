@@ -8,7 +8,7 @@ using Avalonia.Platform;
 using Avalonia.Markup.Xaml;
 using CedroModernDock.Core.Application;
 using CedroModernDock.Core.Models;
-using CedroModernDock.Infrastructure.Windows.Adapters;
+using CedroModernDock.Infrastructure.Windows.Adapters;
 using CedroModernDock.Infrastructure.Windows.Native;
 using CedroModernDock.Infrastructure.Windows.Persistence;
 using CedroModernDock.ViewModels;
@@ -127,7 +127,27 @@ public partial class App : Application
 
     private static void OnTrayExit()
     {
+        RequestShutdown();
+    }
+
+    private static bool _shuttingDown;
+
+    /// <summary>
+    /// Single exit path: restores the taskbar, stops the dock VM, closes the
+    /// widget windows and ends the Avalonia lifetime. Idempotent so the tray
+    /// Exit and the dock window's Closed can both call it.
+    /// </summary>
+    public static void RequestShutdown()
+    {
+        if (_shuttingDown) return;
+        _shuttingDown = true;
+        try { TaskbarVisibility.Restore(); } catch { }
         _mainViewModel?.Shutdown();
+        foreach (var window in _widgetWindows.Values.ToList())
+        {
+            try { window.Close(); } catch { }
+        }
+        _widgetWindows.Clear();
         _desktop?.Shutdown();
     }
 

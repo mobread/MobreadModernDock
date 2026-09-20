@@ -48,6 +48,38 @@ public static class TaskbarVisibility
                 User32.ShowWindow(hwnd, Win32Constants.SW_SHOW);
             SetAppBarAutoHide(false);
             _hidden = false;
+            _temporarilyShown = false;
+        }
+    }
+
+    private static bool _temporarilyShown;
+
+    /// <summary>
+    /// Makes the taskbar windows visible without changing the "hidden"
+    /// setting state or the appbar (work area stays expanded). Used to let a
+    /// synthesized click reach a tray icon while the taskbar is hidden.
+    /// </summary>
+    public static void ShowTemporarily()
+    {
+        lock (Sync)
+        {
+            if (!_hidden) return;
+            foreach (var hwnd in FindTaskbars())
+                User32.ShowWindow(hwnd, Win32Constants.SW_SHOWNOACTIVATE);
+            _temporarilyShown = true;
+        }
+    }
+
+    /// <summary>Undoes <see cref="ShowTemporarily"/> if the taskbar is still meant to be hidden.</summary>
+    public static void RehideIfTemporarilyShown()
+    {
+        lock (Sync)
+        {
+            if (!_temporarilyShown) return;
+            _temporarilyShown = false;
+            if (!_hidden) return;
+            foreach (var hwnd in FindTaskbars())
+                User32.ShowWindow(hwnd, Win32Constants.SW_HIDE);
         }
     }
 

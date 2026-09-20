@@ -28,6 +28,7 @@ public static class Win32Constants
     public const int SW_RESTORE = 9;
     public const int SW_SHOW = 5;
     public const int SW_HIDE = 0;
+    public const int SW_SHOWNOACTIVATE = 4;
 
     // SetWindowPos flags
     public const uint SWP_NOSIZE = 0x0001;
