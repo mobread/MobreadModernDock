@@ -10,7 +10,9 @@ using CedroModernDock.Core.Domain;
 /// </summary>
 public class WindowsProgramLauncher : IProgramLauncher
 {
-    public bool Launch(string executablePath, string label)
+    public bool Launch(string executablePath, string label) => Launch(executablePath, label, null);
+
+    public bool Launch(string executablePath, string label, string? arguments)
     {
         Debug.WriteLine($"{label} Clicked");
 
@@ -22,7 +24,7 @@ public class WindowsProgramLauncher : IProgramLauncher
 
         try
         {
-            return ExecuteAndHandleElevation(executablePath, label);
+            return ExecuteAndHandleElevation(executablePath, label, arguments);
         }
         catch (Exception e)
         {
@@ -37,7 +39,7 @@ public class WindowsProgramLauncher : IProgramLauncher
         }
     }
 
-    private bool ExecuteAndHandleElevation(string path, string label)
+    private bool ExecuteAndHandleElevation(string path, string label, string? arguments)
     {
         var launchCommand = ResolveLaunchCommand(path);
         if (!File.Exists(launchCommand.ExecutablePath))
@@ -51,10 +53,17 @@ public class WindowsProgramLauncher : IProgramLauncher
             var startInfo = new ProcessStartInfo
             {
                 FileName = launchCommand.ExecutablePath,
-                UseShellExecute = false
+                UseShellExecute = false,
+                WorkingDirectory = Path.GetDirectoryName(launchCommand.ExecutablePath) ?? ""
             };
             foreach (var arg in launchCommand.Arguments)
                 startInfo.ArgumentList.Add(arg);
+            // A raw shortcut argument string is passed through verbatim (the
+            // target parses its own command line); ArgumentList and Arguments
+            // are mutually exclusive, so only use Arguments when there are no
+            // resolver-provided tokens (the Discord/Squirrel case).
+            if (!string.IsNullOrWhiteSpace(arguments) && launchCommand.Arguments.Length == 0)
+                startInfo.Arguments = arguments;
 
             Process.Start(startInfo);
             Debug.WriteLine($"Executing: {label}");
@@ -66,7 +75,7 @@ public class WindowsProgramLauncher : IProgramLauncher
             if (e.NativeErrorCode == 740)
             {
                 Debug.WriteLine("Standard execution failed. Requesting elevation...");
-                string command = BuildElevationCommand(launchCommand);
+                string command = BuildElevationCommand(launchCommand, arguments);
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "powershell.exe",
@@ -126,11 +135,15 @@ public class WindowsProgramLauncher : IProgramLauncher
             && string.Equals(Path.GetFileName(installDirectory), "Discord", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string BuildElevationCommand(LaunchCommand launchCommand)
+    private static string BuildElevationCommand(LaunchCommand launchCommand, string? rawArguments = null)
     {
         string escapedFilePath = EscapePowerShellArgument(launchCommand.ExecutablePath);
         if (launchCommand.Arguments.Length == 0)
-            return $"Start-Process -FilePath '{escapedFilePath}' -Verb RunAs";
+        {
+            if (string.IsNullOrWhiteSpace(rawArguments))
+                return $"Start-Process -FilePath '{escapedFilePath}' -Verb RunAs";
+            return $"Start-Process -FilePath '{escapedFilePath}' -ArgumentList '{EscapePowerShellArgument(rawArguments)}' -Verb RunAs";
+        }
 
         string escapedArguments = string.Join(", ",
             launchCommand.Arguments.Select(a => $"'{EscapePowerShellArgument(a)}'"));

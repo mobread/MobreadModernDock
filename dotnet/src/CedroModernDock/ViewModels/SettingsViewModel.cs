@@ -401,15 +401,50 @@ public partial class SettingsViewModel : ViewModelBase
         var files = await window.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
         {
             Title = T("dialog.fileChooser.executableTitle"),
-            FileTypeFilter = new[] { new Avalonia.Platform.Storage.FilePickerFileType(T("dialog.fileChooser.executableFilter")) { Patterns = new[] { "*.exe" } } }
+            AllowMultiple = true,
+            FileTypeFilter = new[]
+            {
+                new Avalonia.Platform.Storage.FilePickerFileType(T("dialog.fileChooser.executableFilter")) { Patterns = new[] { "*.exe", "*.lnk" } },
+                new Avalonia.Platform.Storage.FilePickerFileType("Executable (*.exe)") { Patterns = new[] { "*.exe" } },
+                new Avalonia.Platform.Storage.FilePickerFileType("Shortcut (*.lnk)") { Patterns = new[] { "*.lnk" } },
+            }
         });
         if (files.Count == 0) return;
-        var path = files[0].Path.LocalPath;
-        var sel = ProgramSelectionResolver.Resolve(path);
-        _appServices.IconGateway.CacheProgramIcon(sel.ExecutablePath);
-        _appServices.DockService.AddItem(new DockProgramItemModel(sel.Label, sel.ExecutablePath));
+        bool added = false;
+        foreach (var file in files)
+        {
+            var item = BuildProgramItem(file.Path.LocalPath);
+            if (item == null) continue;
+            _appServices.IconGateway.CacheProgramIcon(item.ExecutablePath);
+            _appServices.DockService.AddItem(item);
+            added = true;
+        }
+        if (!added) return;
         RefreshItemLabels();
         _dockRefreshAction();
+    }
+
+    /// <summary>
+    /// Turns a picked file into a program item. A .lnk shortcut contributes
+    /// its target, arguments and display name; a bare .exe goes through the
+    /// Squirrel-aware resolver as before.
+    /// </summary>
+    private static DockProgramItemModel? BuildProgramItem(string path)
+    {
+        if (Infrastructure.Windows.Native.ShellLinkResolver.IsShortcut(path))
+        {
+            var link = Infrastructure.Windows.Native.ShellLinkResolver.Resolve(path);
+            if (link == null || string.IsNullOrWhiteSpace(link.TargetPath)) return null;
+            if (!link.TargetPath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                || !System.IO.File.Exists(link.TargetPath))
+                return null;
+            var sel = ProgramSelectionResolver.Resolve(link.TargetPath);
+            string label = System.IO.Path.GetFileNameWithoutExtension(path);
+            return new DockProgramItemModel(label, sel.ExecutablePath, link.Arguments);
+        }
+
+        var resolved = ProgramSelectionResolver.Resolve(path);
+        return new DockProgramItemModel(resolved.Label, resolved.ExecutablePath);
     }
 
     public async Task AddFolderAsync(Window window)

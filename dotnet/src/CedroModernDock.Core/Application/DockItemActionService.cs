@@ -28,7 +28,7 @@ public class DockItemActionService
     {
         if (item is DockProgramItemModel programItem)
         {
-            return _programLauncher.Launch(programItem.ExecutablePath, programItem.Label);
+            return _programLauncher.Launch(programItem.ExecutablePath, programItem.Label, programItem.Arguments);
         }
 
         if (item is DockFolderItemModel folderItem)
