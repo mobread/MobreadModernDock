@@ -2,6 +2,7 @@ namespace CedroModernDock.Infrastructure.Windows.Native;
 
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 
 /// <summary>
 /// Hides and restores the Windows taskbar (primary <c>Shell_TrayWnd</c> and
@@ -34,21 +35,57 @@ public static class TaskbarVisibility
             // Auto-hide first so the shell releases the reserved work area,
             // then hide the windows so the auto-hide sliver never shows.
             SetAppBarAutoHide(true);
-            foreach (var hwnd in FindTaskbars())
-                User32.ShowWindow(hwnd, Win32Constants.SW_HIDE);
+            HideAllTaskbarWindows();
             _hidden = true;
+            StartEnforcer();
         }
+    }
+
+    private static void HideAllTaskbarWindows()
+    {
+        foreach (var hwnd in FindTaskbars())
+            User32.ShowWindow(hwnd, Win32Constants.SW_HIDE);
+    }
+
+    private static Timer? _enforcer;
+
+    /// <summary>
+    /// The shell re-creates the secondary-monitor taskbars (new HWNDs) when
+    /// the appbar state changes and on display-layout changes, so a single
+    /// SW_HIDE does not stick. A low-frequency enforcer re-hides any taskbar
+    /// window that reappears while the setting is on. Suspended while the
+    /// taskbar is temporarily shown for a tray-icon click.
+    /// </summary>
+    private static void StartEnforcer()
+    {
+        _enforcer ??= new Timer(_ =>
+        {
+            lock (Sync)
+            {
+                if (!_hidden || _temporarilyShown) return;
+                foreach (var hwnd in FindTaskbars())
+                    if (User32.IsWindowVisible(hwnd))
+                        User32.ShowWindow(hwnd, Win32Constants.SW_HIDE);
+            }
+        }, null, 250, 750);
+    }
+
+    private static void StopEnforcer()
+    {
+        _enforcer?.Dispose();
+        _enforcer = null;
     }
 
     public static void Restore()
     {
         lock (Sync)
         {
+            StopEnforcer();
+            _hidden = false;
+            _temporarilyShown = false;
             foreach (var hwnd in FindTaskbars())
                 User32.ShowWindow(hwnd, Win32Constants.SW_SHOW);
             SetAppBarAutoHide(false);
-            _hidden = false;
-            _temporarilyShown = false;
         }
     }
 
