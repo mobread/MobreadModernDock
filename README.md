@@ -54,6 +54,15 @@
 - 🇻🇳 Vietnamese
 <br>
 
+<!-- SUPPORT -->
+## Support This Project
+
+If this dock earned a spot on your desktop, you can leave a tip — it's genuinely appreciated and helps keep the features coming.
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/mobreadmeo)
+
+<br>
+
 <!-- BUILT WITH -->
 ## Built With
 
