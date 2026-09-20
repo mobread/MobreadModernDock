@@ -29,7 +29,7 @@ A `sysmon` test widget (`id: sysmontest0001`) is in the live `%APPDATA%\MobreadM
 
 ## Next session
 
-Load the `cedro-modern-dock-dev` skill first. Then: _"continue the 1–9 feature batch from #6."_
+Load the `mobread-modern-dock-dev` skill first. Then: _"continue the 1–9 feature batch from #6."_
 
 Pattern for a new widget (see `Widgets/SystemMonitor/` for the template):
 1. `WidgetTypes.X = "key"` in `WidgetService.cs`
