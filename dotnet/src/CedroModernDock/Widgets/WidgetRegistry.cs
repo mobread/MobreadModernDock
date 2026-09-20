@@ -19,5 +19,6 @@ public sealed class WidgetRegistry
     /// <summary>The default set of built-in widget types.</summary>
     public static WidgetRegistry CreateDefault() => new WidgetRegistry()
         .Register(new Text.TextWidgetProvider())
-        .Register(new Tray.TrayWidgetProvider());
+        .Register(new Tray.TrayWidgetProvider())
+        .Register(new Clock.ClockWidgetProvider());
 }

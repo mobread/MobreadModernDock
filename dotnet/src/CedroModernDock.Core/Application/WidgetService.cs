@@ -152,6 +152,7 @@ public static class WidgetTypes
 {
     public const string Text = "text";
     public const string Tray = "tray";
+    public const string Clock = "clock";
 }
 
 public static class TextWidgetSettings
@@ -166,4 +167,72 @@ public static class TrayWidgetSettings
     public const string Spacing = "spacing";
     public const string Vertical = "vertical";
     public const string ShowSystemIcons = "showSystemIcons";
+}
+
+public static class ClockWidgetSettings
+{
+    /// <summary>Preset key from <see cref="ClockFormats"/>, or "custom".</summary>
+    public const string Preset = "preset";
+    /// <summary>.NET date/time format string used when Preset is "custom".</summary>
+    public const string CustomFormat = "customFormat";
+    public const string FontSize = "fontSize";
+    /// <summary>"true" to render the date on a second, smaller line.</summary>
+    public const string TwoLines = "twoLines";
+}
+
+/// <summary>
+/// Built-in clock layouts. Each preset is a .NET format string; when
+/// TwoLines is on, the first line is the time and the second the date.
+/// </summary>
+public static class ClockFormats
+{
+    public const string Custom = "custom";
+
+    public static readonly IReadOnlyList<(string Key, string TimeFormat, string? DateFormat)> Presets = new[]
+    {
+        ("time24",           "HH:mm",           (string?)null),
+        ("time24s",          "HH:mm:ss",        null),
+        ("time12",           "h:mm tt",         null),
+        ("time12s",          "h:mm:ss tt",      null),
+        ("time24-weekday",   "HH:mm",           "dddd"),
+        ("time24-date",      "HH:mm",           "ddd, d MMM"),
+        ("time24-fulldate",  "HH:mm",           "dddd, d MMMM yyyy"),
+        ("time24s-iso",      "HH:mm:ss",        "yyyy-MM-dd"),
+        ("time12-date",      "h:mm tt",         "dddd, MMMM d"),
+        ("dateonly",         "dddd, d MMMM",    null),
+    };
+
+    public static (string TimeFormat, string? DateFormat) Resolve(string presetKey, string? customFormat)
+    {
+        if (presetKey == Custom)
+            return (string.IsNullOrWhiteSpace(customFormat) ? "HH:mm" : customFormat, null);
+        foreach (var p in Presets)
+            if (p.Key == presetKey) return (p.TimeFormat, p.DateFormat);
+        return (Presets[0].TimeFormat, Presets[0].DateFormat);
+    }
+
+    /// <summary>Formats safely: an invalid custom pattern falls back to HH:mm rather than throwing.</summary>
+    public static string Format(DateTime now, string format)
+    {
+        try { return now.ToString(format, System.Globalization.CultureInfo.CurrentCulture); }
+        catch (FormatException) { return now.ToString("HH:mm"); }
+    }
+
+    /// <summary>
+    /// True when the format contains a seconds token (s) or sub-second (f/F)
+    /// outside quoted literals and escapes, so the widget should tick every second.
+    /// </summary>
+    public static bool HasSeconds(string format)
+    {
+        char quote = '\0';
+        for (int i = 0; i < format.Length; i++)
+        {
+            char c = format[i];
+            if (quote != '\0') { if (c == quote) quote = '\0'; continue; }
+            if (c == '\'' || c == '"') { quote = c; continue; }
+            if (c == '\\') { i++; continue; }
+            if (c == 's' || c == 'f' || c == 'F') return true;
+        }
+        return false;
+    }
 }
