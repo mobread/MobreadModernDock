@@ -117,6 +117,10 @@ public class DockModel
     [JsonPropertyName("folderStacks")]
     public bool FolderStacks { get; set; } = true;
 
+    /// <summary>Snap the dock and widgets to screen edges/centre when a drag ends near them.</summary>
+    [JsonPropertyName("edgeSnapping")]
+    public bool EdgeSnapping { get; set; } = true;
+
     /// <summary>
     /// Whole-window opacity (icons, text and background together) for the dock
     /// and for widgets that follow the global value. 0.2..1.0. Distinct from

@@ -39,6 +39,17 @@ public partial class WidgetWindow : Window
             _positionPersistTimer.Stop();
             if (_appServices == null || _definition == null) return;
             var (x, y) = _behavior?.GetScreenPosition() ?? (Position.X, Position.Y);
+            if (_appServices.AppearanceService.GetEdgeSnapping() && _behavior != null)
+            {
+                var rect = ScreenGeometry.WindowScreenRect(this);
+                var work = ScreenGeometry.WorkAreaAt(new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2));
+                var snapped = EdgeSnapper.Snap(rect, work);
+                if (snapped.X != x || snapped.Y != y)
+                {
+                    _behavior.MoveToScreen(snapped.X, snapped.Y);
+                    (x, y) = (snapped.X, snapped.Y);
+                }
+            }
             _appServices.WidgetService.SetPosition(_definition.Id, x, y);
         };
     }

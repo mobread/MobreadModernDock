@@ -754,6 +754,17 @@ public partial class MainWindow : Window
         // Auto-hide moves the window itself; those moves are not user drags.
         if (_autoHide is { IsEnabled: true }) return;
         var (x, y) = GetScreenPosition();
+        if (_appServices.AppearanceService.GetEdgeSnapping())
+        {
+            var rect = ScreenGeometry.WindowScreenRect(this);
+            var work = ScreenGeometry.WorkAreaAt(new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2));
+            var snapped = EdgeSnapper.Snap(rect, work);
+            if (snapped.X != x || snapped.Y != y)
+            {
+                SetScreenPosition(snapped.X, snapped.Y);
+                (x, y) = (snapped.X, snapped.Y);
+            }
+        }
         _appServices.DockService.SetDockPosition(x, y);
     }
 

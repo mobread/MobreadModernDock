@@ -101,6 +101,14 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    public bool GetEdgeSnapping() => GetDock().EdgeSnapping;
+
+    public void SetEdgeSnapping(bool value)
+    {
+        GetDock().EdgeSnapping = value;
+        _dockService.SaveChanges();
+    }
+
     public bool GetFolderStacks() => GetDock().FolderStacks;
 
     public void SetFolderStacks(bool value)

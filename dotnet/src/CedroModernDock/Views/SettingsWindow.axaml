@@ -347,6 +347,8 @@
                                   IsChecked="{Binding AutoHide}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
                         <CheckBox Content="{Binding FolderStacksText}"
                                   IsChecked="{Binding FolderStacks}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
+                        <CheckBox Content="{Binding EdgeSnappingText}"
+                                  IsChecked="{Binding EdgeSnapping}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
                         <Button Content="{Binding AcknowledgementsText}" Click="OnAcknowledgements"
                                 Background="#007ACC" Foreground="White" BorderBrush="Transparent"
                                 Padding="16,8" HorizontalAlignment="Left" Margin="0,8,0,0"/>

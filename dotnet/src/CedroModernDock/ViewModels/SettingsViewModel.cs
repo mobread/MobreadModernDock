@@ -241,6 +241,7 @@ public partial class SettingsViewModel : ViewModelBase
     public string HideInFullscreenText => T("settings.general.hideInFullscreen");
     public string AutoHideText => T("settings.general.autoHide");
     public string FolderStacksText => T("settings.general.folderStacks");
+    public string EdgeSnappingText => T("settings.general.edgeSnapping");
     public string CustomColorText => T("settings.customColor");
 
     private bool _isAutoStartEnabled;
@@ -256,6 +257,9 @@ public partial class SettingsViewModel : ViewModelBase
         get => _showUnpinnedRunningApps;
         set => SetProperty(ref _showUnpinnedRunningApps, value);
     }
+
+    private bool _edgeSnapping = true;
+    public bool EdgeSnapping { get => _edgeSnapping; set => SetProperty(ref _edgeSnapping, value); }
 
     private bool _folderStacks = true;
     public bool FolderStacks { get => _folderStacks; set => SetProperty(ref _folderStacks, value); }
@@ -323,6 +327,7 @@ public partial class SettingsViewModel : ViewModelBase
         HideInFullscreen = app.GetHideInFullscreen();
         AutoHide = app.GetAutoHide();
         FolderStacks = app.GetFolderStacks();
+        EdgeSnapping = app.GetEdgeSnapping();
         _isInitialized = true;
     }
 
@@ -352,6 +357,7 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(HideInFullscreen): _appServices.AppearanceService.SetHideInFullscreen(HideInFullscreen); break;
             case nameof(AutoHide): _appServices.AppearanceService.SetAutoHide(AutoHide); _dockRefreshAction(); break;
             case nameof(FolderStacks): _appServices.AppearanceService.SetFolderStacks(FolderStacks); break;
+            case nameof(EdgeSnapping): _appServices.AppearanceService.SetEdgeSnapping(EdgeSnapping); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
             case nameof(VerticalAnchor): OnVerticalAnchorChanged(); break;
             case nameof(HorizontalAnchor): OnHorizontalAnchorChanged(); break;
