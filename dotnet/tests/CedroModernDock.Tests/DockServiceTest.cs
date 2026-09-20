@@ -4,7 +4,7 @@ using CedroModernDock.Core.Application;
 using CedroModernDock.Core.Domain;
 using CedroModernDock.Core.Models;
 
-/// <summary>Direct port of DockServiceTest.java</summary>
+/// <summary>Direct port of DockServiceTest.java, extended for the "Settings gear stays last" rule.</summary>
 public class DockServiceTest
 {
     [Fact]
@@ -25,7 +25,7 @@ public class DockServiceTest
     {
         var repository = new InMemoryDockRepository();
         var service = new DockService(repository);
-        service.AddItem(new DockSettingsItemModel());                     // [0]
+        service.AddItem(new DockProgramItemModel("X", @"C:\tools\x.exe")); // [0]
         service.AddItem(new DockProgramItemModel("A", @"C:\tools\a.exe")); // [1]
         service.AddItem(new DockProgramItemModel("B", @"C:\tools\b.exe")); // [2]
         service.AddItem(new DockProgramItemModel("C", @"C:\tools\c.exe")); // [3]
@@ -34,7 +34,7 @@ public class DockServiceTest
         service.MoveItem(0, 3);
 
         var labels = service.GetItems().Select(i => i.Label).ToList();
-        Assert.Equal(new[] { "A", "B", "Settings", "C" }, labels);
+        Assert.Equal(new[] { "A", "B", "X", "C" }, labels);
         Assert.Same(repository.SavedModel, service.GetDock());
     }
 
@@ -46,13 +46,13 @@ public class DockServiceTest
         service.AddItem(new DockProgramItemModel("A", @"C:\tools\a.exe")); // [0]
         service.AddItem(new DockProgramItemModel("B", @"C:\tools\b.exe")); // [1]
         service.AddItem(new DockProgramItemModel("C", @"C:\tools\c.exe")); // [2]
-        service.AddItem(new DockSettingsItemModel());                     // [3]
+        service.AddItem(new DockProgramItemModel("D", @"C:\tools\d.exe")); // [3]
 
         // Move index 3 into the gap before item "B" (gap index 1).
         service.MoveItem(3, 1);
 
         var labels = service.GetItems().Select(i => i.Label).ToList();
-        Assert.Equal(new[] { "A", "Settings", "B", "C" }, labels);
+        Assert.Equal(new[] { "A", "D", "B", "C" }, labels);
         Assert.Same(repository.SavedModel, service.GetDock());
     }
 
@@ -86,10 +86,55 @@ public class DockServiceTest
         Assert.Equal(new[] { "B", "C", "A" }, labels);
     }
 
+    [Fact]
+    public void SettingsItemStaysLastWhenItemsAreAddedAfterIt()
+    {
+        var repository = new InMemoryDockRepository();
+        var service = new DockService(repository);
+        service.AddItem(new DockSettingsItemModel());
+        service.AddItem(new DockProgramItemModel("A", @"C:\tools\a.exe"));
+        service.AddItem(new DockProgramItemModel("B", @"C:\tools\b.exe"));
+
+        Assert.Equal(new[] { "A", "B", "Settings" }, service.GetItems().Select(i => i.Label));
+    }
+
+    [Fact]
+    public void SettingsItemCannotBeMovedAwayFromTheEnd()
+    {
+        var repository = new InMemoryDockRepository();
+        var service = new DockService(repository);
+        service.AddItem(new DockProgramItemModel("A", @"C:\tools\a.exe"));
+        service.AddItem(new DockProgramItemModel("B", @"C:\tools\b.exe"));
+        service.AddItem(new DockSettingsItemModel());
+
+        service.MoveItem(2, 0); // try to drag the gear to the front
+        Assert.Equal(new[] { "A", "B", "Settings" }, service.GetItems().Select(i => i.Label));
+
+        service.MoveItem(0, 3); // try to drop "A" after the gear
+        Assert.Equal(new[] { "B", "A", "Settings" }, service.GetItems().Select(i => i.Label));
+    }
+
+    [Fact]
+    public void LoadNormalizesAConfigWithSettingsInTheMiddle()
+    {
+        var model = new DockModel();
+        model.Items.Add(new DockProgramItemModel("A", @"C:\tools\a.exe"));
+        model.Items.Add(new DockSettingsItemModel());
+        model.Items.Add(new DockProgramItemModel("B", @"C:\tools\b.exe"));
+        var repository = new InMemoryDockRepository(model);
+
+        var service = new DockService(repository);
+
+        Assert.Equal(new[] { "A", "B", "Settings" }, service.GetItems().Select(i => i.Label));
+        Assert.Same(model, repository.SavedModel); // normalized order was persisted
+    }
+
     private sealed class InMemoryDockRepository : IDockRepository
     {
-        private readonly DockModel _model = new();
+        private readonly DockModel _model;
         public DockModel? SavedModel { get; private set; }
+
+        public InMemoryDockRepository(DockModel? model = null) => _model = model ?? new DockModel();
 
         public DockModel Load()
         {

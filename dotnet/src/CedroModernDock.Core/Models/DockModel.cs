@@ -146,7 +146,11 @@ public class DockModel
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? WidgetPositionY { get; set; }
 
-    public void AddItem(DockItem item) => Items.Add(item);
+    public void AddItem(DockItem item)
+    {
+        Items.Add(item);
+        KeepSettingsLast();
+    }
 
     public void RemoveItem(int index) => Items.RemoveAt(index);
 
@@ -156,6 +160,7 @@ public class DockModel
     {
         (Items[firstItemIdx], Items[secondItemIdx]) =
             (Items[secondItemIdx], Items[firstItemIdx]);
+        KeepSettingsLast();
     }
 
     /// <summary>
@@ -175,6 +180,24 @@ public class DockModel
         // After removal the gap index shifts left when moving downwards.
         if (toIndex > fromIndex) toIndex--;
         Items.Insert(toIndex, item);
+        KeepSettingsLast();
+    }
+
+    /// <summary>
+    /// The Settings gear is always the last dock item. Called after every
+    /// mutation and once on load, so a config edited by hand or written by an
+    /// older version is normalized too. Returns true when the order changed.
+    /// </summary>
+    public bool KeepSettingsLast()
+    {
+        var settings = Items.Where(i => i is DockSettingsItemModel).ToList();
+        if (settings.Count == 0) return false;
+        int firstSettingsIndex = Items.IndexOf(settings[0]);
+        if (settings.Count == 1 && firstSettingsIndex == Items.Count - 1) return false;
+
+        Items.RemoveAll(i => i is DockSettingsItemModel);
+        Items.AddRange(settings);
+        return true;
     }
 
     public void SetDockPosition(double positionX, double positionY)

@@ -16,6 +16,9 @@ public class DockService
     {
         _repository = repository;
         _dock = repository.Load();
+        // Normalize configs from older versions / hand edits: gear goes last.
+        if (_dock.KeepSettingsLast())
+            SaveChanges();
     }
 
     public DockModel GetDock() => _dock;

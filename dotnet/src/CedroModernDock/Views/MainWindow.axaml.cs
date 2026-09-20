@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Avalonia;
@@ -441,6 +442,8 @@ public partial class MainWindow : Window
         if (button is null) return;
         int index = IndexOfPinnedButton(button);
         if (index < 0) return;
+        // The Settings gear is pinned to the end and not draggable.
+        if (button.DataContext is DockItemViewModel { Item: DockSettingsItemModel }) return;
         _reorderSourceIndex = index;
         _reorderPressPoint = e.GetPosition(PinnedItems);
         _reorderInProgress = false;
@@ -565,10 +568,27 @@ public partial class MainWindow : Window
         var b = nearest.Bounds;
         bool after = vertical ? position.Y > b.Center.Y : position.X > b.Center.X;
         int gap = Math.Min(nearest.Index + (after ? 1 : 0), count);
+        // Never offer a slot after the Settings gear (it is kept last).
+        int lastMovable = LastMovableIndex();
+        if (gap > lastMovable + 1)
+        {
+            gap = lastMovable + 1;
+            var lastCell = cells.FirstOrDefault(c => c.Index == lastMovable);
+            if (lastCell != null) { b = lastCell.Bounds; after = true; }
+        }
         Rect line = vertical
             ? new Rect(b.Left, (after ? b.Bottom : b.Top) - 1, b.Width, 2)
             : new Rect((after ? b.Right : b.Left) - 1, b.Top, 2, b.Height);
         return (gap, line);
+    }
+
+    /// <summary>Index of the last item that can be reordered (everything before the Settings gear).</summary>
+    private int LastMovableIndex()
+    {
+        if (DataContext is not MainWindowViewModel vm) return -1;
+        for (int i = vm.Items.Count - 1; i >= 0; i--)
+            if (vm.Items[i].Item is not DockSettingsItemModel) return i;
+        return -1;
     }
 
     private void ShowDropIndicatorAt(Point position)
