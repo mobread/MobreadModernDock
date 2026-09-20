@@ -21,6 +21,13 @@ sealed class Program
         // silent. Log unhandled exceptions for diagnostics.
         CrashLogger.Hook();
 
+        // The process cwd is inherited by everything launched from the dock
+        // (Explorer, Settings, elevated launches, files opened from folder
+        // stacks). Left at the exe's own folder it pins bin/ — a running child
+        // blocks rebuilds and renames — so park it somewhere neutral.
+        try { Environment.CurrentDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile); }
+        catch { }
+
         // Single-instance guard — prevents multiple dock instances.
         // Port of App.java's SingleInstanceGuard + localized warning dialog.
         _singleInstanceGuard = new SingleInstanceGuard();
