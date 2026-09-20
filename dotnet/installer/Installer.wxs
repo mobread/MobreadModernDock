@@ -2,8 +2,8 @@
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
-  <Package Name="Cedro Modern Dock"
-           Manufacturer="Cedro"
+  <Package Name="Mobread Modern Dock"
+           Manufacturer="mobread"
            Version="$(var.ProductVersion)"
            UpgradeCode="D913D973-3953-4E41-B58E-728E5E9974C3"
            Language="1033"
@@ -19,7 +19,7 @@
 
     <MediaTemplate EmbedCab="yes" />
 
-    <Icon Id="IconApp" SourceFile="..\src\CedroModernDock\Assets\icons\cedro\logo_256_ICO.ico" />
+    <Icon Id="IconApp" SourceFile="..\src\MobreadModernDock\Assets\icons\mobread\logo_256_ICO.ico" />
     <Property Id="ARPPRODUCTICON" Value="IconApp" />
 
     <!-- GPL-3.0 shown on the license agreement page. -->
@@ -29,24 +29,24 @@
          dialog, checked by default). WixShellExec launches unelevated in the
          installing user's session. -->
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
-    <WixVariable Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Cedro Modern Dock" />
+    <WixVariable Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Mobread Modern Dock" />
     <InstallUISequence>
       <Custom Action="LaunchApp" OnExit="success"
               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX AND NOT Installed" />
     </InstallUISequence>
     <StandardDirectory Id="ProgramFilesFolder">
-      <Directory Id="INSTALLFOLDER" Name="CedroModernDock" />
+      <Directory Id="INSTALLFOLDER" Name="MobreadModernDock" />
     </StandardDirectory>
     <StandardDirectory Id="DesktopFolder" />
     <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="AppMenuDir" Name="Cedro Modern Dock" />
+      <Directory Id="AppMenuDir" Name="Mobread Modern Dock" />
     </StandardDirectory>
 
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
       <Component Id="CMP_MainExe" Guid="*">
-        <File Id="FILE_Exe" Source="publish\CedroModernDock.exe" KeyPath="yes">
-          <Shortcut Id="S_Desktop" Directory="DesktopFolder" Name="Cedro Modern Dock" />
-          <Shortcut Id="S_StartMenu" Directory="AppMenuDir" Name="Cedro Modern Dock" />
+        <File Id="FILE_Exe" Source="publish\MobreadModernDock.exe" KeyPath="yes">
+          <Shortcut Id="S_Desktop" Directory="DesktopFolder" Name="Mobread Modern Dock" />
+          <Shortcut Id="S_StartMenu" Directory="AppMenuDir" Name="Mobread Modern Dock" />
         </File>
       </Component>
       <Component Id="CMP_LibSkia" Guid="*">
@@ -60,12 +60,12 @@
       </Component>
       <Component Id="CMP_AppMenuCleanup" Guid="*">
         <RemoveFolder Id="R_AppMenu" Directory="AppMenuDir" On="uninstall" />
-        <RegistryValue Root="HKCU" Key="Software\CedroModernDock" Name="installed"
+        <RegistryValue Root="HKCU" Key="Software\MobreadModernDock" Name="installed"
                        Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </ComponentGroup>
 
-    <Feature Id="Complete" Title="Cedro Modern Dock" Level="1">
+    <Feature Id="Complete" Title="Mobread Modern Dock" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
     </Feature>
 

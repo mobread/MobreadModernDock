@@ -1,57 +1,68 @@
-![GitHub forks](https://img.shields.io/github/forks/arthurdeka/cedro-modern-dock?style=for-the-badge)
-![GitHub Repo stars](https://img.shields.io/github/stars/arthurdeka/cedro-modern-dock?style=for-the-badge)
-![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/arthurdeka/cedro-modern-dock?style=for-the-badge)
-![GitHub License](https://img.shields.io/github/license/arthurdeka/cedro-modern-dock?style=for-the-badge)
-![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/TeiuAlligator?style=for-the-badge)
+# Mobread Modern Dock
+
+![GitHub Release](https://img.shields.io/github/v/release/mobread/MobreadModernDock?style=for-the-badge)
+![GitHub Repo stars](https://img.shields.io/github/stars/mobread/MobreadModernDock?style=for-the-badge)
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/mobread/MobreadModernDock?style=for-the-badge)
+![GitHub License](https://img.shields.io/github/license/mobread/MobreadModernDock?style=for-the-badge)
+![.NET](https://img.shields.io/badge/.NET-9-5122d3?style=for-the-badge&logo=dotnet&logoColor=white)
 ![Avalonia](https://img.shields.io/badge/Avalonia-11.3-0080ff?style=for-the-badge&logo=avalonia&logoColor=white)
 
-<img width="1006" height="382" alt="570922610-1489345d-4ddc-4482-a074-ca676da8eb28" src="https://github.com/user-attachments/assets/4ed597cc-a8c4-4d0d-ae3e-cc6fb5514b50" />
+A macOS-style dock for Windows 11 that can **replace the taskbar** — pinned apps, running apps, folder stacks, live window previews, and a widget system (clock, system monitor, tray icons, text) that all live on the desktop layer or float on top.
 
+Built on [Cedro Modern Dock](https://github.com/Cedro-Software/cedro-modern-dock) by [@arthurdeka](https://github.com/arthurdeka). This project keeps that foundation and adds a lot on top — see [`CUSTOMIZATIONS.md`](CUSTOMIZATIONS.md) for the full list.
 
+<img width="1006" height="382" alt="Mobread Modern Dock screenshot" src="https://github.com/user-attachments/assets/4ed597cc-a8c4-4d0d-ae3e-cc6fb5514b50" />
 
-> Follow @TeiuAlligator on X to stay tuned for new features and updates!
-
-
-> ## How To Install
-> 1. Go to [Releases](https://github.com/arthurdeka/cedro-modern-dock/releases):
-> 2. Download the latest `CedroModernDock-1.2.0-x64.msi` file
-> 3. Execute and install
 <br>
 
-## What's new in v1.2
+> ## How To Install
+> 1. Go to [Releases](https://github.com/mobread/MobreadModernDock/releases)
+> 2. Download the latest `MobreadModernDock-<version>-x64.msi`
+> 3. Run it
+>
+> Upgrading from **Cedro Modern Dock**? Your shortcuts and settings are picked up automatically on first launch.
 
-- **Live window previews:** Hover a running app to see its open windows in real time, click one to bring it forward.
-- **Running apps you haven't pinned:** Apps currently open but not pinned show up on the dock now.
-- **Customize your icons:** iOS-style color tint with 12 presets or pick your own color.
-- **Drag to reorder:** Now you can rearrange your dock shortcuts right in the Settings list by dragging them around.
-- **Vertical dock:** Arrange the dock vertically on either side of the screen.
-- **Updates that keep your setup:** - Upgrading to a new version replaces the app but keeps your shortcuts and settings.
-- **Long-awaited feature:** Now CTRL + D does NOT minimizes the Dock anymore. It remains on the Desktop.
+<br>
+
+## Features
+
+### Dock
+- **Multi-row layout** — 1 to 4 rows (or columns when vertical).
+- **Auto-hide** — slides off the nearest screen edge and returns on hover. Also hides while a fullscreen app is running (games count; maximized windows don't).
+- **Edge snapping** — drag near a screen edge or the centre line and the dock snaps flush.
+- **Always on top or desktop layer** — stays visible over windows, or sits behind them and survives Win+D.
+- **Drag to reorder** pinned icons directly on the dock.
+
+### Launching & windows
+- **Taskbar-style clicks** — click a running app to focus it, click again to minimize, keep clicking to cycle its windows. Scroll wheel cycles too.
+- **Live window previews** on hover, click one to bring it forward.
+- **Running apps you haven't pinned** show up on the dock; right-click to pin them.
+- **Folder stacks** — folders open as a macOS-style icon grid instead of launching Explorer.
+- **`.lnk` shortcut support** with arguments and working directory.
+
+### Widgets
+Free-floating panels that follow the dock's colour and rounding, with per-widget opacity and position.
+
+| Widget | |
+|---|---|
+| **Clock** | 10 presets plus custom .NET format strings, optional second date line. |
+| **System monitor** | CPU / RAM / GPU / network bars, colour-coded by load, with per-metric toggles and a compact mode. |
+| **System tray** | Your Win11 notification-area icons, left- and right-clickable, so you can hide the taskbar entirely. |
+| **Text** | Any text, with `{host}` and `{user}` templates. |
+
+### Windows integration
+- **Hide the Windows taskbar** — on every monitor, with the work area expanded. Restored automatically on exit, crash, or next launch.
+- **Multi-monitor aware** — the dock and widgets remember which screen they're on, even when the primary monitor isn't at the top-left.
+
+### Appearance
+- Global opacity slider, iOS-style icon tint with 12 presets or a custom colour, dock transparency and rounding.
+
 <br>
 
 ## Supported Languages
 
-- 🇺🇸  English
-- 🇧🇷 Portuguese (Brazil)
-- 🇪🇸 Spanish
-- 🇫🇷 French
-- 🇩🇪 German
-- 🇯🇵 Japanese
-- 🇨🇳 Chinese (Simplified)
-- 🇹🇼 Chinese (Traditional)
-- 🇮🇳 Hindi
-- 🇸🇦 Arabic
-- 🇧🇩 Bengali
-- 🇷🇺 Russian
-- 🇵🇰 Urdu
-- 🇮🇩 Indonesian
-- 🇳🇬 Nigerian Pidgin
-- 🇮🇳 Marathi
-- 🇮🇳 Telugu
-- 🇹🇷 Turkish
-- 🇮🇳 Tamil
-- 🇭🇰 Cantonese
-- 🇻🇳 Vietnamese
+🇺🇸 English · 🇧🇷 Portuguese (Brazil) · 🇪🇸 Spanish · 🇫🇷 French · 🇩🇪 German · 🇯🇵 Japanese · 🇨🇳 Chinese (Simplified) · 🇹🇼 Chinese (Traditional) · 🇮🇳 Hindi · 🇸🇦 Arabic · 🇧🇩 Bengali · 🇷🇺 Russian · 🇵🇰 Urdu · 🇮🇩 Indonesian · 🇳🇬 Nigerian Pidgin · 🇮🇳 Marathi · 🇮🇳 Telugu · 🇹🇷 Turkish · 🇮🇳 Tamil · 🇭🇰 Cantonese · 🇻🇳 Vietnamese
+
 <br>
 
 <!-- SUPPORT -->
@@ -63,54 +74,61 @@ If this dock earned a spot on your desktop, you can leave a tip — it's genuine
 
 <br>
 
-<!-- BUILT WITH -->
-## Built With
-
-* ![.NET](https://img.shields.io/badge/.NET-9-5122d3?style=for-the-badge&logo=dotnet&logoColor=white)
-* ![Avalonia](https://img.shields.io/badge/Avalonia-11.3-0080ff?style=for-the-badge&logo=avalonia&logoColor=white)
-<br>
-
 <!-- GETTING STARTED -->
 ## How To Contribute
-> Only for those who wish to contribute in the project's coding, none of this is required for you to do if you [just want to download it](https://github.com/arthurdeka/cedro-modern-dock/releases)
-### Understand the project architecture:
+> Only needed if you want to work on the code — none of this is required to [just install it](https://github.com/mobread/MobreadModernDock/releases).
+
+### Project architecture
 
 The project follows a layered architecture:
 
-- `CedroModernDock.Core`: Domain models, Application services, and i18n (portable, no OS deps)
-- `CedroModernDock.Infrastructure.Windows`: Windows-specific adapters (Win32 interop, icon extraction, JSON persistence, registry auto-start, tray icon)
-- `CedroModernDock`: Avalonia UI (dock view, settings window, view models, view locators)
-- `CedroModernDock.Tests`: xUnit test suite
+- `MobreadModernDock.Core`: Domain models, application services, widget definitions, and i18n (portable, no OS deps)
+- `MobreadModernDock.Infrastructure.Windows`: Windows-specific adapters (Win32 interop, UI Automation, icon extraction, performance counters, JSON persistence, registry auto-start)
+- `MobreadModernDock`: Avalonia UI (dock view, settings window, widget providers, view models)
+- `MobreadModernDock.Tests`: xUnit test suite
 
-`App.axaml.cs` is responsible for composing these dependencies and injecting them into the view models.
+`App.axaml.cs` composes these dependencies and injects them into the view models. New widgets implement `IWidgetProvider` and register in `WidgetRegistry`.
 
-<!-- PREREQUISITES -->
 ### Prerequisites
 
-Before you begin, ensure you have the following installed on your system: (required only for development)
+- **.NET 9 SDK**
+- **Git**
+- An IDE (Visual Studio 2022 or Rider recommended) — optional
 
-- **An IDE** (Visual Studio 2022 or Rider recommended).
-- **.NET 9 SDK** (or .NET 10 SDK).
-- **Git** for cloning the repository.
+### Run locally
+
+```bash
+cd dotnet
+dotnet restore
+dotnet run --project src/MobreadModernDock
+```
+
+### Build a release `.exe`
+
+```bash
+cd dotnet
+dotnet build src/MobreadModernDock -c Release
+# → src/MobreadModernDock/bin/Release/net9.0-windows/MobreadModernDock.exe
+```
+
+### Run the tests
+
+```bash
+cd dotnet
+dotnet test tests/MobreadModernDock.Tests -c Release
+```
+
+### Build the installer
+
+Requires the [WiX Toolset v4](https://wixtoolset.org/) CLI (`dotnet tool install --global wix`).
+
+```powershell
+cd dotnet\installer
+.\build.ps1 -Version 1.3.0
+```
 
 <br>
 
-### How To Run Locally
+## License
 
-1. Clone the repository
-2. Before running, make sure to install all the dependencies (`dotnet restore`)
-3. Run `dotnet run --project src/CedroModernDock` to run the program
-4. Make desired changes
-5. Commit your changes
-6. Open a pull request
-
-<br>
-
-### How To `COMPILE` Locally
-
-1. Clone the repository
-2. Install all dependencies (`dotnet restore`)
-3. Run `dotnet build src/CedroModernDock -c Release` on the terminal
-4. The `.exe` file will be available at `src/CedroModernDock/bin/Release/net9.0-windows/CedroModernDock.exe`
-
-<br>
+GPL-3.0 — see [`LICENSE`](LICENSE). Original work © [Arthur Deka](https://github.com/arthurdeka) / Cedro Software; modifications © mobread.
