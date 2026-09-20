@@ -1,61 +1,72 @@
 # Mobread Modern Dock
 
-![GitHub Release](https://img.shields.io/github/v/release/mobread/MobreadModernDock?style=for-the-badge)
-![GitHub Repo stars](https://img.shields.io/github/stars/mobread/MobreadModernDock?style=for-the-badge)
-![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/mobread/MobreadModernDock?style=for-the-badge)
-![GitHub License](https://img.shields.io/github/license/mobread/MobreadModernDock?style=for-the-badge)
-![.NET](https://img.shields.io/badge/.NET-9-5122d3?style=for-the-badge&logo=dotnet&logoColor=white)
-![Avalonia](https://img.shields.io/badge/Avalonia-11.3-0080ff?style=for-the-badge&logo=avalonia&logoColor=white)
+A macOS-style dock for Windows 11 that can **replace the taskbar** — pinned apps, running apps, folder stacks, live window previews, and a widget system that lives on the desktop layer or floats on top.
 
-A macOS-style dock for Windows 11 that can **replace the taskbar** — pinned apps, running apps, folder stacks, live window previews, and a widget system (clock, system monitor, tray icons, text) that all live on the desktop layer or float on top.
-
-Built on [Cedro Modern Dock](https://github.com/Cedro-Software/cedro-modern-dock) by [@arthurdeka](https://github.com/arthurdeka). This project keeps that foundation and adds a lot on top — see [`CUSTOMIZATIONS.md`](CUSTOMIZATIONS.md) for the full list.
+Built on [Cedro Modern Dock](https://github.com/Cedro-Software/cedro-modern-dock) by [@arthurdeka](https://github.com/arthurdeka). This project keeps that foundation and adds the features below.
 
 <img width="1006" height="382" alt="Mobread Modern Dock screenshot" src="https://github.com/user-attachments/assets/4ed597cc-a8c4-4d0d-ae3e-cc6fb5514b50" />
 
 <br>
 
 > ## How To Install
-> 1. Go to [Releases](https://github.com/mobread/MobreadModernDock/releases)
-> 2. Download the latest `MobreadModernDock-<version>-x64.msi`
-> 3. Run it
+> There's no packaged release yet — build from source (see [How To Contribute](#how-to-contribute) below). An MSI installer will be published once the feature batch is done.
 >
 > Upgrading from **Cedro Modern Dock**? Your shortcuts and settings are picked up automatically on first launch.
 
 <br>
 
-## Features
+## What's new in Mobread Modern Dock
 
-### Dock
-- **Multi-row layout** — 1 to 4 rows (or columns when vertical).
-- **Auto-hide** — slides off the nearest screen edge and returns on hover. Also hides while a fullscreen app is running (games count; maximized windows don't).
-- **Edge snapping** — drag near a screen edge or the centre line and the dock snaps flush.
-- **Always on top or desktop layer** — stays visible over windows, or sits behind them and survives Win+D.
-- **Drag to reorder** pinned icons directly on the dock.
+Everything in this section is new relative to Cedro Modern Dock v1.2.
 
-### Launching & windows
-- **Taskbar-style clicks** — click a running app to focus it, click again to minimize, keep clicking to cycle its windows. Scroll wheel cycles too.
-- **Live window previews** on hover, click one to bring it forward.
-- **Running apps you haven't pinned** show up on the dock; right-click to pin them.
-- **Folder stacks** — folders open as a macOS-style icon grid instead of launching Explorer.
-- **`.lnk` shortcut support** with arguments and working directory.
+### Replace the taskbar
+
+- **Hide the Windows taskbar** — one checkbox hides the taskbar on every monitor and expands the work area so maximized windows use the full screen. Restored automatically when you uncheck it, quit, or if the app crashes; a taskbar left hidden by a force-kill is repaired on the next launch.
+- **System tray widget** — your notification-area icons (Discord, Steam, NVIDIA, etc.) as a free-floating panel. Left-click activates, right-click opens the app's real context menu. Horizontal or vertical, with a toggle for the system icons (volume, network, battery).
+- **Taskbar-style clicks** — click a running app to focus it, click again to minimize it, keep clicking to cycle through its windows. The mouse wheel over an icon cycles too.
+- **Running apps you haven't pinned** appear on the dock; right-click to **pin** them, or **unpin** a pinned one.
 
 ### Widgets
-Free-floating panels that follow the dock's colour and rounding, with per-widget opacity and position.
 
-| Widget | |
+Free-floating panels that follow the dock's colour and corner rounding. Each remembers its position and screen, has its own opacity (or follows the global slider), snaps to screen edges, and hides with the dock during fullscreen apps. Add as many as you like from **Settings › Widgets**.
+
+| Widget | What it does |
 |---|---|
-| **Clock** | 10 presets plus custom .NET format strings, optional second date line. |
-| **System monitor** | CPU / RAM / GPU / network bars, colour-coded by load, with per-metric toggles and a compact mode. |
-| **System tray** | Your Win11 notification-area icons, left- and right-clickable, so you can hide the taskbar entirely. |
-| **Text** | Any text, with `{host}` and `{user}` templates. |
+| **Clock** | 10 layout presets — 12/24 h, seconds, weekday, short / long / ISO date — or any .NET format string, previewed live as you type. Optional second line for the date. |
+| **System monitor** | CPU, RAM, GPU and network as bars that shift green → amber → red with load. Toggle each metric, a compact bars-only mode, 0.5–5 s refresh. CPU matches Task Manager's number; the network bar auto-scales to your link speed. |
+| **System tray** | See above. |
+| **Text** | Any text, with `{host}` and `{user}` placeholders. |
 
-### Windows integration
-- **Hide the Windows taskbar** — on every monitor, with the work area expanded. Restored automatically on exit, crash, or next launch.
-- **Multi-monitor aware** — the dock and widgets remember which screen they're on, even when the primary monitor isn't at the top-left.
+### Dock layout & behaviour
+
+- **Multi-row dock** — 1 to 4 rows (or columns when the dock is vertical).
+- **Auto-hide** — the dock slides off the nearest screen edge after a short grace period, leaving a 3 px sliver; touch it with the pointer to bring it back. Won't hide while you're hovering a preview or dragging an icon.
+- **Fullscreen auto-hide** — dock and widgets get out of the way while a fullscreen app is running. Borderless-window games count; a merely maximized window doesn't.
+- **Edge snapping** — drop the dock or a widget within 24 px of a screen edge or the centre line and it snaps flush, each axis independently.
+- **Always on top** — keep the dock and widgets over every window, or leave them on the desktop layer where they survive Win+D.
+- **Drag to reorder** icons directly on the dock, with a drop indicator. Works across rows. The settings gear always stays last.
+
+### Launching
+
+- **Folder stacks** — clicking a folder opens a macOS-style icon grid anchored to the dock instead of launching Explorer. Drill into subfolders in place; right-click reveals the item in Explorer.
+- **`.lnk` shortcut support** — "Add Program" accepts shortcuts, including multi-select. Target, arguments, working directory and icon are read from the shortcut, and the two shortcut shapes that break most dock apps (MSI advertised shortcuts like WSL, shell-object shortcuts like File Explorer) are handled.
+- **Live window previews** — hover a running app to see its open windows, click one to bring it forward. Positioned correctly on multi-monitor layouts.
 
 ### Appearance
-- Global opacity slider, iOS-style icon tint with 12 presets or a custom colour, dock transparency and rounding.
+
+- **Global opacity slider** (20–100 %) fades the entire dock — icons and background — and every widget that follows it. Independent of the existing background-only transparency.
+- **Per-widget opacity** — follow global, or set a custom value per widget.
+- **Resizable settings window** — 860×700 by default, drag to resize.
+
+### Multi-monitor
+
+The dock and widgets are placed with true screen coordinates, so they land on the right display even when the primary monitor isn't at the top-left of the layout. Positions no longer drift between launches on those setups.
+
+<br>
+
+## Also included (from Cedro Modern Dock)
+
+Live window previews · running-app indicators · iOS-style icon tint with 12 presets or a custom colour · vertical dock · dock transparency and rounding · auto-start with Windows · 21 languages · in-place upgrades that keep your settings.
 
 <br>
 
@@ -76,7 +87,7 @@ If this dock earned a spot on your desktop, you can leave a tip — it's genuine
 
 <!-- GETTING STARTED -->
 ## How To Contribute
-> Only needed if you want to work on the code — none of this is required to [just install it](https://github.com/mobread/MobreadModernDock/releases).
+> Only needed if you want to work on the code.
 
 ### Project architecture
 
@@ -88,6 +99,8 @@ The project follows a layered architecture:
 - `MobreadModernDock.Tests`: xUnit test suite
 
 `App.axaml.cs` composes these dependencies and injects them into the view models. New widgets implement `IWidgetProvider` and register in `WidgetRegistry`.
+
+For the implementation notes behind each feature — the Win11 tray XAML island, DWM capture limits, appbar re-creation, parent-relative coordinates on Progman — see [`CUSTOMIZATIONS.md`](CUSTOMIZATIONS.md).
 
 ### Prerequisites
 
