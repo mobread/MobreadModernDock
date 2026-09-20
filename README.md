@@ -4,8 +4,6 @@ A macOS-style dock for Windows 11 that can **replace the taskbar** — pinned ap
 
 Built on [Cedro Modern Dock](https://github.com/Cedro-Software/cedro-modern-dock) by [@arthurdeka](https://github.com/arthurdeka). This project keeps that foundation and adds the features below.
 
-<img width="1006" height="382" alt="Mobread Modern Dock screenshot" src="https://github.com/user-attachments/assets/4ed597cc-a8c4-4d0d-ae3e-cc6fb5514b50" />
-
 <br>
 
 > ## How To Install
