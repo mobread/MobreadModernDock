@@ -2,6 +2,11 @@
 
 _Saved 2026-09-20 (session 4, end)._
 
+## Start here (next session)
+
+1. **Cut v1.3.0.** Rebuild the MSI first (`dotnet\installer\build.ps1`), then `gh release create v1.3.0 dotnet/installer/MobreadModernDock-1.3.0-x64.msi`, drop the "no packaged release yet" README line, and confirm the in-app update check picks up the tag.
+2. **Click through the Settings UI paths only verified via config edits** — per-widget layer/auto-hide, presets Save/Apply/Delete, Import Taskbar Pins, weather city search (see "Not exercised by hand" below).
+
 ## State
 
 - Repo: `github.com/mobread/MobreadModernDock`. Local: `C:\Users\micha\claude-projects\MobreadModernDock`.
