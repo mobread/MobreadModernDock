@@ -784,7 +784,7 @@ public partial class MainWindow : Window
         {
             var rect = ScreenGeometry.WindowScreenRect(this);
             var work = ScreenGeometry.WorkAreaAt(new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2));
-            var snapped = EdgeSnapper.Snap(rect, work);
+            var snapped = EdgeSnapper.Snap(rect, work, _appServices.AppearanceService.GetEdgeSnapMargin());
             if (snapped.X != x || snapped.Y != y)
             {
                 SetScreenPosition(snapped.X, snapped.Y);

@@ -129,6 +129,10 @@ public class DockModel
     [JsonPropertyName("edgeSnapping")]
     public bool EdgeSnapping { get; set; } = true;
 
+    /// <summary>Gap in px kept between a snapped dock/widget and the screen edge. 0 = flush.</summary>
+    [JsonPropertyName("edgeSnapMargin")]
+    public int EdgeSnapMargin { get; set; } = 8;
+
     /// <summary>
     /// Whole-window opacity (icons, text and background together) for the dock
     /// and for widgets that follow the global value. 0.2..1.0. Distinct from

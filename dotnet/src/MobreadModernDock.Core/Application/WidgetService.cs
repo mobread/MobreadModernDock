@@ -138,6 +138,24 @@ public static class CommonWidgetSettings
     public const string OpacityModeGlobal = "global";
     public const string OpacityModeCustom = "custom";
 
+    /// <summary>"true" to slide the widget off its nearest screen edge when the pointer leaves. Only meaningful when the widget sits on an edge.</summary>
+    public const string AutoHide = "autoHide";
+
+    /// <summary>"global" (default), "top" or "desktop" — per-widget layer override.</summary>
+    public const string LayerMode = "layerMode";
+    public const string LayerModeGlobal = "global";
+    public const string LayerModeTop = "top";
+    public const string LayerModeDesktop = "desktop";
+
+    /// <summary>Resolves whether the widget should float above other windows.</summary>
+    public static bool EffectiveAlwaysOnTop(Models.WidgetDefinition def, bool globalAlwaysOnTop) =>
+        def.GetSetting(LayerMode, LayerModeGlobal) switch
+        {
+            LayerModeTop => true,
+            LayerModeDesktop => false,
+            _ => globalAlwaysOnTop,
+        };
+
     /// <summary>Resolves the opacity a widget should render at, given the global percentage.</summary>
     public static double EffectiveOpacity(Models.WidgetDefinition def, int globalPercentage)
     {

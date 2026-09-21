@@ -368,6 +368,13 @@
                                   IsChecked="{Binding FolderStacks}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
                         <CheckBox Content="{Binding EdgeSnappingText}"
                                   IsChecked="{Binding EdgeSnapping}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
+                        <StackPanel Orientation="Vertical" Spacing="2" Margin="24,0,0,0" IsVisible="{Binding EdgeSnapping}">
+                            <TextBlock Text="{Binding EdgeSnapMarginTitle}" FontSize="11" Foreground="#888888"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Slider Width="220" Minimum="0" Maximum="64" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding EdgeSnapMargin}"/>
+                                <TextBlock Text="{Binding EdgeSnapMarginLabel}" Foreground="#CCCCCC" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </StackPanel>
                         <Button Content="{Binding AcknowledgementsText}" Click="OnAcknowledgements"
                                 Background="#007ACC" Foreground="White" BorderBrush="Transparent"
                                 Padding="16,8" HorizontalAlignment="Left" Margin="0,8,0,0"/>
