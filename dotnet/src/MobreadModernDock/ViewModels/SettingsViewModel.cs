@@ -90,29 +90,45 @@ public partial class SettingsViewModel : ViewModelBase
     public int GlobalOpacity { get => _globalOpacity; set => SetProperty(ref _globalOpacity, value); }
     public int BorderRounding { get => _borderRounding; set => SetProperty(ref _borderRounding, value); }
 
-    /// <summary>Quick-pick preset colors for the dock background.</summary>
-    public IReadOnlyList<IBrush> PresetColors { get; } = new[]
+    /// <summary>
+    /// Quick-pick colours offered inside the colour picker's palette tab, so
+    /// the common choices stay one click away now that the swatch grid has
+    /// been replaced by a wheel.
+    /// </summary>
+    public IReadOnlyList<Color> PresetPaletteColors { get; } = new[]
     {
-        new SolidColorBrush(Color.FromRgb(0, 0, 0)),      // black
-        new SolidColorBrush(Color.FromRgb(30, 30, 30)),   // dark gray
-        new SolidColorBrush(Color.FromRgb(60, 60, 60)),   // gray
-        new SolidColorBrush(Color.FromRgb(120, 120, 120)),// light gray
-        new SolidColorBrush(Color.FromRgb(255, 255, 255)),// white
-        new SolidColorBrush(Color.FromRgb(20, 50, 90)),   // navy
-        new SolidColorBrush(Color.FromRgb(0, 80, 140)),   // blue
-        new SolidColorBrush(Color.FromRgb(0, 100, 80)),   // teal
-        new SolidColorBrush(Color.FromRgb(60, 90, 20)),   // olive
-        new SolidColorBrush(Color.FromRgb(120, 70, 0)),   // brown
-        new SolidColorBrush(Color.FromRgb(140, 30, 40)),  // dark red
-        new SolidColorBrush(Color.FromRgb(90, 40, 90))    // purple
+        Color.FromRgb(0, 0, 0),       // black
+        Color.FromRgb(30, 30, 30),    // dark gray
+        Color.FromRgb(60, 60, 60),    // gray
+        Color.FromRgb(120, 120, 120), // light gray
+        Color.FromRgb(255, 255, 255), // white
+        Color.FromRgb(20, 50, 90),    // navy
+        Color.FromRgb(0, 80, 140),    // blue
+        Color.FromRgb(0, 100, 80),    // teal
+        Color.FromRgb(60, 90, 20),    // olive
+        Color.FromRgb(120, 70, 0),    // brown
+        Color.FromRgb(140, 30, 40),   // dark red
+        Color.FromRgb(90, 40, 90)     // purple
     };
 
-    public Color DockColor { get => _dockColor; set => SetProperty(ref _dockColor, value); }
+    // The brush properties are computed from these, and must re-notify even
+    // during Initialize() (when _isInitialized is false and the change router
+    // below is skipped) - otherwise the preview swatch keeps the constructor's
+    // default instead of the loaded colour.
+    public Color DockColor
+    {
+        get => _dockColor;
+        set { if (SetProperty(ref _dockColor, value)) OnPropertyChanged(nameof(DockColorBrush)); }
+    }
     public IBrush DockColorBrush => new SolidColorBrush(DockColor);
 
     /// <summary>Enables the iOS-style color tint over all dock icons.</summary>
     public bool TintIcons { get => _tintIcons; set => SetProperty(ref _tintIcons, value); }
-    public Color TintColor { get => _tintColor; set => SetProperty(ref _tintColor, value); }
+    public Color TintColor
+    {
+        get => _tintColor;
+        set { if (SetProperty(ref _tintColor, value)) OnPropertyChanged(nameof(TintColorBrush)); }
+    }
     public IBrush TintColorBrush => new SolidColorBrush(TintColor);
 
     public bool IsStaticMode { get => _isStaticMode; set => SetProperty(ref _isStaticMode, value); }
@@ -465,7 +481,6 @@ public partial class SettingsViewModel : ViewModelBase
     public string AutoHideText => T("settings.general.autoHide");
     public string FolderStacksText => T("settings.general.folderStacks");
     public string EdgeSnappingText => T("settings.general.edgeSnapping");
-    public string CustomColorText => T("settings.customColor");
 
     private bool _isAutoStartEnabled;
     public bool IsAutoStartEnabled
@@ -578,9 +593,11 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(Transparency): OnTransparencyChanged(); break;
             case nameof(GlobalOpacity): _appServices.AppearanceService.SetGlobalOpacityPercentage(GlobalOpacity); _dockRefreshAction(); break;
             case nameof(BorderRounding): OnBorderRoundingChanged(); break;
-            case nameof(DockColor): OnDockColorChanged(); OnPropertyChanged(nameof(DockColorBrush)); break;
+            // The brush notifications live in the property setters, so they
+            // fire during Initialize() too.
+            case nameof(DockColor): OnDockColorChanged(); break;
             case nameof(TintIcons): OnTintIconsChanged(); break;
-            case nameof(TintColor): OnTintColorChanged(); OnPropertyChanged(nameof(TintColorBrush)); break;
+            case nameof(TintColor): OnTintColorChanged(); break;
             case nameof(SelectedLanguage): OnLanguageChanged(SelectedLanguage); break;
             case nameof(IsAutoStartEnabled): OnAutoStartChanged(); break;
             case nameof(ShowUnpinnedRunningApps): OnShowUnpinnedRunningAppsChanged(); break;
