@@ -12,7 +12,10 @@
         <ItemsControl ItemsSource="{Binding Icons}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <StackPanel Orientation="{Binding Orientation}" Spacing="{Binding Spacing}"/>
+                    <!-- Rows/Columns come from the VM (Lines setting × icon count).
+                         Spacing is applied as per-item margin below, since
+                         UniformGrid has no Spacing property. -->
+                    <UniformGrid Rows="{Binding GridRows}" Columns="{Binding GridColumns}"/>
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
 
@@ -21,6 +24,7 @@
                     <Button Background="Transparent"
                             BorderBrush="Transparent"
                             Padding="3"
+                            Margin="{Binding ItemMargin}"
                             Cursor="Hand"
                             ToolTip.Tip="{Binding Name}"
                             RenderTransformOrigin="50%, 50%"

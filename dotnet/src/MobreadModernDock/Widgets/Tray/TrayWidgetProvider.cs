@@ -22,6 +22,7 @@ public sealed class TrayWidgetProvider : IWidgetProvider
         [TrayWidgetSettings.Spacing] = "6",
         [TrayWidgetSettings.Vertical] = "false",
         [TrayWidgetSettings.ShowSystemIcons] = "false",
+        [TrayWidgetSettings.Lines] = "1",
     };
 
     public Control CreateView(WidgetDefinition definition, AppServices services)
@@ -72,6 +73,19 @@ public sealed class TrayWidgetProvider : IWidgetProvider
             onChanged();
         };
 
+        var linesSlider = new Slider { Minimum = 1, Maximum = 6, TickFrequency = 1, IsSnapToTickEnabled = true, Value = definition.GetSettingInt(TrayWidgetSettings.Lines, 1) };
+        var linesLabel = new TextBlock { Foreground = Avalonia.Media.Brushes.White, FontSize = 12 };
+        void UpdateLinesLabel() => linesLabel.Text = string.Format(
+            loc.Text(vertical.IsChecked == true ? "settings.widget.tray.lines.columns" : "settings.widget.tray.lines.rows"), (int)linesSlider.Value);
+        UpdateLinesLabel();
+        linesSlider.ValueChanged += (_, _) =>
+        {
+            widgets.UpdateSetting(definition.Id, TrayWidgetSettings.Lines, ((int)Math.Round(linesSlider.Value)).ToString());
+            UpdateLinesLabel();
+            onChanged();
+        };
+        vertical.IsCheckedChanged += (_, _) => UpdateLinesLabel();
+
         return new StackPanel
         {
             Spacing = 12,
@@ -86,6 +100,8 @@ public sealed class TrayWidgetProvider : IWidgetProvider
                 Text.TextWidgetProvider.Section(loc.Text("settings.widget.tray.iconSize"), null, sizeSlider),
                 Text.TextWidgetProvider.Section(loc.Text("settings.widget.tray.spacing"), null, spacingSlider),
                 vertical,
+                Text.TextWidgetProvider.Section(loc.Text("settings.widget.tray.lines"), loc.Text("settings.widget.tray.lines.helper"),
+                    new StackPanel { Spacing = 4, Children = { linesSlider, linesLabel } }),
                 showSystem,
             }
         };

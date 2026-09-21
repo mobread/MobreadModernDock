@@ -172,6 +172,8 @@ public static class TrayWidgetSettings
     public const string Spacing = "spacing";
     public const string Vertical = "vertical";
     public const string ShowSystemIcons = "showSystemIcons";
+    /// <summary>Rows (horizontal) or columns (vertical) to wrap the icons into. Default 1.</summary>
+    public const string Lines = "lines";
 }
 
 public static class ClockWidgetSettings
