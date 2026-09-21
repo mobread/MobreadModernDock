@@ -248,6 +248,23 @@ public class DockAppearanceService
     public double GetMagnifyScale() =>
         Math.Clamp(GetDock().MagnifyScale, 1.0, DockMagnification.MaxScaleLimit);
 
+    // --- Window preview / tooltip delay ---
+
+    /// <summary>Longest delay offered by the slider, in ms.</summary>
+    public const int MaxPreviewDelayMs = 2000;
+
+    /// <summary>
+    /// How long the pointer must rest on an icon before its preview appears.
+    /// 0 means immediate, which is how the dock behaved before this setting.
+    /// </summary>
+    public int GetPreviewDelayMs() => Math.Clamp(GetDock().PreviewDelayMs, 0, MaxPreviewDelayMs);
+
+    public void SetPreviewDelayMs(int value)
+    {
+        GetDock().PreviewDelayMs = Math.Clamp(value, 0, MaxPreviewDelayMs);
+        _dockService.SaveChanges();
+    }
+
     // --- Follow system light/dark theme ---
 
     /// <summary>Dock background used when Windows is in dark mode.</summary>
