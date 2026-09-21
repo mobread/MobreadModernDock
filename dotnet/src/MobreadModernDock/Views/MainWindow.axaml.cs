@@ -421,6 +421,7 @@ public partial class MainWindow : Window
         if (windows.Count != 1) return;
 
         ++_previewRequestId;
+        RestoreTooltip();
         _previewPopup?.HideNow();
         _hoveredButton = null;
         _appServices.WindowPreviewService.Activate(windows[0]);
@@ -454,6 +455,7 @@ public partial class MainWindow : Window
         if (_previewPopup.IsVisible && _previewPopup.MatchesSource(windows))
         {
             _previewPopup.CancelHide();
+            SuppressTooltip(button);
             return;
         }
         _previewPopup.ShowFor(windows, label,
@@ -461,6 +463,47 @@ public partial class MainWindow : Window
             appearance.GetDockTransparencyPercentage() / 100.0, button,
             verticalDock: _appServices.AppearanceService.GetVerticalDock(),
             horizontalAnchor: _appServices.PositioningService.GetHorizontalAnchor());
+
+        // The preview wins over the tooltip: both are anchored to the same icon
+        // and now open on the same delay, so they overlap. The preview already
+        // shows the app name on every row, making the tooltip pure noise.
+        SuppressTooltip(button);
+    }
+
+    /// <summary>
+    /// Hides an item's tooltip while its preview is on screen. The preview is
+    /// loaded asynchronously, so the tooltip's own timer can fire *after* the
+    /// popup appears and land the label right on top of it; pushing the delay
+    /// out of reach vetoes that without touching the tip itself.
+    ///
+    /// Do NOT clear the tip (<c>ToolTip.SetTip(item, null)</c>) to achieve this:
+    /// mutating the hovered control mid-hover makes Avalonia re-evaluate the
+    /// pointer, which fires PointerExited on the icon and tears the preview
+    /// straight back down.
+    /// </summary>
+    private void SuppressTooltip(Control? item)
+    {
+        if (item is null) return;
+        ToolTip.SetIsOpen(item, false);
+        if (_suppressedTooltip is not null) return;
+        _suppressedTooltip = item;
+        ToolTip.SetShowDelay(item, int.MaxValue);
+    }
+
+    /// <summary>The item whose tooltip is currently vetoed.</summary>
+    private Control? _suppressedTooltip;
+
+    /// <summary>
+    /// Re-arms a tooltip vetoed by <see cref="SuppressTooltip"/>. The delay is
+    /// restored from the view model rather than a captured value, so a change
+    /// to the setting while a preview was open is picked up.
+    /// </summary>
+    private void RestoreTooltip()
+    {
+        if (_suppressedTooltip is not { } item) return;
+        _suppressedTooltip = null;
+        int delay = (DataContext as MainWindowViewModel)?.PreviewDelayMs ?? 400;
+        ToolTip.SetShowDelay(item, delay);
     }
 
     private void OnItemPointerExited(object? sender, PointerEventArgs e)
@@ -517,6 +560,7 @@ public partial class MainWindow : Window
         ++_previewRequestId;
         _previewShowDelay.Stop();
         _pendingPreviewButton = null;
+        RestoreTooltip();
         _previewPopup?.HidePopup();
         _hoveredButton = null;
     }
@@ -545,6 +589,7 @@ public partial class MainWindow : Window
         // Click-to-activate: hide instantly (no fade), release the pointer
         // capture held by the pressed row, then bring the window forward.
         ++_previewRequestId;
+        RestoreTooltip();
         _previewPopup?.HideNow();
         _hoveredButton = null;
         if (sourceHwnd != IntPtr.Zero)
@@ -603,6 +648,7 @@ public partial class MainWindow : Window
         if (windows.Count == 0)
         {
             ++_previewRequestId;
+            RestoreTooltip();
             _previewPopup.HideNow();
             _hoveredButton = null;
             return;

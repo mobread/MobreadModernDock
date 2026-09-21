@@ -248,6 +248,34 @@ public class DockAppearanceService
     public double GetMagnifyScale() =>
         Math.Clamp(GetDock().MagnifyScale, 1.0, DockMagnification.MaxScaleLimit);
 
+    // --- Update checking ---
+
+    public bool GetCheckUpdatesOnStartup() => GetDock().CheckUpdatesOnStartup;
+
+    public void SetCheckUpdatesOnStartup(bool value)
+    {
+        GetDock().CheckUpdatesOnStartup = value;
+        _dockService.SaveChanges();
+    }
+
+    /// <summary>
+    /// True when the startup check is enabled and a day has passed since the
+    /// last one. Keeps a restart loop from hammering the GitHub API, which is
+    /// rate-limited to 60 requests/hour for unauthenticated callers.
+    /// </summary>
+    public bool ShouldCheckForUpdates(DateTime utcNow)
+    {
+        if (!GetDock().CheckUpdatesOnStartup) return false;
+        var last = GetDock().LastUpdateCheckUtc;
+        return last is null || (utcNow - last.Value) >= TimeSpan.FromDays(1);
+    }
+
+    public void MarkUpdateChecked(DateTime utcNow)
+    {
+        GetDock().LastUpdateCheckUtc = utcNow;
+        _dockService.SaveChanges();
+    }
+
     // --- Window preview / tooltip delay ---
 
     /// <summary>Longest delay offered by the slider, in ms.</summary>

@@ -602,9 +602,18 @@
                                 <TextBlock Classes="label" Text="{Binding VersionText}" FontWeight="SemiBold"/>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <Button Content="{Binding CheckUpdatesText}" Click="OnCheckUpdates" IsEnabled="{Binding !IsCheckingUpdates}"/>
-                                    <Button Classes="primary" Content="{Binding DownloadUpdateText}" Click="OnDownloadUpdate" IsVisible="{Binding UpdateAvailable}"/>
-                                    <TextBlock Classes="label" Text="{Binding UpdateStatusText}"/>
+                                    <!-- One-click install for installed copies; portable builds
+                                         fall back to the download link (no MSI to upgrade). -->
+                                    <Button Classes="primary" Content="{Binding InstallUpdateText}" Click="OnInstallUpdate"
+                                            IsVisible="{Binding CanInstallUpdate}"/>
+                                    <Button Content="{Binding DownloadUpdateText}" Click="OnDownloadUpdate" IsVisible="{Binding UpdateAvailable}"/>
+                                    <TextBlock Classes="label" Text="{Binding UpdateStatusText}" VerticalAlignment="Center"/>
                                 </StackPanel>
+                                <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsInstallingUpdate}">
+                                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding UpdateProgress}" Height="6"/>
+                                    <TextBlock Grid.Column="1" Classes="value" Margin="8,0,0,0" Text="{Binding UpdateProgressText}"/>
+                                </Grid>
+                                <CheckBox Content="{Binding CheckUpdatesOnStartupText}" IsChecked="{Binding CheckUpdatesOnStartup}"/>
 
                                 <Border Height="1" Background="#333333" Margin="0,4"/>
 

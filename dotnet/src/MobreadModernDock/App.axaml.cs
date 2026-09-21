@@ -62,6 +62,7 @@ public partial class App : Application
                 ApplyTaskbarVisibility();
                 StartFullscreenWatcher();
                 StartThemeWatcher();
+                StartUpdateCheck();
             };
             desktop.ShutdownRequested += (_, _) => TaskbarVisibility.Restore();
             desktop.Exit += (_, _) => TaskbarVisibility.Restore();
@@ -71,6 +72,9 @@ public partial class App : Application
     }
 
     private static MemoryStream? _trayIconStream;
+
+    /// <summary>Kept so the startup update check can flag an update on its tooltip.</summary>
+    private static TrayIcon? _trayIcon;
 
     private void WireTrayIcon(LocalizationService loc)
     {
@@ -94,6 +98,7 @@ public partial class App : Application
             ToolTipText = "Mobread Modern Dock",
             Menu = new NativeMenu()
         };
+        _trayIcon = trayIcon;
 
         var settingsItem = new NativeMenuItem { Header = loc.Text("tray.openSettings") };
         var exitItem = new NativeMenuItem { Header = loc.Text("tray.exit") };
@@ -333,10 +338,66 @@ public partial class App : Application
             w.SetNativeVisible(visible);
     }
 
+    // --- Startup update check ---
+
+    /// <summary>True when the last check found a newer release.</summary>
+    public static bool UpdateAvailable { get; private set; }
+
+    /// <summary>
+    /// Looks for a newer release a few seconds after launch, at most once a
+    /// day, and only ever *reports* it — nothing is downloaded or installed
+    /// without the user asking in Settings.
+    ///
+    /// Deliberately fire-and-forget and fully swallowed: a dock must not be
+    /// delayed or broken by GitHub being slow, offline or rate-limiting.
+    /// </summary>
+    private static void StartUpdateCheck()
+    {
+        if (_appServices is not { } services) return;
+        var now = DateTime.UtcNow;
+        if (!services.AppearanceService.ShouldCheckForUpdates(now)) return;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                // Let the dock finish starting before adding network work.
+                await Task.Delay(TimeSpan.FromSeconds(8));
+                var result = await UpdateChecker.CheckAsync(
+                    ViewModels.SettingsViewModel.CurrentVersion);
+                if (result is null) return; // offline / rate-limited: try again tomorrow
+
+                services.AppearanceService.MarkUpdateChecked(now);
+                if (!result.UpdateAvailable) return;
+
+                UpdateAvailable = true;
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    ShowUpdateNotice(result.Latest!.ToString(3)));
+            }
+            catch { /* never let an update check surface to the user */ }
+        });
+    }
+
+    /// <summary>
+    /// Flags an available update on the tray icon's tooltip. Deliberately
+    /// quiet — no popup stealing focus from whatever the user is doing; the
+    /// details and the install button live in Settings › General.
+    /// </summary>
+    private static void ShowUpdateNotice(string version)
+    {
+        if (_trayIcon is null || _appServices is null) return;
+        try
+        {
+            string text = _appServices.LocalizationService.Text(
+                "tray.updateAvailable", version);
+            _trayIcon.ToolTipText = $"Mobread Modern Dock — {text}";
+        }
+        catch { }
+    }
+
     // --- Follow system light/dark theme ---
 
     private static Infrastructure.Windows.Native.SystemThemeWatcher? _themeWatcher;
-
     /// <summary>
     /// Starts watching the Windows app theme. The dock colour is also synced
     /// once at startup so a theme change made while the app was closed is

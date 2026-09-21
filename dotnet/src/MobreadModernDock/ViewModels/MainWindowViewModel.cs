@@ -143,9 +143,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private int _previewDelayMs = 400;
     /// <summary>
-    /// Hover delay before an item's tooltip (and its window preview) appears.
+    /// Hover delay before an item's tooltip and its window preview appear.
     /// Bound by the item template's ToolTip.ShowDelay; the window applies the
-    /// same value to the preview timer.
+    /// same value to the preview timer. When a preview does appear it takes
+    /// the tooltip's place (MainWindow.SuppressTooltip), so the shared delay
+    /// costs nothing.
     /// </summary>
     public int PreviewDelayMs { get => _previewDelayMs; set => SetProperty(ref _previewDelayMs, value); }
     public IBrush DockBackground
