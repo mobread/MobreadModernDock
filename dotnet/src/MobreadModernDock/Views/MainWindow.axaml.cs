@@ -252,6 +252,50 @@ public partial class MainWindow : Window
         if (panel == null) return;
         panel.Lines = vm.DockLines;
         panel.IsVertical = vm.IsVerticalDock;
+        // Magnification is single-line only; the service already folds that in.
+        panel.MagnifyScale = _appServices?.AppearanceService.GetMagnifyIcons() == true
+            ? _appServices.AppearanceService.GetMagnifyScale()
+            : 1.0;
+        // The per-item hover zoom must stand down while the panel is scaling.
+        PinnedItems.Classes.Set("magnified", panel.MagnifyScale > 1.0);
+        if (panel.MagnifyScale <= 1.0) panel.UpdateMagnification(null);
+    }
+
+    /// <summary>
+    /// Feeds the pointer position to the items panel so it can magnify. The
+    /// position is taken along the dock's main axis in panel coordinates,
+    /// which is exactly what DockMagnification expects.
+    /// </summary>
+    private void UpdateMagnifier(PointerEventArgs e)
+    {
+        var panel = PinnedItems.GetVisualDescendants().OfType<DockItemsPanel>().FirstOrDefault();
+        if (panel is null) return;
+
+        // Re-read the setting here rather than trusting a value pushed in
+        // earlier: SyncPinnedPanel can run before the panel is realized, and
+        // a stale 1.0 would silently disable the effect for the whole session.
+        double scale = _appServices?.AppearanceService.GetMagnifyIcons() == true
+            ? _appServices.AppearanceService.GetMagnifyScale()
+            : 1.0;
+        if (panel.MagnifyScale != scale)
+        {
+            panel.MagnifyScale = scale;
+            PinnedItems.Classes.Set("magnified", scale > 1.0);
+        }
+        if (scale <= 1.0)
+        {
+            panel.UpdateMagnification(null);
+            return;
+        }
+
+        var p = e.GetPosition(panel);
+        panel.UpdateMagnification(panel.IsVertical ? p.Y : p.X);
+    }
+
+    private void ClearMagnifier()
+    {
+        var panel = PinnedItems.GetVisualDescendants().OfType<DockItemsPanel>().FirstOrDefault();
+        panel?.UpdateMagnification(null);
     }
 
     private void OnItemPointerEntered(object? sender, PointerEventArgs e)
@@ -535,9 +579,16 @@ public partial class MainWindow : Window
         _autoHide?.OnPointerEntered();
     }
 
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+        UpdateMagnifier(e);
+    }
+
     protected override void OnPointerExited(PointerEventArgs e)
     {
         base.OnPointerExited(e);
+        ClearMagnifier();
         _autoHide?.OnPointerExited();
     }
 

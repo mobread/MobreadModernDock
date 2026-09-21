@@ -22,6 +22,19 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
+    <Window.Styles>
+        <!-- Hover zoom for dock items. Defined here rather than inside the item
+             template so it can be suppressed while the dock is magnified:
+             DockItemsPanel sets RenderTransform as a local value, and an
+             unconditional style setter would beat it and cancel the effect. -->
+        <Style Selector="ItemsControl:not(.magnified) Button.dockitem">
+            <Setter Property="RenderTransform" Value="scale(1)" />
+        </Style>
+        <Style Selector="ItemsControl:not(.magnified) Button.dockitem:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.3)" />
+        </Style>
+    </Window.Styles>
+
     <!-- Dock bar: rounded background with items. The top margin is transparent
          headroom so an attention-bounce (icon hops 10 px up) isn't clipped by
          the window edge; ClipToBounds is off for the same reason. -->
@@ -68,6 +81,7 @@
                     <DataTemplate x:DataType="vm:DockItemViewModel">
                         <Button ClipToBounds="False" Command="{Binding ClickCommand}"
                                 CommandParameter="{Binding}"
+                                Classes="dockitem"
                                 Classes.separator="{Binding IsSeparator}"
                                 Background="Transparent"
                                 BorderBrush="Transparent"
@@ -97,18 +111,17 @@
                             </Button.Transitions>
 
                             <Button.Styles>
-                                <Style Selector="Button">
-                                    <Setter Property="RenderTransform" Value="scale(1)" />
-                                </Style>
-                                <Style Selector="Button:pointerover">
-                                    <Setter Property="RenderTransform" Value="scale(1.3)" />
-                                </Style>
+                                <!-- Hover zoom lives at window level (see
+                                     Window.Styles) so it can be disabled while
+                                     the dock is magnified: an unconditional
+                                     setter here would beat the panel's local
+                                     RenderTransform and cancel the effect. -->
                                 <!-- A separator is not a target: no hover zoom,
                                      no hand cursor, and no icon padding - the
                                      Button's 4px padding plus the shared cell
                                      margin would otherwise pad a 2px line out
                                      to ~13px. -->
-                                <Style Selector="Button.separator:pointerover">
+                                <Style Selector="ItemsControl:not(.magnified) Button.separator:pointerover">
                                     <Setter Property="RenderTransform" Value="scale(1)" />
                                 </Style>
                                 <Style Selector="Button.separator">

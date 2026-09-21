@@ -372,6 +372,22 @@
 
                                 <Border Height="1" Background="#333333" Margin="0,4"/>
 
+                                <!-- macOS-style hover magnification. Single-row
+                                     only: with wrapped rows the pushed-apart
+                                     icons would collide across lines. -->
+                                <CheckBox Content="{Binding MagnifyIconsText}" IsChecked="{Binding MagnifyIcons}"/>
+                                <TextBlock Classes="helper" Text="{Binding MagnifyIconsHelper}"/>
+                                <TextBlock Classes="helper" Foreground="#E8912D"
+                                           Text="{Binding MagnifyRowsWarning}"
+                                           IsVisible="{Binding ShowMagnifyRowsWarning}"/>
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto" IsVisible="{Binding MagnifyIcons}">
+                                    <TextBlock Classes="label" Text="{Binding MagnifyScaleTitle}"/>
+                                    <Slider Minimum="110" Maximum="250" TickFrequency="10" IsSnapToTickEnabled="True" Value="{Binding MagnifyScale}"/>
+                                    <TextBlock Classes="value" Text="{Binding MagnifyScaleLabel}"/>
+                                </Grid>
+
+                                <Border Height="1" Background="#333333" Margin="0,4"/>
+
                                 <CheckBox Content="{Binding TintIconsTitle}" IsChecked="{Binding TintIcons}"/>
                                 <StackPanel Spacing="8" IsVisible="{Binding TintIcons}">
                                     <TextBlock Classes="helper" Text="{Binding TintColorHelper}"/>

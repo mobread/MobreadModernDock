@@ -216,6 +216,38 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    // --- macOS-style hover magnification ---
+
+    /// <summary>
+    /// Whether magnification is switched on AND actually usable. It is
+    /// restricted to a single-line dock: with wrapped rows the pushed-apart
+    /// icons would collide across lines.
+    /// </summary>
+    public bool GetMagnifyIcons() => GetDock().MagnifyIcons && GetDockRows() == 1;
+
+    /// <summary>The raw setting, ignoring whether the current layout supports it.</summary>
+    public bool GetMagnifyIconsSetting() => GetDock().MagnifyIcons;
+
+    public void SetMagnifyIcons(bool value)
+    {
+        GetDock().MagnifyIcons = value;
+        _dockService.SaveChanges();
+    }
+
+    /// <summary>Peak magnification as a percentage (100..250) for the slider.</summary>
+    public int GetMagnifyScalePercentage() =>
+        (int)Math.Round(Math.Clamp(GetDock().MagnifyScale, 1.0, DockMagnification.MaxScaleLimit) * 100);
+
+    public void SetMagnifyScalePercentage(int value)
+    {
+        GetDock().MagnifyScale = Math.Clamp(value, 100, (int)(DockMagnification.MaxScaleLimit * 100)) / 100.0;
+        _dockService.SaveChanges();
+    }
+
+    /// <summary>Peak magnification as a raw factor, clamped to the supported range.</summary>
+    public double GetMagnifyScale() =>
+        Math.Clamp(GetDock().MagnifyScale, 1.0, DockMagnification.MaxScaleLimit);
+
     // --- Follow system light/dark theme ---
 
     /// <summary>Dock background used when Windows is in dark mode.</summary>

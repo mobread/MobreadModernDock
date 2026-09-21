@@ -84,7 +84,12 @@ public partial class SettingsViewModel : ViewModelBase
     public int IconSize { get => _iconSize; set => SetProperty(ref _iconSize, value); }
     public int IconSpacing { get => _iconSpacing; set => SetProperty(ref _iconSpacing, value); }
     private int _dockRows = 1;
-    public int DockRows { get => _dockRows; set => SetProperty(ref _dockRows, value); }
+    public int DockRows
+    {
+        get => _dockRows;
+        // Feeds the magnification warning: the effect is single-row only.
+        set { if (SetProperty(ref _dockRows, value)) OnPropertyChanged(nameof(ShowMagnifyRowsWarning)); }
+    }
     public int Transparency { get => _transparency; set => SetProperty(ref _transparency, value); }
     private int _globalOpacity = 100;
     public int GlobalOpacity { get => _globalOpacity; set => SetProperty(ref _globalOpacity, value); }
@@ -177,6 +182,36 @@ public partial class SettingsViewModel : ViewModelBase
     public bool FollowSystemTheme { get => _followSystemTheme; set => SetProperty(ref _followSystemTheme, value); }
     public string FollowSystemThemeText => T("settings.general.followSystemTheme");
     public string FollowSystemThemeHelper => T("settings.general.followSystemTheme.helper");
+
+    // --- macOS-style magnification ---
+
+    private bool _magnifyIcons;
+    /// <summary>Grow icons near the pointer, macOS-dock style.</summary>
+    public bool MagnifyIcons
+    {
+        get => _magnifyIcons;
+        set { if (SetProperty(ref _magnifyIcons, value)) OnPropertyChanged(nameof(ShowMagnifyRowsWarning)); }
+    }
+
+    private int _magnifyScale = 160;
+    /// <summary>Peak magnification as a percentage (100..250).</summary>
+    public int MagnifyScale
+    {
+        get => _magnifyScale;
+        set { if (SetProperty(ref _magnifyScale, value)) OnPropertyChanged(nameof(MagnifyScaleLabel)); }
+    }
+
+    public string MagnifyScaleLabel => $"{MagnifyScale}%";
+    public string MagnifyIconsText => T("settings.iconsCustomization.magnify.title");
+    public string MagnifyIconsHelper => T("settings.iconsCustomization.magnify.helper");
+    public string MagnifyScaleTitle => T("settings.iconsCustomization.magnify.scale");
+
+    /// <summary>
+    /// Magnification only works on a single-line dock, so the warning shows
+    /// whenever it is enabled while more than one row is configured.
+    /// </summary>
+    public bool ShowMagnifyRowsWarning => MagnifyIcons && DockRows > 1;
+    public string MagnifyRowsWarning => T("settings.iconsCustomization.magnify.rowsWarning");
 
     // --- Config export / import ---
 
@@ -574,6 +609,8 @@ public partial class SettingsViewModel : ViewModelBase
         EdgeSnapping = app.GetEdgeSnapping();
         EdgeSnapMargin = app.GetEdgeSnapMargin();
         BlurMode = app.GetBlurMode();
+        MagnifyIcons = app.GetMagnifyIconsSetting();
+        MagnifyScale = app.GetMagnifyScalePercentage();
         FollowSystemTheme = app.GetFollowSystemTheme();
         ReloadPresets();
         _isInitialized = true;
@@ -612,6 +649,8 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(EdgeSnapping): _appServices.AppearanceService.SetEdgeSnapping(EdgeSnapping); break;
             case nameof(EdgeSnapMargin): _appServices.AppearanceService.SetEdgeSnapMargin(EdgeSnapMargin); OnPropertyChanged(nameof(EdgeSnapMarginLabel)); break;
             case nameof(BlurMode): _appServices.AppearanceService.SetBlurMode(BlurMode); _dockRefreshAction(); break;
+            case nameof(MagnifyIcons): _appServices.AppearanceService.SetMagnifyIcons(MagnifyIcons); _dockRefreshAction(); break;
+            case nameof(MagnifyScale): _appServices.AppearanceService.SetMagnifyScalePercentage(MagnifyScale); _dockRefreshAction(); break;
             case nameof(FollowSystemTheme): OnFollowSystemThemeChanged(); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
             case nameof(VerticalAnchor): OnVerticalAnchorChanged(); break;
