@@ -1,5 +1,6 @@
 namespace MobreadModernDock.ViewModels;
 
+using System;
 using System.Windows.Input;
 using Avalonia.Media.Imaging;
 using MobreadModernDock.Core.Models;
@@ -54,8 +55,57 @@ public class DockItemViewModel : ViewModelBase
     /// <summary>True if this item should show a running-app indicator (program items only).</summary>
     public bool ShowIndicator { get; }
 
+    // --- Separator items ---
+
+    /// <summary>True when this item is a user-placed divider rather than a launchable icon.</summary>
+    public bool IsSeparator => Item is DockSeparatorItemModel;
+
+    /// <summary>Inverse of <see cref="IsSeparator"/>, for binding the normal icon content.</summary>
+    public bool IsNotSeparator => !IsSeparator;
+
+    private bool _isVerticalDock;
+    /// <summary>
+    /// Dock orientation, pushed in at creation. A separator draws across the
+    /// dock's minor axis: a vertical hairline in a horizontal dock, and a
+    /// horizontal one in a vertical dock.
+    /// </summary>
+    public bool IsVerticalDock
+    {
+        get => _isVerticalDock;
+        set
+        {
+            if (!SetProperty(ref _isVerticalDock, value)) return;
+            OnPropertyChanged(nameof(SeparatorWidth));
+            OnPropertyChanged(nameof(SeparatorHeight));
+        }
+    }
+
+    /// <summary>Thickness of the drawn line, in px.</summary>
+    private const double SeparatorThickness = 2;
+
+    /// <summary>
+    /// Length of the line along the dock's minor axis: 70% of the icon size,
+    /// so it reads as a divider between icons rather than a full-height bar.
+    /// </summary>
+    private double SeparatorLength => Math.Max(8, IconSize * 0.7);
+
+    public double SeparatorWidth => IsVerticalDock ? SeparatorLength : SeparatorThickness;
+    public double SeparatorHeight => IsVerticalDock ? SeparatorThickness : SeparatorLength;
+
     /// <summary>The icon render size in pixels (mirrors the dock's IconsSize setting).</summary>
-    public int IconSize { get; set; } = 48;
+    private int _iconSize = 48;
+    public int IconSize
+    {
+        get => _iconSize;
+        // Assigned after construction by UpdateDockUI, so the separator's
+        // computed dimensions must re-notify or they'd keep the 48px default.
+        set
+        {
+            if (!SetProperty(ref _iconSize, value)) return;
+            OnPropertyChanged(nameof(SeparatorWidth));
+            OnPropertyChanged(nameof(SeparatorHeight));
+        }
+    }
 
     /// <summary>The executable path for running-indicator polling (program items only).</summary>
     public string? ExecutablePath { get; }
