@@ -22,7 +22,7 @@ Everything in this section is new relative to Cedro Modern Dock v1.2.
 ### Replace the taskbar
 
 - **Hide the Windows taskbar** — one checkbox hides the taskbar on every monitor and expands the work area so maximized windows use the full screen. Restored automatically when you uncheck it, quit, or if the app crashes; a taskbar left hidden by a force-kill is repaired on the next launch.
-- **System tray widget** — your notification-area icons (Discord, Steam, NVIDIA, etc.) as a free-floating panel. Left-click activates, right-click opens the app's real context menu. Horizontal or vertical, with a toggle for the system icons (volume, network, battery).
+- **System tray widget** — your notification-area icons (Discord, Steam, NVIDIA, etc.) as a free-floating panel. Left-click activates, right-click opens the app's real context menu. Horizontal or vertical, wrapped into 1–6 rows or columns, with a toggle for the system icons (volume, network, battery).
 - **Taskbar-style clicks** — click a running app to focus it, click again to minimize it, keep clicking to cycle through its windows. The mouse wheel over an icon cycles too.
 - **Running apps you haven't pinned** appear on the dock; right-click to **pin** them, or **unpin** a pinned one.
 
