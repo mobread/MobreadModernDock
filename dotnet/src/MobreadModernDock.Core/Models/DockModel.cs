@@ -234,7 +234,17 @@ public class DockModel
 
     public void RemoveItem(int index) => Items.RemoveAt(index);
 
-    public void LoadDefaultItems() => Items.Add(new DockSettingsItemModel());
+    /// <summary>
+    /// Fills a brand-new config. <paramref name="seed"/> (typically
+    /// <see cref="Application.FirstRunDefaults.Compose"/>) goes first; the
+    /// Settings gear is always appended last so the dock is never empty and
+    /// always reachable.
+    /// </summary>
+    public void LoadDefaultItems(IEnumerable<DockItem>? seed = null)
+    {
+        if (seed != null) Items.AddRange(seed);
+        Items.Add(new DockSettingsItemModel());
+    }
 
     public void SwapItems(int firstItemIdx, int secondItemIdx)
     {
