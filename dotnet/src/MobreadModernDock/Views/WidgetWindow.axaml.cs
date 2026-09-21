@@ -67,6 +67,9 @@ public partial class WidgetWindow : Window
     public WidgetWindow()
     {
         InitializeComponent();
+        // SizeToContent means the chrome's rect changes with the content;
+        // the blur region has to follow it.
+        SizeChanged += (_, _) => UpdateBackdropRegion();
         PositionChanged += (_, _) =>
         {
             _positionPersistTimer.Stop();
@@ -134,10 +137,52 @@ public partial class WidgetWindow : Window
         byte r = parts.Length > 0 && byte.TryParse(parts[0], out var rv) ? rv : (byte)0;
         byte g = parts.Length > 1 && byte.TryParse(parts[1], out var gv) ? gv : (byte)0;
         byte b = parts.Length > 2 && byte.TryParse(parts[2], out var bv) ? bv : (byte)0;
-        Chrome.Background = new SolidColorBrush(Color.FromArgb(alpha, r, g, b));
+
+        // Acrylic tints the window natively; painting the same colour again on
+        // the Border would double it up (see MainWindow.ApplyBackdrop).
+        string blurMode = appearance.GetBlurMode();
+        Chrome.Background = blurMode == WindowBlur.ModeAcrylic
+            ? Brushes.Transparent
+            : new SolidColorBrush(Color.FromArgb(alpha, r, g, b));
+
+        ApplyBackdrop(blurMode, r, g, b, transparency);
 
         if (_definition != null)
             Chrome.Opacity = CommonWidgetSettings.EffectiveOpacity(_definition, appearance.GetGlobalOpacityPercentage());
+    }
+
+    /// <summary>
+    /// Mirrors the dock's backdrop setting onto this widget window and clips
+    /// it to the chrome's rounded rect. Widgets have no bounce headroom, but
+    /// the region is still needed so the blur doesn't square off the corners.
+    /// </summary>
+    private void ApplyBackdrop(string mode, byte r, byte g, byte b, double tint)
+    {
+        IntPtr hwnd = this.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        if (hwnd == IntPtr.Zero) return;
+
+        WindowBlur.Apply(hwnd, mode, r, g, b, tint);
+        if (!WindowBlur.IsEnabled(mode))
+        {
+            WindowBlur.ClearRegion(hwnd);
+            return;
+        }
+        UpdateBackdropRegion();
+    }
+
+    private void UpdateBackdropRegion()
+    {
+        if (_appServices == null) return;
+        IntPtr hwnd = this.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        if (hwnd == IntPtr.Zero) return;
+        if (!WindowBlur.IsEnabled(_appServices.AppearanceService.GetBlurMode())) return;
+        if (Chrome.Bounds.Width <= 0 || Chrome.Bounds.Height <= 0) return;
+
+        var origin = Chrome.TranslatePoint(new Point(0, 0), this) ?? new Point(0, 0);
+        WindowBlur.SetRoundedRegion(hwnd, origin.X, origin.Y,
+            Chrome.Bounds.Width, Chrome.Bounds.Height,
+            _appServices.AppearanceService.GetDockBorderRounding(),
+            RenderScaling);
     }
 
     protected override void OnOpened(EventArgs e)

@@ -196,4 +196,54 @@ public class DockAppearanceService
         GetDock().TintColorRGB = value;
         _dockService.SaveChanges();
     }
+
+    // --- Backdrop blur / acrylic ---
+
+    public const string BlurNone = "none";
+    public const string BlurBlur = "blur";
+    public const string BlurAcrylic = "acrylic";
+
+    /// <summary>Backdrop material behind the dock: none / blur / acrylic.</summary>
+    public string GetBlurMode()
+    {
+        string mode = GetDock().BlurMode;
+        return mode is BlurBlur or BlurAcrylic ? mode : BlurNone;
+    }
+
+    public void SetBlurMode(string value)
+    {
+        GetDock().BlurMode = value is BlurBlur or BlurAcrylic ? value : BlurNone;
+        _dockService.SaveChanges();
+    }
+
+    // --- Follow system light/dark theme ---
+
+    /// <summary>Dock background used when Windows is in dark mode.</summary>
+    public const string DarkThemeColorRGB = "0, 0, 0, ";
+
+    /// <summary>Dock background used when Windows is in light mode.</summary>
+    public const string LightThemeColorRGB = "245, 245, 245, ";
+
+    public bool GetFollowSystemTheme() => GetDock().FollowSystemTheme;
+
+    public void SetFollowSystemTheme(bool value)
+    {
+        GetDock().FollowSystemTheme = value;
+        _dockService.SaveChanges();
+    }
+
+    /// <summary>
+    /// Switches the dock colour to the light or dark preset. No-op (returns
+    /// false) when the setting is off or the colour is already correct, so the
+    /// caller can skip a dock rebuild.
+    /// </summary>
+    public bool ApplySystemTheme(bool isLightTheme)
+    {
+        if (!GetFollowSystemTheme()) return false;
+        string wanted = isLightTheme ? LightThemeColorRGB : DarkThemeColorRGB;
+        if (string.Equals(GetDock().DockColorRGB, wanted, StringComparison.Ordinal)) return false;
+        GetDock().DockColorRGB = wanted;
+        _dockService.SaveChanges();
+        return true;
+    }
 }
