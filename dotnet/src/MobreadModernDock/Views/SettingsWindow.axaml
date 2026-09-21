@@ -50,9 +50,9 @@
             </Setter>
         </Style>
         <Style Selector="TabItem">
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="MinHeight" Value="32"/>
             <Setter Property="Background" Value="#2D2D2D"/>
             <Setter Property="Foreground" Value="#CCCCCC"/>
             <!-- Clicking a tab gives it keyboard focus, which draws a 2px focus
@@ -73,18 +73,92 @@
             <Setter Property="IsVisible" Value="False"/>
         </Style>
 
-        <!-- Interactive controls in Settings show the pointer cursor on hover. -->
+        <!-- Layout vocabulary shared by every tab: a page is a vertical stack of
+             sections; a section is a title, optional helper line and a card. -->
+        <Style Selector="StackPanel.page">
+            <Setter Property="Spacing" Value="18"/>
+            <Setter Property="Margin" Value="4,12,4,4"/>
+        </Style>
+        <Style Selector="StackPanel.section">
+            <Setter Property="Spacing" Value="6"/>
+        </Style>
+        <Style Selector="TextBlock.title">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#DDDDDD"/>
+        </Style>
+        <Style Selector="TextBlock.helper">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#888888"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.value">
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="MinWidth" Value="32"/>
+            <Setter Property="TextAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="#252525"/>
+            <Setter Property="BorderBrush" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="14,12"/>
+        </Style>
+        <Style Selector="Border.card > StackPanel">
+            <Setter Property="Spacing" Value="10"/>
+        </Style>
+        <!-- Labelled slider row: label | slider | value.
+             (ColumnDefinitions is not a styled property; set inline on each row.) -->
+        <Style Selector="Grid.sliderRow > Slider">
+            <Setter Property="Grid.Column" Value="1"/>
+            <Setter Property="Margin" Value="8,0"/>
+        </Style>
+        <Style Selector="Grid.sliderRow > TextBlock.value">
+            <Setter Property="Grid.Column" Value="2"/>
+        </Style>
+        <Style Selector="Border.swatch">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="BorderBrush" Value="#666666"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style Selector="Border.swatch:pointerover">
+            <Setter Property="BorderBrush" Value="White"/>
+        </Style>
+
+        <!-- Controls -->
         <Style Selector="Button">
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Background" Value="#444444"/>
+        </Style>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#007ACC"/>
+        </Style>
+        <Style Selector="Button.danger">
+            <Setter Property="Background" Value="#D33333"/>
         </Style>
         <Style Selector="CheckBox">
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="#CCCCCC"/>
         </Style>
         <Style Selector="RadioButton">
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="#CCCCCC"/>
         </Style>
         <Style Selector="ComboBox">
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="#2D2D2D"/>
+            <Setter Property="Foreground" Value="White"/>
         </Style>
         <Style Selector="ComboBoxItem">
             <Setter Property="Cursor" Value="Hand"/>
@@ -110,93 +184,118 @@
         </Style>
     </Window.Styles>
 
-    <ScrollViewer Padding="20,20,20,30" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+    <ScrollViewer Padding="20,16,20,24" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                   AllowAutoHide="False">
-        <StackPanel Orientation="Vertical" Spacing="12">
-            <!-- Header -->
-            <TextBlock Text="{Binding PageTitle}" FontSize="22" FontWeight="Bold" Foreground="White"/>
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,8">
-                <TextBlock Text="{Binding LanguageLabel}" VerticalAlignment="Center" Foreground="#CCCCCC"/>
-                <ComboBox ItemsSource="{Binding LanguageNames}" SelectedIndex="{Binding SelectedLanguageIndex}"
-                          MinWidth="180" Background="#2D2D2D" Foreground="White"/>
-            </StackPanel>
+        <TabControl Background="Transparent" Padding="0,8,0,0" VerticalContentAlignment="Top">
 
-            <TabControl Background="Transparent" Padding="0,10,0,10" VerticalContentAlignment="Top">
-                <!-- Tab 1: Icons -->
-                <TabItem Header="{Binding TabIcons}">
-                    <!-- List takes 40% of the available width, actions the rest. -->
-                    <Grid ColumnDefinitions="2*,3*" Margin="8">
-                        <!-- Left: Dock Items list (taller) -->
-                        <StackPanel Orientation="Vertical" Spacing="6" Grid.Column="0">
-                            <TextBlock Text="{Binding ItemsTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <Grid Margin="0,0,0,10">
-                                <ListBox x:Name="ItemsList" ItemsSource="{Binding ItemEntries}" SelectedIndex="{Binding SelectedItemIndex}"
-                                         Background="#2D2D2D" Foreground="White" BorderBrush="#444" BorderThickness="1"
-                                         MinHeight="220" MaxHeight="290"
-                                         Cursor="SizeAll"
-                                         DragDrop.AllowDrop="True"
-                                         DragDrop.DragOver="OnItemsDragOver"
-                                         DragDrop.DragLeave="OnItemsDragLeave"
-                                         DragDrop.Drop="OnItemsDrop"
-                                         PointerMoved="OnItemsPointerMoved"
-                                         PointerReleased="OnItemsPointerReleased"
-                                         PointerCaptureLost="OnItemsPointerCaptureLost">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:DockItemListEntry">
-                                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,1">
-                                                <Image Source="/Assets/icons/draggable.png" Width="12" Height="12"
-                                                       Stretch="Uniform" VerticalAlignment="Center" Opacity="0.55"/>
-                                                <Image Source="{Binding Icon}" Width="18" Height="18"
-                                                       Stretch="Uniform" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding Label}" FontSize="12" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                                <!-- Insertion indicator: a 2px accent bar shown while a
-                                     drag hovers over the list, positioned at the gap. -->
-                                <Border x:Name="DropIndicator" IsVisible="False" Height="2"
-                                        Background="#007ACC" CornerRadius="1"
-                                        HorizontalAlignment="Stretch" VerticalAlignment="Top"/>
-                            </Grid>
+            <!-- ===================== Items ===================== -->
+            <TabItem Header="{Binding TabIcons}">
+                <Grid ColumnDefinitions="2*,16,3*" Classes="page" Margin="4,12,4,4">
+                    <StackPanel Grid.Column="0" Classes="section">
+                        <TextBlock Classes="title" Text="{Binding ItemsTitle}"/>
+                        <TextBlock Classes="helper" Text="{Binding ItemsHelper}"/>
+                        <Grid>
+                            <ListBox x:Name="ItemsList" ItemsSource="{Binding ItemEntries}" SelectedIndex="{Binding SelectedItemIndex}"
+                                     Background="#252525" Foreground="White" BorderBrush="#333333" BorderThickness="1" CornerRadius="6"
+                                     MinHeight="260" MaxHeight="340"
+                                     Cursor="SizeAll"
+                                     DragDrop.AllowDrop="True"
+                                     DragDrop.DragOver="OnItemsDragOver"
+                                     DragDrop.DragLeave="OnItemsDragLeave"
+                                     DragDrop.Drop="OnItemsDrop"
+                                     PointerMoved="OnItemsPointerMoved"
+                                     PointerReleased="OnItemsPointerReleased"
+                                     PointerCaptureLost="OnItemsPointerCaptureLost">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:DockItemListEntry">
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,1">
+                                            <Image Source="/Assets/icons/draggable.png" Width="12" Height="12"
+                                                   Stretch="Uniform" VerticalAlignment="Center" Opacity="0.55"/>
+                                            <Image Source="{Binding Icon}" Width="18" Height="18"
+                                                   Stretch="Uniform" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Label}" FontSize="12" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <!-- Insertion indicator: a 2px accent bar shown while a
+                                 drag hovers over the list, positioned at the gap. -->
+                            <Border x:Name="DropIndicator" IsVisible="False" Height="2"
+                                    Background="#007ACC" CornerRadius="1"
+                                    HorizontalAlignment="Stretch" VerticalAlignment="Top"/>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="{Binding MoveUpText}" Click="OnMoveUp" IsEnabled="{Binding CanMoveUp}"/>
+                            <Button Content="{Binding MoveDownText}" Click="OnMoveDown" IsEnabled="{Binding CanMoveDown}"/>
                         </StackPanel>
-                        <!-- Right: Actions (stacked buttons) -->
-                        <StackPanel Orientation="Vertical" Spacing="8" Grid.Column="1" Margin="16,0,0,0">
-                            <TextBlock Text="{Binding ActionsTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding ActionsHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Button Content="{Binding AddProgramText}" Click="OnAddProgram" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
-                            <Button Content="{Binding AddFolderText}" Click="OnAddFolder" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
-                            <Button Content="{Binding ImportTaskbarText}" Click="OnImportTaskbar" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
-                            <Button Content="{Binding AddModuleText}" Click="OnAddModule" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
-                            <Button Content="{Binding RemoveText}" Click="OnRemove" IsEnabled="{Binding CanRemove}" Background="#D33" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
-                            <Button Content="{Binding MoveUpText}" Click="OnMoveUp" IsEnabled="{Binding CanMoveUp}" Background="#444" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
-                            <Button Content="{Binding MoveDownText}" Click="OnMoveDown" IsEnabled="{Binding CanMoveDown}" Background="#444" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
-                        </StackPanel>
-                    </Grid>
-                </TabItem>
-                <!-- Tab 2: Icons Customization -->
-                <TabItem Header="{Binding TabIconsCustomization}">
-                    <StackPanel Orientation="Vertical" Spacing="16" Margin="16,12">
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding IconSizeTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding IconSizeHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Slider Minimum="16" Maximum="80" Value="{Binding IconSize}" Margin="0,8,0,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding SpacingTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding SpacingHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Slider Minimum="0" Maximum="20" Value="{Binding IconSpacing}" Margin="0,8,0,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding DockRowsTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding DockRowsHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Slider Minimum="1" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding DockRows}" Margin="0,8,0,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <CheckBox Content="{Binding TintIconsTitle}" IsChecked="{Binding TintIcons}" Foreground="#CCCCCC"/>
-                            <StackPanel Orientation="Vertical" Spacing="4" IsVisible="{Binding TintIcons}">
-                                <TextBlock Text="{Binding TintColorHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                                <ItemsControl ItemsSource="{Binding PresetColors}" Margin="0,8,0,0">
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Classes="section">
+                        <TextBlock Classes="title" Text="{Binding ActionsTitle}"/>
+                        <TextBlock Classes="helper" Text="{Binding ActionsHelper}"/>
+                        <Border Classes="card">
+                            <StackPanel>
+                                <Button Classes="primary" Content="{Binding AddProgramText}" Click="OnAddProgram" HorizontalAlignment="Stretch"/>
+                                <Button Classes="primary" Content="{Binding AddFolderText}" Click="OnAddFolder" HorizontalAlignment="Stretch"/>
+                                <Button Classes="primary" Content="{Binding AddModuleText}" Click="OnAddModule" HorizontalAlignment="Stretch"/>
+                                <Button Classes="primary" Content="{Binding ImportTaskbarText}" Click="OnImportTaskbar" HorizontalAlignment="Stretch"/>
+                                <Button Classes="danger" Content="{Binding RemoveText}" Click="OnRemove" IsEnabled="{Binding CanRemove}"
+                                        HorizontalAlignment="Stretch" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <!-- ===================== Appearance ===================== -->
+            <TabItem Header="{Binding TabAppearance}">
+                <StackPanel Classes="page">
+                    <!-- Presets -->
+                    <StackPanel Classes="section">
+                        <TextBlock Classes="title" Text="{Binding PresetsTitle}"/>
+                        <TextBlock Classes="helper" Text="{Binding PresetsHelper}"/>
+                        <Border Classes="card">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ComboBox x:Name="PresetCombo" Width="220" ItemsSource="{Binding PresetNames}" SelectedIndex="{Binding SelectedPresetIndex}"/>
+                                    <Button Classes="primary" Content="{Binding PresetApplyText}" Click="OnApplyPreset" IsEnabled="{Binding CanApplyPreset}"/>
+                                    <Button Classes="danger" Content="{Binding PresetDeleteText}" Click="OnDeletePreset" IsEnabled="{Binding CanDeletePreset}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBox Width="220" Watermark="{Binding PresetNameHint}" Text="{Binding NewPresetName}"/>
+                                    <Button Content="{Binding PresetSaveText}" Click="OnSavePreset" IsEnabled="{Binding CanSavePreset}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Dock surface -->
+                    <StackPanel Classes="section">
+                        <TextBlock Classes="title" Text="{Binding SectionDock}"/>
+                        <Border Classes="card">
+                            <StackPanel>
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto">
+                                    <TextBlock Classes="label" Text="{Binding TransparencyTitle}" ToolTip.Tip="{Binding TransparencyHelper}"/>
+                                    <Slider Minimum="0" Maximum="100" Value="{Binding Transparency}"/>
+                                    <TextBlock Classes="value" Text="{Binding Transparency}"/>
+                                </Grid>
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto">
+                                    <TextBlock Classes="label" Text="{Binding GlobalOpacityTitle}" ToolTip.Tip="{Binding GlobalOpacityHelper}"/>
+                                    <Slider Minimum="20" Maximum="100" Value="{Binding GlobalOpacity}"/>
+                                    <TextBlock Classes="value" Text="{Binding GlobalOpacity}"/>
+                                </Grid>
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto">
+                                    <TextBlock Classes="label" Text="{Binding RoundingTitle}" ToolTip.Tip="{Binding RoundingHelper}"/>
+                                    <Slider Minimum="0" Maximum="30" Value="{Binding BorderRounding}"/>
+                                    <TextBlock Classes="value" Text="{Binding BorderRounding}"/>
+                                </Grid>
+                                <TextBlock Classes="helper" Text="{Binding GlobalOpacityHelper}"/>
+
+                                <Border Height="1" Background="#333333" Margin="0,4"/>
+
+                                <TextBlock Classes="label" Text="{Binding BgColorTitle}"/>
+                                <TextBlock Classes="helper" Text="{Binding BgColorHelper}"/>
+                                <ItemsControl ItemsSource="{Binding PresetColors}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <WrapPanel Orientation="Horizontal"/>
@@ -204,221 +303,250 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="med:IBrush">
-                                            <Border Width="32" Height="32" Margin="0,0,8,8" CornerRadius="6"
-                                                    Background="{Binding}" BorderBrush="#666" BorderThickness="1"
-                                                    PointerPressed="OnTintPresetColorPressed">
-                                                <Border.Styles>
-                                                    <Style Selector="Border:pointerover">
-                                                        <Setter Property="BorderBrush" Value="White"/>
-                                                    </Style>
-                                                </Border.Styles>
-                                            </Border>
+                                            <Border Classes="swatch" Background="{Binding}" PointerPressed="OnPresetColorPressed"/>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
-                                    <Border Width="48" Height="32" CornerRadius="6" BorderBrush="#666" BorderThickness="1"
-                                            Background="{Binding TintColorBrush}"/>
-                                    <Button Content="{Binding CustomColorText}" Click="OnCustomTintColor" Background="#007ACC" Foreground="White"
-                                            BorderBrush="Transparent" Padding="14,6" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Border Width="48" Height="30" CornerRadius="6" BorderBrush="#666666" BorderThickness="1"
+                                            Background="{Binding DockColorBrush}"/>
+                                    <Button Classes="primary" Content="{Binding CustomColorText}" Click="OnCustomColor" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </StackPanel>
-                        </StackPanel>
+                        </Border>
                     </StackPanel>
-                </TabItem>
-                <!-- more tabs below -->
-                <!-- Tab 3: Dock Customization -->
-                <TabItem Header="{Binding TabDockCustomization}">
-                    <StackPanel Orientation="Vertical" Spacing="16" Margin="16,12">
-                        <!-- #11 Presets -->
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding PresetsTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding PresetsHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-                                <ComboBox x:Name="PresetCombo" Width="220" ItemsSource="{Binding PresetNames}" SelectedIndex="{Binding SelectedPresetIndex}"/>
-                                <Button Content="{Binding PresetApplyText}" Click="OnApplyPreset" IsEnabled="{Binding CanApplyPreset}" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6"/>
-                                <Button Content="{Binding PresetDeleteText}" Click="OnDeletePreset" IsEnabled="{Binding CanDeletePreset}" Background="#D33" Foreground="White" BorderBrush="Transparent" Padding="12,6"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
-                                <TextBox Width="220" Watermark="{Binding PresetNameHint}" Text="{Binding NewPresetName}"/>
-                                <Button Content="{Binding PresetSaveText}" Click="OnSavePreset" IsEnabled="{Binding CanSavePreset}" Background="#444" Foreground="White" BorderBrush="Transparent" Padding="12,6"/>
-                            </StackPanel>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding TransparencyTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding TransparencyHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Slider Minimum="0" Maximum="100" Value="{Binding Transparency}" Margin="0,8,0,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding GlobalOpacityTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding GlobalOpacityHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Slider Minimum="20" Maximum="100" Value="{Binding GlobalOpacity}" Margin="0,8,0,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding RoundingTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding RoundingHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Slider Minimum="0" Maximum="30" Value="{Binding BorderRounding}" Margin="0,8,0,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding BgColorTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding BgColorHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <!-- Quick-pick presets -->
-                            <ItemsControl ItemsSource="{Binding PresetColors}" Margin="0,8,0,0">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="med:IBrush">
-                                        <Border Width="32" Height="32" Margin="0,0,8,8" CornerRadius="6"
-                                                Background="{Binding}" BorderBrush="#666" BorderThickness="1"
-                                                PointerPressed="OnPresetColorPressed">
-                                            <Border.Styles>
-                                                <Style Selector="Border:pointerover">
-                                                    <Setter Property="BorderBrush" Value="White"/>
-                                                </Style>
-                                            </Border.Styles>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <!-- Current color preview + custom picker -->
-                            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
-                                <Border Width="48" Height="32" CornerRadius="6" BorderBrush="#666" BorderThickness="1"
-                                        Background="{Binding DockColorBrush}"/>
-                                    <Button Content="{Binding CustomColorText}" Click="OnCustomColor" Background="#007ACC" Foreground="White"
-                                            BorderBrush="Transparent" Padding="14,6" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
-                </TabItem>
-                <!-- Tab 4: Positioning -->
-                <TabItem Header="{Binding TabDockPositioning}">
-                    <StackPanel Orientation="Vertical" Spacing="12" Margin="16,12">
-                        <TextBlock Text="{Binding PosModeTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                        <TextBlock Text="{Binding PosModeHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                        <StackPanel Orientation="Horizontal" Spacing="16">
-                            <RadioButton Content="{Binding StaticText}" IsChecked="{Binding IsStaticMode}" Foreground="White"/>
-                            <RadioButton Content="{Binding DynamicText}" IsChecked="{Binding !IsStaticMode}" Foreground="White"/>
-                        </StackPanel>
 
-                        <!-- Static-only: alignment + screen spacing -->
-                        <StackPanel Orientation="Vertical" IsVisible="{Binding IsStaticMode}">
-                            <TextBlock Text="{Binding AlignmentTitle}" FontWeight="SemiBold" Foreground="#CCCCCC" Margin="0,20,0,16"/>
-                            <StackPanel Orientation="Horizontal" Spacing="12">
-                                <TextBlock Text="{Binding VerticalText}" VerticalAlignment="Center" Foreground="#CCC"/>
-                                <ComboBox ItemsSource="{Binding VerticalAnchorOptions}" SelectedItem="{Binding SelectedVerticalOption}"
-                                          Background="#2D2D2D" Foreground="White" MinWidth="100">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:AnchorOption">
-                                            <TextBlock Text="{Binding Label}" Foreground="White"/>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-                                <TextBlock Text="{Binding HorizontalText}" VerticalAlignment="Center" Foreground="#CCC"/>
-                                <ComboBox ItemsSource="{Binding HorizontalAnchorOptions}" SelectedItem="{Binding SelectedHorizontalOption}"
-                                          Background="#2D2D2D" Foreground="White" MinWidth="100">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:HorizontalAnchorOption">
-                                            <TextBlock Text="{Binding Label}" Foreground="White"/>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-                            </StackPanel>
-                            <TextBlock Text="{Binding ScreenSpacingTitle}" FontWeight="SemiBold" Foreground="#CCCCCC" Margin="0,40,0,0"/>
-                            <StackPanel Orientation="Vertical" Spacing="6" Margin="0,0,0,80">
-                                <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding TopSpacingLabel}" Width="50" Foreground="#CCC" VerticalAlignment="Center"/><Slider Minimum="0" Maximum="100" Value="{Binding TopSpacing}" Width="224"/></StackPanel>
-                                <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding LeftSpacingLabel}" Width="50" Foreground="#CCC" VerticalAlignment="Center"/><Slider Minimum="0" Maximum="100" Value="{Binding LeftSpacing}" Width="224"/></StackPanel>
-                                <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding RightSpacingLabel}" Width="50" Foreground="#CCC" VerticalAlignment="Center"/><Slider Minimum="0" Maximum="100" Value="{Binding RightSpacing}" Width="224"/></StackPanel>
-                                <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding BottomSpacingLabel}" Width="50" Foreground="#CCC" VerticalAlignment="Center"/><Slider Minimum="0" Maximum="100" Value="{Binding BottomSpacing}" Width="224"/></StackPanel>
-                            </StackPanel>
-                        </StackPanel>
+                    <!-- Icons -->
+                    <StackPanel Classes="section">
+                        <TextBlock Classes="title" Text="{Binding SectionIcons}"/>
+                        <Border Classes="card">
+                            <StackPanel>
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto">
+                                    <TextBlock Classes="label" Text="{Binding IconSizeTitle}" ToolTip.Tip="{Binding IconSizeHelper}"/>
+                                    <Slider Minimum="16" Maximum="80" Value="{Binding IconSize}"/>
+                                    <TextBlock Classes="value" Text="{Binding IconSize}"/>
+                                </Grid>
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto">
+                                    <TextBlock Classes="label" Text="{Binding SpacingTitle}" ToolTip.Tip="{Binding SpacingHelper}"/>
+                                    <Slider Minimum="0" Maximum="20" Value="{Binding IconSpacing}"/>
+                                    <TextBlock Classes="value" Text="{Binding IconSpacing}"/>
+                                </Grid>
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto">
+                                    <TextBlock Classes="label" Text="{Binding DockRowsTitle}" ToolTip.Tip="{Binding DockRowsHelper}"/>
+                                    <Slider Minimum="1" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding DockRows}"/>
+                                    <TextBlock Classes="value" Text="{Binding DockRows}"/>
+                                </Grid>
+                                <TextBlock Classes="helper" Text="{Binding DockRowsHelper}"/>
 
-                        <!-- Dynamic-only: drag hint -->
-                        <StackPanel Orientation="Vertical" IsVisible="{Binding !IsStaticMode}">
-                            <TextBlock Text="{Binding DynamicPosTitle}" FontWeight="SemiBold" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                            <TextBlock Text="{Binding DynamicPosHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </StackPanel>
-                </TabItem>
-                <!-- general tab below -->
-                <!-- Tab 5: General -->
-                <TabItem Header="{Binding TabGeneral}">
-                    <StackPanel Orientation="Vertical" Spacing="8" Margin="16,12">
-                        <TextBlock Text="{Binding OpenSourceText}" Foreground="#CCCCCC" FontWeight="SemiBold" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding StartWithWindowsText}" IsChecked="{Binding IsAutoStartEnabled}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding ShowUnpinnedRunningAppsText}"
-                                  IsChecked="{Binding ShowUnpinnedRunningApps}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding ArrangeVerticalText}"
-                                  IsChecked="{Binding IsVerticalDock}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding AlwaysOnTopText}"
-                                  IsChecked="{Binding AlwaysOnTop}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding HideTaskbarText}"
-                                  IsChecked="{Binding HideTaskbar}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding HideInFullscreenText}"
-                                  IsChecked="{Binding HideInFullscreen}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding AttentionBounceText}"
-                                  IsChecked="{Binding AttentionBounce}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding MirrorMonitorsText}"
-                                  IsChecked="{Binding MirrorMonitors}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding AutoHideText}"
-                                  IsChecked="{Binding AutoHide}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding FolderStacksText}"
-                                  IsChecked="{Binding FolderStacks}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding EdgeSnappingText}"
-                                  IsChecked="{Binding EdgeSnapping}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <StackPanel Orientation="Vertical" Spacing="2" Margin="24,0,0,0" IsVisible="{Binding EdgeSnapping}">
-                            <TextBlock Text="{Binding EdgeSnapMarginTitle}" FontSize="11" Foreground="#888888"/>
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Slider Width="220" Minimum="0" Maximum="64" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding EdgeSnapMargin}"/>
-                                <TextBlock Text="{Binding EdgeSnapMarginLabel}" Foreground="#CCCCCC" VerticalAlignment="Center"/>
+                                <Border Height="1" Background="#333333" Margin="0,4"/>
+
+                                <CheckBox Content="{Binding TintIconsTitle}" IsChecked="{Binding TintIcons}"/>
+                                <StackPanel Spacing="8" IsVisible="{Binding TintIcons}">
+                                    <TextBlock Classes="helper" Text="{Binding TintColorHelper}"/>
+                                    <ItemsControl ItemsSource="{Binding PresetColors}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="med:IBrush">
+                                                <Border Classes="swatch" Background="{Binding}" PointerPressed="OnTintPresetColorPressed"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                        <Border Width="48" Height="30" CornerRadius="6" BorderBrush="#666666" BorderThickness="1"
+                                                Background="{Binding TintColorBrush}"/>
+                                        <Button Classes="primary" Content="{Binding CustomColorText}" Click="OnCustomTintColor" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </StackPanel>
                             </StackPanel>
-                        </StackPanel>
-                        <Button Content="{Binding AcknowledgementsText}" Click="OnAcknowledgements"
-                                Background="#007ACC" Foreground="White" BorderBrush="Transparent"
-                                Padding="16,8" HorizontalAlignment="Left" Margin="0,8,0,0"/>
-                        <TextBlock Text="{Binding VersionText}" Foreground="#CCCCCC"/>
-                        <!-- #16 update check -->
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+
+            <!-- ===================== Layout ===================== -->
+            <TabItem Header="{Binding TabLayout}">
+                <StackPanel Classes="page">
+                    <!-- Positioning -->
+                    <StackPanel Classes="section">
+                        <TextBlock Classes="title" Text="{Binding PosModeTitle}"/>
+                        <TextBlock Classes="helper" Text="{Binding PosModeHelper}"/>
+                        <Border Classes="card">
+                            <StackPanel>
+                                <CheckBox Content="{Binding ArrangeVerticalText}" IsChecked="{Binding IsVerticalDock}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="16">
+                                    <RadioButton Content="{Binding StaticText}" IsChecked="{Binding IsStaticMode}"/>
+                                    <RadioButton Content="{Binding DynamicText}" IsChecked="{Binding !IsStaticMode}"/>
+                                </StackPanel>
+                                <TextBlock Classes="helper" Text="{Binding DynamicPosHelper}" IsVisible="{Binding !IsStaticMode}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Static-only: alignment + screen spacing -->
+                    <StackPanel Classes="section" IsVisible="{Binding IsStaticMode}">
+                        <TextBlock Classes="title" Text="{Binding AlignmentTitle}"/>
+                        <Border Classes="card">
+                            <StackPanel>
+                                <Grid ColumnDefinitions="120,Auto,24,Auto,8,Auto">
+                                    <TextBlock Classes="label" Grid.Column="0" Text="{Binding VerticalText}"/>
+                                    <ComboBox Grid.Column="1" ItemsSource="{Binding VerticalAnchorOptions}" SelectedItem="{Binding SelectedVerticalOption}" MinWidth="110">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:AnchorOption">
+                                                <TextBlock Text="{Binding Label}" Foreground="White"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <TextBlock Classes="label" Grid.Column="3" Text="{Binding HorizontalText}"/>
+                                    <ComboBox Grid.Column="5" ItemsSource="{Binding HorizontalAnchorOptions}" SelectedItem="{Binding SelectedHorizontalOption}" MinWidth="110">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:HorizontalAnchorOption">
+                                                <TextBlock Text="{Binding Label}" Foreground="White"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+
+                                <Border Height="1" Background="#333333" Margin="0,4"/>
+
+                                <TextBlock Classes="label" Text="{Binding ScreenSpacingTitle}"/>
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto">
+                                    <TextBlock Classes="label" Text="{Binding TopSpacingLabel}"/>
+                                    <Slider Minimum="0" Maximum="100" Value="{Binding TopSpacing}"/>
+                                    <TextBlock Classes="value" Text="{Binding TopSpacing}"/>
+                                </Grid>
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto">
+                                    <TextBlock Classes="label" Text="{Binding BottomSpacingLabel}"/>
+                                    <Slider Minimum="0" Maximum="100" Value="{Binding BottomSpacing}"/>
+                                    <TextBlock Classes="value" Text="{Binding BottomSpacing}"/>
+                                </Grid>
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto">
+                                    <TextBlock Classes="label" Text="{Binding LeftSpacingLabel}"/>
+                                    <Slider Minimum="0" Maximum="100" Value="{Binding LeftSpacing}"/>
+                                    <TextBlock Classes="value" Text="{Binding LeftSpacing}"/>
+                                </Grid>
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto">
+                                    <TextBlock Classes="label" Text="{Binding RightSpacingLabel}"/>
+                                    <Slider Minimum="0" Maximum="100" Value="{Binding RightSpacing}"/>
+                                    <TextBlock Classes="value" Text="{Binding RightSpacing}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Monitors & edges -->
+                    <StackPanel Classes="section">
+                        <TextBlock Classes="title" Text="{Binding SectionMonitors}"/>
+                        <Border Classes="card">
+                            <StackPanel>
+                                <CheckBox Content="{Binding MirrorMonitorsText}" IsChecked="{Binding MirrorMonitors}"/>
+                                <CheckBox Content="{Binding EdgeSnappingText}" IsChecked="{Binding EdgeSnapping}"/>
+                                <Grid Classes="sliderRow" ColumnDefinitions="Auto,*,Auto" Margin="24,0,0,0" IsVisible="{Binding EdgeSnapping}">
+                                                                    <TextBlock Classes="helper" Text="{Binding EdgeSnapMarginTitle}" VerticalAlignment="Center"/>
+                                                                    <Slider Minimum="0" Maximum="64" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding EdgeSnapMargin}"/>
+                                    <TextBlock Classes="value" Text="{Binding EdgeSnapMarginLabel}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+
+            <!-- ===================== Behavior ===================== -->
+            <TabItem Header="{Binding TabBehavior}">
+                <StackPanel Classes="page">
+                    <StackPanel Classes="section">
+                        <TextBlock Classes="title" Text="{Binding SectionVisibility}"/>
+                        <Border Classes="card">
+                            <StackPanel>
+                                <CheckBox Content="{Binding AlwaysOnTopText}" IsChecked="{Binding AlwaysOnTop}"/>
+                                <CheckBox Content="{Binding AutoHideText}" IsChecked="{Binding AutoHide}"/>
+                                <CheckBox Content="{Binding HideInFullscreenText}" IsChecked="{Binding HideInFullscreen}"/>
+                                <CheckBox Content="{Binding HideTaskbarText}" IsChecked="{Binding HideTaskbar}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    <StackPanel Classes="section">
+                        <TextBlock Classes="title" Text="{Binding SectionApps}"/>
+                        <Border Classes="card">
+                            <StackPanel>
+                                <CheckBox Content="{Binding ShowUnpinnedRunningAppsText}" IsChecked="{Binding ShowUnpinnedRunningApps}"/>
+                                <CheckBox Content="{Binding AttentionBounceText}" IsChecked="{Binding AttentionBounce}"/>
+                                <CheckBox Content="{Binding FolderStacksText}" IsChecked="{Binding FolderStacks}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+
+            <!-- ===================== Widgets ===================== -->
+            <TabItem Header="{Binding TabWidget}">
+                <Grid ColumnDefinitions="260,16,*" Margin="4,12,4,4">
+                    <StackPanel Grid.Column="0" Classes="section">
+                        <TextBlock Classes="title" Text="{Binding WidgetsTitle}"/>
+                        <TextBlock Classes="helper" Text="{Binding WidgetsHelper}"/>
+                        <ListBox x:Name="WidgetsList" MinHeight="200" MaxHeight="360" Background="#252525" BorderBrush="#333333" BorderThickness="1" CornerRadius="6"
+                                 SelectionChanged="OnWidgetSelectionChanged"/>
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Content="{Binding CheckUpdatesText}" Click="OnCheckUpdates" IsEnabled="{Binding !IsCheckingUpdates}"
-                                    Background="#444" Foreground="White" BorderBrush="Transparent" Padding="12,6"/>
-                            <Button Content="{Binding DownloadUpdateText}" Click="OnDownloadUpdate" IsVisible="{Binding UpdateAvailable}"
-                                    Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6"/>
-                            <TextBlock Text="{Binding UpdateStatusText}" Foreground="#CCCCCC" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="WidgetTypeCombo" MinWidth="140"/>
+                            <Button Classes="primary" Content="{Binding WidgetAddText}" Click="OnAddWidget"/>
                         </StackPanel>
-                        <TextBlock Text="{Binding RepoText}" Foreground="#CCCCCC"/>
-                        <TextBlock Text="{Binding ContactText}" Foreground="#CCCCCC"/>
+                        <Button x:Name="RemoveWidgetButton" Classes="danger" Content="{Binding WidgetRemoveText}" Click="OnRemoveWidget"
+                                HorizontalAlignment="Left" IsEnabled="False"/>
                     </StackPanel>
-                </TabItem>
 
-                <!-- Tab 6: Widgets -->
-                <TabItem Header="{Binding TabWidget}">
-                    <Grid ColumnDefinitions="260,16,*" Margin="16,12">
-                        <StackPanel Grid.Column="0" Spacing="8">
-                            <TextBlock Text="{Binding WidgetsTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding WidgetsHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <ListBox x:Name="WidgetsList" MinHeight="160" MaxHeight="360" Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1"
-                                     SelectionChanged="OnWidgetSelectionChanged"/>
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <ComboBox x:Name="WidgetTypeCombo" MinWidth="130"/>
-                                <Button Content="{Binding WidgetAddText}" Click="OnAddWidget"
-                                        Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6"/>
-                            </StackPanel>
-                            <Button x:Name="RemoveWidgetButton" Content="{Binding WidgetRemoveText}" Click="OnRemoveWidget"
-                                    Background="#3A3A3A" Foreground="White" BorderBrush="Transparent" Padding="12,6"
-                                    HorizontalAlignment="Left" IsEnabled="False"/>
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="2" Spacing="12">
-                            <CheckBox x:Name="WidgetEnabledCheck" Content="{Binding WidgetEnabledText}" Foreground="#CCCCCC"
+                    <Border Grid.Column="2" Classes="card" VerticalAlignment="Top">
+                        <StackPanel>
+                            <CheckBox x:Name="WidgetEnabledCheck" Content="{Binding WidgetEnabledText}"
                                       IsCheckedChanged="OnWidgetEnabledChanged" IsEnabled="False"/>
-                            <TextBlock x:Name="WidgetNoSelection" Text="{Binding WidgetNoSelectionText}" FontSize="11" Foreground="#888888"/>
+                            <TextBlock x:Name="WidgetNoSelection" Classes="helper" Text="{Binding WidgetNoSelectionText}"/>
                             <ContentControl x:Name="WidgetSettingsHost"/>
                         </StackPanel>
-                    </Grid>
-                </TabItem>
-            </TabControl>
-        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ===================== General ===================== -->
+            <TabItem Header="{Binding TabGeneral}">
+                <StackPanel Classes="page">
+                    <StackPanel Classes="section">
+                        <TextBlock Classes="title" Text="{Binding SectionStartup}"/>
+                        <Border Classes="card">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Classes="label" Text="{Binding LanguageLabel}" MinWidth="120"/>
+                                    <ComboBox ItemsSource="{Binding LanguageNames}" SelectedIndex="{Binding SelectedLanguageIndex}" MinWidth="200"/>
+                                </StackPanel>
+                                <CheckBox Content="{Binding StartWithWindowsText}" IsChecked="{Binding IsAutoStartEnabled}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Classes="section">
+                        <TextBlock Classes="title" Text="{Binding SectionAbout}"/>
+                        <Border Classes="card">
+                            <StackPanel>
+                                <TextBlock Classes="label" Text="{Binding VersionText}" FontWeight="SemiBold"/>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="{Binding CheckUpdatesText}" Click="OnCheckUpdates" IsEnabled="{Binding !IsCheckingUpdates}"/>
+                                    <Button Classes="primary" Content="{Binding DownloadUpdateText}" Click="OnDownloadUpdate" IsVisible="{Binding UpdateAvailable}"/>
+                                    <TextBlock Classes="label" Text="{Binding UpdateStatusText}"/>
+                                </StackPanel>
+
+                                <Border Height="1" Background="#333333" Margin="0,4"/>
+
+                                <TextBlock Classes="label" Text="{Binding OpenSourceText}"/>
+                                <TextBlock Classes="label" Text="{Binding RepoText}"/>
+                                <TextBlock Classes="label" Text="{Binding ContactText}"/>
+                                <Button Content="{Binding AcknowledgementsText}" Click="OnAcknowledgements" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
     </ScrollViewer>
 </Window>
