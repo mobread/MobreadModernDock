@@ -379,6 +379,14 @@ public partial class SettingsViewModel : ViewModelBase
     public string ContactText => T("settings.general.contact");
     public string OpenSourceText => T("settings.general.openSource");
     public string AcknowledgementsText => T("settings.general.acknowledgements");
+    public string KofiText => T("settings.general.kofi");
+    public const string KofiUrl = "https://ko-fi.com/mobreadmeo";
+
+    public void OpenKofi()
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(KofiUrl) { UseShellExecute = true }); }
+        catch { }
+    }
     public string StartWithWindowsText => T("settings.general.startWithWindows");
     public string ShowUnpinnedRunningAppsText => T("settings.general.showUnpinnedRunningApps");
     public string ArrangeVerticalText => T("settings.general.arrangeVertical");

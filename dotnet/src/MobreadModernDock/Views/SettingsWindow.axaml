@@ -147,6 +147,10 @@
         <Style Selector="Button.danger">
             <Setter Property="Background" Value="#D33333"/>
         </Style>
+        <!-- Ko-fi brand red, as on the README badge. -->
+        <Style Selector="Button.kofi">
+            <Setter Property="Background" Value="#FF5E5B"/>
+        </Style>
         <Style Selector="CheckBox">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Foreground" Value="#CCCCCC"/>
@@ -541,7 +545,10 @@
                                 <TextBlock Classes="label" Text="{Binding OpenSourceText}"/>
                                 <TextBlock Classes="label" Text="{Binding RepoText}"/>
                                 <TextBlock Classes="label" Text="{Binding ContactText}"/>
-                                <Button Content="{Binding AcknowledgementsText}" Click="OnAcknowledgements" HorizontalAlignment="Left"/>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="{Binding AcknowledgementsText}" Click="OnAcknowledgements"/>
+                                    <Button Classes="kofi" Content="{Binding KofiText}" Click="OnKofi"/>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                     </StackPanel>
