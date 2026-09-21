@@ -91,6 +91,15 @@ public partial class SettingsViewModel : ViewModelBase
         set { if (SetProperty(ref _dockRows, value)) OnPropertyChanged(nameof(ShowMagnifyRowsWarning)); }
     }
     public int Transparency { get => _transparency; set => SetProperty(ref _transparency, value); }
+
+    private int _dockPadding = 10;
+    /// <summary>Padding inside the dock bar; with icon size this sets the bar's thickness.</summary>
+    public int DockPadding
+    {
+        get => _dockPadding;
+        set { if (SetProperty(ref _dockPadding, value)) OnPropertyChanged(nameof(DockPaddingLabel)); }
+    }
+    public string DockPaddingLabel => $"{DockPadding} px";
     private int _globalOpacity = 100;
     public int GlobalOpacity { get => _globalOpacity; set => SetProperty(ref _globalOpacity, value); }
     public int BorderRounding { get => _borderRounding; set => SetProperty(ref _borderRounding, value); }
@@ -388,6 +397,7 @@ public partial class SettingsViewModel : ViewModelBase
         IconSize = app.GetIconsSize();
         IconSpacing = app.GetSpacingBetweenIcons();
         DockRows = app.GetDockRows();
+        DockPadding = app.GetDockPadding();
         Transparency = app.GetDockTransparencyPercentage();
         GlobalOpacity = app.GetGlobalOpacityPercentage();
         BorderRounding = app.GetDockBorderRounding();
@@ -395,7 +405,14 @@ public partial class SettingsViewModel : ViewModelBase
         TintIcons = app.GetTintIcons();
         TintColor = ParseRgbColor(app.GetTintColorRGB());
         IsVerticalDock = app.GetVerticalDock();
+        // Added with the theme format — a preset now carries the backdrop and
+        // magnification too, so those controls must follow it as well.
+        BlurMode = app.GetBlurMode();
+        MagnifyIcons = app.GetMagnifyIconsSetting();
+        MagnifyScale = app.GetMagnifyScalePercentage();
         _isInitialized = true;
+        // _dockRefreshAction reaches LayerRefreshAction, which re-applies the
+        // native backdrop — so a preset that changes blurMode takes effect.
         _dockRefreshAction();
     }
 
@@ -415,6 +432,114 @@ public partial class SettingsViewModel : ViewModelBase
         _appServices.AppearanceService.DeletePreset(_presetList[SelectedPresetIndex].Name);
         SelectedPresetIndex = -1;
         ReloadPresets();
+    }
+
+    // --- Theme sharing (.mbtheme) ---
+
+    private string _themeStatusText = "";
+    /// <summary>One-line result of the last theme export/import, shown under the buttons.</summary>
+    public string ThemeStatusText { get => _themeStatusText; set => SetProperty(ref _themeStatusText, value); }
+
+    public string ThemeExportText => T("settings.theme.export");
+    public string ThemeImportText => T("settings.theme.import");
+    public string ThemeHelper => T("settings.theme.helper");
+
+    /// <summary>
+    /// Writes the *current look* to a .mbtheme file. Deliberately the live
+    /// appearance rather than the selected preset: what you are looking at is
+    /// what you want to share, and it saves a "save preset first" step.
+    /// </summary>
+    public async Task ExportThemeAsync(Window window)
+    {
+        string name = string.IsNullOrWhiteSpace(NewPresetName)
+            ? (CanApplyPreset ? _presetList[SelectedPresetIndex].Name : "My theme")
+            : NewPresetName.Trim();
+
+        var file = await window.StorageProvider.SaveFilePickerAsync(
+            new Avalonia.Platform.Storage.FilePickerSaveOptions
+            {
+                Title = ThemeExportText,
+                SuggestedFileName = ThemeFile.SuggestedFileName(name),
+                DefaultExtension = ThemeFile.Extension.TrimStart('.'),
+                FileTypeChoices = new[]
+                {
+                    new Avalonia.Platform.Storage.FilePickerFileType("Mobread theme")
+                    {
+                        Patterns = new[] { "*" + ThemeFile.Extension },
+                    },
+                }
+            });
+        if (file == null) return;
+
+        try
+        {
+            var preset = AppearancePreset.Capture(name, _appServices.DockService.GetDock());
+            await System.IO.File.WriteAllTextAsync(file.Path.LocalPath, ThemeFile.Serialize(preset));
+            ThemeStatusText = T("settings.theme.exported");
+        }
+        catch (Exception e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[theme] export failed: {e.Message}");
+            ThemeStatusText = T("settings.theme.failed");
+        }
+    }
+
+    /// <summary>
+    /// Loads a .mbtheme, saves it as a user preset and applies it, so an
+    /// imported theme is both visible immediately and kept for later.
+    /// </summary>
+    public async Task ImportThemeAsync(Window window)
+    {
+        var files = await window.StorageProvider.OpenFilePickerAsync(
+            new Avalonia.Platform.Storage.FilePickerOpenOptions
+            {
+                Title = ThemeImportText,
+                AllowMultiple = false,
+                FileTypeFilter = new[]
+                {
+                    new Avalonia.Platform.Storage.FilePickerFileType("Mobread theme")
+                    {
+                        Patterns = new[] { "*" + ThemeFile.Extension, "*.json" },
+                    },
+                }
+            });
+        if (files.Count == 0) return;
+
+        ApplyImportedTheme(files[0].Path.LocalPath);
+    }
+
+    /// <summary>
+    /// Shared by the Import button and the drag-drop handler: read, validate,
+    /// store as a preset, apply. Returns false when the file is not a theme.
+    /// </summary>
+    public bool ApplyImportedTheme(string path)
+    {
+        AppearancePreset? preset = null;
+        try
+        {
+            if (System.IO.File.Exists(path))
+                preset = ThemeFile.TryParse(System.IO.File.ReadAllText(path));
+        }
+        catch (Exception e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[theme] import failed: {e.Message}");
+        }
+
+        if (preset == null)
+        {
+            ThemeStatusText = T("settings.theme.invalid");
+            return false;
+        }
+
+        // Keeping it as a preset means an imported theme survives switching
+        // to another one and back.
+        _appServices.AppearanceService.SaveImportedPreset(preset);
+        ReloadPresets();
+        SelectedPresetIndex = _presetList.FindIndex(
+            p => string.Equals(p.Name, preset.Name, StringComparison.OrdinalIgnoreCase));
+        ApplySelectedPreset();
+        ThemeStatusText = string.Format(T("settings.theme.imported"), preset.Name);
+        return true;
     }
     public string AddModuleText => T("settings.icons.addWindowsModule");
     public string RemoveText => T("settings.icons.removeSelected");
@@ -445,6 +570,8 @@ public partial class SettingsViewModel : ViewModelBase
     public string WidgetOpacityCustom => T("settings.widgets.opacity.custom");
     public string RoundingTitle => T("settings.dockCustomization.rounding.title");
     public string RoundingHelper => T("settings.dockCustomization.rounding.helper");
+    public string DockPaddingTitle => T("settings.dockCustomization.padding.title");
+    public string DockPaddingHelper => T("settings.dockCustomization.padding.helper");
     public string BgColorTitle => T("settings.dockCustomization.background.title");
     public string BgColorHelper => T("settings.dockCustomization.background.helper");
     public string PosModeTitle => T("settings.positioning.mode.title");
@@ -713,6 +840,7 @@ public partial class SettingsViewModel : ViewModelBase
         IconSize = app.GetIconsSize();
         IconSpacing = app.GetSpacingBetweenIcons();
         DockRows = app.GetDockRows();
+        DockPadding = app.GetDockPadding();
         Transparency = app.GetDockTransparencyPercentage();
         GlobalOpacity = app.GetGlobalOpacityPercentage();
         BorderRounding = app.GetDockBorderRounding();
@@ -765,6 +893,7 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(IconSize): OnIconSizeChanged(); break;
             case nameof(IconSpacing): OnIconSpacingChanged(); break;
             case nameof(DockRows): _appServices.AppearanceService.SetDockRows(DockRows); _dockRefreshAction(); break;
+            case nameof(DockPadding): _appServices.AppearanceService.SetDockPadding(DockPadding); _dockRefreshAction(); break;
             case nameof(Transparency): OnTransparencyChanged(); break;
             case nameof(GlobalOpacity): _appServices.AppearanceService.SetGlobalOpacityPercentage(GlobalOpacity); _dockRefreshAction(); break;
             case nameof(BorderRounding): OnBorderRoundingChanged(); break;

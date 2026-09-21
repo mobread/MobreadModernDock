@@ -78,6 +78,8 @@ public partial class SettingsWindow : Window
     private void OnKofi(object? sender, RoutedEventArgs e) => Vm?.OpenKofi();
     private async void OnExportConfig(object? sender, RoutedEventArgs e) { if (Vm != null) await Vm.ExportConfigAsync(this); }
     private async void OnImportConfig(object? sender, RoutedEventArgs e) { if (Vm != null) await Vm.ImportConfigAsync(this); }
+    private async void OnExportTheme(object? sender, RoutedEventArgs e) { if (Vm != null) await Vm.ExportThemeAsync(this); }
+    private async void OnImportTheme(object? sender, RoutedEventArgs e) { if (Vm != null) await Vm.ImportThemeAsync(this); }
 
     private async void OnAddModule(object? sender, RoutedEventArgs e)
     {

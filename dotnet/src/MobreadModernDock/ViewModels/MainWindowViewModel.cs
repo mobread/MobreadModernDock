@@ -141,6 +141,18 @@ public partial class MainWindowViewModel : ViewModelBase
     }
     public CornerRadius DockCornerRadius => new CornerRadius(BorderRounding);
 
+    private int _dockPadding = 10;
+    /// <summary>
+    /// Padding inside the dock bar. Exposed as a Thickness for the Border;
+    /// with the icon size it is what makes a "compact" dock actually short.
+    /// </summary>
+    public int DockPaddingValue
+    {
+        get => _dockPadding;
+        set { if (SetProperty(ref _dockPadding, value)) OnPropertyChanged(nameof(DockPadding)); }
+    }
+    public Thickness DockPadding => new Thickness(_dockPadding);
+
     private int _previewDelayMs = 400;
     /// <summary>
     /// Hover delay before an item's tooltip and its window preview appear.
@@ -600,6 +612,7 @@ public partial class MainWindowViewModel : ViewModelBase
         DockLines = appearance.GetDockRows();
         WindowOpacity = appearance.GetGlobalOpacityPercentage() / 100.0;
         BorderRounding = appearance.GetDockBorderRounding();
+        DockPaddingValue = appearance.GetDockPadding();
 
         // Re-tint the persistent running-apps VMs with the current tint
         // (set in UpdateDockUI before items are created; pinned items are

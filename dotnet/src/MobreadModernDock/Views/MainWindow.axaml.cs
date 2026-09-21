@@ -1014,6 +1014,14 @@ public partial class MainWindow : Window
         var paths = ExtractFilePaths(e);
         if (paths.Count == 0) return;
 
+        // A dropped theme file applies the theme instead of being pinned —
+        // pinning a .mbtheme as a launchable shortcut is never what was meant.
+        if (paths.Count == 1 && TryApplyDroppedTheme(paths[0]))
+        {
+            e.DragEffects = DragDropEffects.Copy;
+            return;
+        }
+
         if (target?.DataContext is DockItemViewModel itemVm && vm.OpenFilesWith(itemVm, paths))
         {
             e.DragEffects = DragDropEffects.Copy;
@@ -1023,6 +1031,34 @@ public partial class MainWindow : Window
         var (gapIndex, _) = ResolvePinnedDropGap(e.GetPosition(PinnedItems));
         vm.PinDroppedPaths(paths, gapIndex);
         e.DragEffects = DragDropEffects.Link;
+    }
+
+    /// <summary>
+    /// Applies a dropped <c>.mbtheme</c>. Returns false for anything else, so
+    /// the normal pin/open-with handling continues. The file is validated by
+    /// <see cref="ThemeFile.TryParse"/> before anything is changed, so a
+    /// corrupt or unrelated file leaves the dock exactly as it was.
+    /// </summary>
+    private bool TryApplyDroppedTheme(string path)
+    {
+        if (_appServices == null) return false;
+        if (!path.EndsWith(ThemeFile.Extension, StringComparison.OrdinalIgnoreCase)) return false;
+
+        AppearancePreset? preset = null;
+        try
+        {
+            if (System.IO.File.Exists(path))
+                preset = ThemeFile.TryParse(System.IO.File.ReadAllText(path));
+        }
+        catch { /* unreadable file: fall through and let it be pinned */ }
+
+        if (preset == null) return false;
+
+        _appServices.AppearanceService.SaveImportedPreset(preset);
+        _appServices.AppearanceService.ApplyPreset(preset);
+        if (DataContext is MainWindowViewModel mvm) mvm.UpdateDockUI();
+        App.RefreshWidgetAppearance();
+        return true;
     }
 
     /// <summary>Local paths carried by an Explorer drag, files and folders alike.</summary>

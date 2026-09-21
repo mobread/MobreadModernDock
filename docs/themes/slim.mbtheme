@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "name": "Slim",
+  "author": "mobread",
+  "iconsSize": 26,
+  "spacingBetweenIcons": 2,
+  "dockPadding": 0,
+  "dockBorderRounding": 4,
+  "dockTransparency": 0.35,
+  "globalOpacity": 1.0,
+  "dockColorRGB": "16, 16, 16, ",
+  "blurMode": "none",
+  "magnifyIcons": false
+}

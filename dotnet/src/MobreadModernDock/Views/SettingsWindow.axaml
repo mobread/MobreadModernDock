@@ -273,6 +273,15 @@
                                     <TextBox Width="220" Watermark="{Binding PresetNameHint}" Text="{Binding NewPresetName}"/>
                                     <Button Content="{Binding PresetSaveText}" Click="OnSavePreset" IsEnabled="{Binding CanSavePreset}"/>
                                 </StackPanel>
+
+                                <!-- Theme sharing: a preset written to a file. -->
+                                <Border Height="1" Background="#333333" Margin="0,4"/>
+                                <TextBlock Classes="helper" Text="{Binding ThemeHelper}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="{Binding ThemeExportText}" Click="OnExportTheme"/>
+                                    <Button Content="{Binding ThemeImportText}" Click="OnImportTheme"/>
+                                    <TextBlock Classes="helper" VerticalAlignment="Center" Text="{Binding ThemeStatusText}"/>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -296,6 +305,11 @@
                                     <TextBlock Classes="label" Text="{Binding RoundingTitle}" ToolTip.Tip="{Binding RoundingHelper}"/>
                                     <Slider Minimum="0" Maximum="30" Value="{Binding BorderRounding}"/>
                                     <TextBlock Classes="value" Text="{Binding BorderRounding}"/>
+                                </Grid>
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto">
+                                    <TextBlock Classes="label" Text="{Binding DockPaddingTitle}" ToolTip.Tip="{Binding DockPaddingHelper}"/>
+                                    <Slider Minimum="0" Maximum="40" Value="{Binding DockPadding}"/>
+                                    <TextBlock Classes="value" Text="{Binding DockPadding}"/>
                                 </Grid>
                                 <TextBlock Classes="helper" Text="{Binding GlobalOpacityHelper}"/>
 

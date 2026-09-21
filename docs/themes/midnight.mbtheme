@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "name": "Midnight",
+  "author": "mobread",
+  "iconsSize": 44,
+  "spacingBetweenIcons": 6,
+  "dockPadding": 10,
+  "dockBorderRounding": 26,
+  "dockTransparency": 0.55,
+  "globalOpacity": 1.0,
+  "dockColorRGB": "12, 18, 46, ",
+  "blurMode": "acrylic",
+  "magnifyIcons": true,
+  "magnifyScale": 1.6
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "name": "Paper",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 8,
+  "dockPadding": 10,
+  "dockBorderRounding": 14,
+  "dockTransparency": 0.85,
+  "globalOpacity": 1.0,
+  "dockColorRGB": "245, 244, 240, ",
+  "blurMode": "none",
+  "magnifyIcons": false
+}

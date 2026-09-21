@@ -92,6 +92,15 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    /// <summary>Padding inside the dock bar (0..40 px).</summary>
+    public int GetDockPadding() => Math.Clamp(GetDock().DockPadding, 0, 40);
+
+    public void SetDockPadding(int value)
+    {
+        GetDock().DockPadding = Math.Clamp(value, 0, 40);
+        _dockService.SaveChanges();
+    }
+
     /// <summary>Global whole-window opacity as a percentage (20..100).</summary>
     public int GetGlobalOpacityPercentage() => (int)Math.Round(Math.Clamp(GetDock().GlobalOpacity, 0.2, 1.0) * 100);
 
@@ -146,6 +155,27 @@ public class DockAppearanceService
         var dock = GetDock();
         dock.Presets.RemoveAll(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
         dock.Presets.Add(AppearancePreset.Capture(name, dock));
+        _dockService.SaveChanges();
+    }
+
+    /// <summary>
+    /// Stores a preset that came from a theme file rather than the live dock.
+    /// A name collision is resolved by suffixing rather than overwriting:
+    /// importing someone else's "Glass" must not silently destroy yours.
+    /// </summary>
+    public void SaveImportedPreset(AppearancePreset preset)
+    {
+        var dock = GetDock();
+        var taken = new HashSet<string>(
+            AppearancePreset.BuiltIns().Select(p => p.Name).Concat(dock.Presets.Select(p => p.Name)),
+            StringComparer.OrdinalIgnoreCase);
+
+        string name = preset.Name;
+        for (int i = 2; taken.Contains(name); i++)
+            name = $"{preset.Name} ({i})";
+        preset.Name = name;
+
+        dock.Presets.Add(preset);
         _dockService.SaveChanges();
     }
 

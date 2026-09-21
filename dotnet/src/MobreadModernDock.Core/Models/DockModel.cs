@@ -101,6 +101,13 @@ public class DockModel
     [JsonPropertyName("dockRows")]
     public int DockRows { get; set; } = 1;
 
+    /// <summary>
+    /// Padding inside the dock bar, in px. The bar's thickness is icon size
+    /// plus twice this, so it is the second half of "make the dock shorter".
+    /// </summary>
+    [JsonPropertyName("dockPadding")]
+    public int DockPadding { get; set; } = 10;
+
     /// <summary>Hides the Windows taskbar on every monitor while the app runs; restored on exit.</summary>
     [JsonPropertyName("hideTaskbar")]
     public bool HideTaskbar { get; set; }
@@ -334,6 +341,7 @@ public class DockModel
         TintColorRGB = other.TintColorRGB;
         AlwaysOnTop = other.AlwaysOnTop;
         DockRows = other.DockRows;
+        DockPadding = other.DockPadding;
         HideTaskbar = other.HideTaskbar;
         ReserveScreenEdge = other.ReserveScreenEdge;
         HideInFullscreen = other.HideInFullscreen;

@@ -57,12 +57,14 @@ Free-floating panels that follow the dock's colour and corner rounding. Each rem
 ### Dock layout & behaviour
 
 - **Dock on every monitor** — one checkbox mirrors the dock onto each display. Mirrors follow the primary's items, look and position (relative to their own screen).
-- **Appearance presets** — save the current look under a name and switch with one click. Four built-ins to start from (Classic dark, Glass, Compact, Midnight blue).
+- **Appearance presets** — save the current look under a name and switch with one click. Five built-ins to start from (Classic dark, Glass, Compact, Midnight blue, macOS).
+- **Shareable themes** — export your look as a `.mbtheme` file, or apply someone else's by importing it or dragging it onto the dock. A theme carries appearance only, never your pinned apps or window position. [Gallery and format →](docs/themes/README.md)
 - **Attention bounce** — when an app flashes its taskbar button for attention, its dock icon hops until you click it or the app comes to the front.
 - **Multi-row dock** — 1 to 4 rows (or columns when the dock is vertical).
 - **Auto-hide** — the dock slides off the nearest screen edge after a short grace period, leaving a 3 px sliver; touch it with the pointer to bring it back. Won't hide while you're hovering a preview or dragging an icon.
 - **Fullscreen auto-hide** — dock and widgets get out of the way while a fullscreen app is running. Borderless-window games count; a merely maximized window doesn't.
 - **Edge snapping** — drop the dock or a widget within 24 px of a screen edge or the centre line and it snaps flush, each axis independently.
+- **Bar padding** — how much space sits inside the bar around the icons. Drop it to 0 for a genuinely slim dock.
 - **Center dock** — right-click the settings gear and pick *Center dock* to line a dragged dock back up along the edge it sits on.
 - **Hover magnification** — macOS-style zoom that swells icons under the pointer and pushes their neighbours aside, with an adjustable curve. Single-row docks only.
 - **Always on top** — keep the dock and widgets over every window, or leave them on the desktop layer where they survive Win+D.
