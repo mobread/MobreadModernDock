@@ -38,6 +38,15 @@ public partial class MainWindow : Window
     private FolderStackPopup? _folderStack;
     private Button? _lastPressedPinned;
 
+    // --- #10 per-monitor ---
+    /// <summary>
+    /// When set, this window is a mirror on a secondary monitor: it anchors to
+    /// that screen with the STATIC rules, never persists its position, and
+    /// ignores the DYNAMIC saved point (which belongs to the primary dock).
+    /// </summary>
+    public string? MirrorScreenId { get; init; }
+    public bool IsMirror => MirrorScreenId != null;
+
     // --- Drag-to-reorder state for pinned dock icons ---
     private const double ReorderDragThresholdPixels = 6;
     private int _reorderSourceIndex = -1;
@@ -132,7 +141,7 @@ public partial class MainWindow : Window
             restPosition: RestPosition,
             screenBounds: () =>
             {
-                var sb = _appServices!.PositioningService.GetPrimaryScreenBounds();
+                var sb = OwnScreenBounds();
                 return ((int)sb.MinX, (int)sb.MinY, (int)sb.MaxX, (int)sb.MaxY);
             },
             blockHide: () => _previewPopup?.IsVisible == true || _folderStack?.IsVisible == true || _reorderInProgress);
@@ -141,7 +150,7 @@ public partial class MainWindow : Window
         // Static anchors must use the finalized window size, which SizeToContent
         // only produces after the first layout pass. Re-apply once layout settles
         // and whenever the dock content resizes the window.
-        if (_appServices?.PositioningService.IsDynamicPositioning() == false)
+        if (IsMirror || _appServices?.PositioningService.IsDynamicPositioning() == false)
         {
             SizeChanged += OnDockSizeChanged;
             Dispatcher.UIThread.Post(() => ApplyDockPosition(), DispatcherPriority.Loaded);
@@ -157,14 +166,30 @@ public partial class MainWindow : Window
     private void ApplyDockPosition(bool force = false)
     {
         if (_appServices == null) return;
-        if (!force && _appServices.PositioningService.IsDynamicPositioning()) return;
-        var (x, y) = _appServices.PositioningService.ResolvePosition(Width, Height);
+        if (!IsMirror && !force && _appServices.PositioningService.IsDynamicPositioning()) return;
+        var (x, y) = ResolveOwnPosition(Width, Height);
         if (_autoHide is { IsEnabled: true, IsHidden: true })
         {
             _autoHide.OnLayoutChanged();
             return;
         }
         SetScreenPosition((int)x, (int)y);
+    }
+
+    /// <summary>Primary dock: the positioning service's answer. Mirror: static anchors on its own screen.</summary>
+    private (double X, double Y) ResolveOwnPosition(double w, double h)
+    {
+        var pos = _appServices!.PositioningService;
+        if (!IsMirror) return pos.ResolvePosition(w, h);
+        var bounds = OwnScreenBounds();
+        return pos.ResolvePositionOnScreen(bounds, w, h);
+    }
+
+    private ScreenBounds OwnScreenBounds()
+    {
+        var pos = _appServices!.PositioningService;
+        if (IsMirror && pos.FindScreen(MirrorScreenId!) is { } s) return s.Bounds;
+        return pos.GetPrimaryScreenBounds();
     }
 
     /// <summary>
@@ -175,7 +200,7 @@ public partial class MainWindow : Window
     private (int X, int Y) RestPosition()
     {
         if (_appServices == null) return GetScreenPosition();
-        var (x, y) = _appServices.PositioningService.ResolvePosition(Bounds.Width, Bounds.Height);
+        var (x, y) = ResolveOwnPosition(Bounds.Width, Bounds.Height);
         return ((int)x, (int)y);
     }
 
@@ -204,7 +229,7 @@ public partial class MainWindow : Window
 
     private void OnDockSizeChanged(object? sender, SizeChangedEventArgs e)
     {
-        if (_appServices?.PositioningService.IsDynamicPositioning() == false)
+        if (IsMirror || _appServices?.PositioningService.IsDynamicPositioning() == false)
             ApplyDockPosition();
     }
 
@@ -276,6 +301,7 @@ public partial class MainWindow : Window
     {
         if (sender is not Button button || _appServices == null) return;
         if (button.DataContext is not RunningAppViewModel vm) return;
+        (DataContext as MainWindowViewModel)?.ClearAttention(vm.ExecutablePath);
 
         string executablePath = vm.ExecutablePath;
         List<WindowInfo> windows;
@@ -741,7 +767,7 @@ public partial class MainWindow : Window
     /// </summary>
     private void OnDockPositionChanged(object? sender, PixelPointEventArgs e)
     {
-        if (_appServices == null) return;
+        if (_appServices == null || IsMirror) return;
         if (!_appServices.PositioningService.IsDynamicPositioning()) return;
         _positionPersistTimer.Stop();
         _positionPersistTimer.Start();
@@ -749,7 +775,7 @@ public partial class MainWindow : Window
 
     private void PersistDockPosition()
     {
-        if (_appServices == null) return;
+        if (_appServices == null || IsMirror) return;
         if (!_appServices.PositioningService.IsDynamicPositioning()) return;
         // Auto-hide moves the window itself; those moves are not user drags.
         if (_autoHide is { IsEnabled: true }) return;
@@ -766,6 +792,7 @@ public partial class MainWindow : Window
             }
         }
         _appServices.DockService.SetDockPosition(x, y);
+        App.RepositionMirrorDocks();
     }
 
     private void UpdateStatus(string status)
@@ -795,12 +822,16 @@ public partial class MainWindow : Window
         {
             var (x, y) = GetScreenPosition();
             _appServices.DockService.SetDockPosition(x, y);
+        App.RepositionMirrorDocks();
         }
         _appServices.PositioningService.SetPositioningMode(mode);
     }
 
     /// <summary>Current absolute screen position, for callers outside the window (App).</summary>
     public (int X, int Y) CurrentScreenPosition => GetScreenPosition();
+
+    /// <summary>Mirror docks: recompute the anchored position (primary moved or layout changed).</summary>
+    public void ReapplyPosition() => ApplyDockPosition(force: true);
 
     /// <summary>Fullscreen auto-hide: show/hide the native window without changing layering.</summary>
     public void SetNativeVisible(bool visible) => _dockBehavior?.SetNativeVisible(visible);
@@ -830,7 +861,8 @@ public partial class MainWindow : Window
         // The dock IS the application: closing it (WM_CLOSE from the shell,
         // Alt+F4, a task manager "End task") must end the process — otherwise
         // widget windows keep it alive with no dock to exit from, and a hidden
-        // taskbar would stay hidden.
-        App.RequestShutdown();
+        // taskbar would stay hidden. Mirrors are disposable; only the primary
+        // dock carries the process.
+        if (!IsMirror) App.RequestShutdown();
     }
 }

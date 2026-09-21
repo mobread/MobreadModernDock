@@ -20,4 +20,17 @@ public class WindowsScreenBoundsProvider : IScreenBoundsProvider
             workingArea.X, workingArea.Y,
             workingArea.Width, workingArea.Height);
     }
+
+    /// <summary>#10 Every monitor, keyed by its GDI device name (\\.\DISPLAY1 …), which is stable across sessions.</summary>
+    public IReadOnlyList<ScreenInfo> GetAllScreens()
+    {
+        var list = new List<ScreenInfo>();
+        foreach (var s in System.Windows.Forms.Screen.AllScreens)
+        {
+            var w = s.WorkingArea;
+            list.Add(new ScreenInfo(s.DeviceName, s.Primary, new ScreenBounds(w.X, w.Y, w.Width, w.Height)));
+        }
+        if (list.Count == 0) list.Add(new ScreenInfo("primary", true, GetPrimaryScreenBounds()));
+        return list;
+    }
 }

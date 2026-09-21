@@ -58,6 +58,7 @@ public partial class App : Application
             mainWindow.Opened += (_, _) =>
             {
                 SyncWidgetWindows();
+                SyncMirrorDocks();
                 ApplyTaskbarVisibility();
                 StartFullscreenWatcher();
             };
@@ -144,6 +145,11 @@ public partial class App : Application
         _shuttingDown = true;
         try { TaskbarVisibility.Restore(); } catch { }
         _mainViewModel?.Shutdown();
+        foreach (var m in _mirrorDocks.Values.ToList())
+        {
+            try { m.Close(); } catch { }
+        }
+        _mirrorDocks.Clear();
         foreach (var window in _widgetWindows.Values.ToList())
         {
             try { window.Close(); } catch { }
@@ -172,6 +178,7 @@ public partial class App : Application
         {
             var (x, y) = _mainWindow.CurrentScreenPosition;
             _appServices.DockService.SetDockPosition(x, y);
+            RepositionMirrorDocks();
         }
         _appServices.PositioningService.SetPositioningMode(mode);
     }
@@ -317,8 +324,62 @@ public partial class App : Application
     private static void SetAllVisible(bool visible)
     {
         _mainWindow?.SetNativeVisible(visible);
+        foreach (var m in _mirrorDocks.Values)
+            m.SetNativeVisible(visible);
         foreach (var w in _widgetWindows.Values)
             w.SetNativeVisible(visible);
+    }
+
+    // --- #10 per-monitor mirrors ---
+
+    private static readonly Dictionary<string, MainWindow> _mirrorDocks = new();
+
+    /// <summary>
+    /// Opens a mirror dock on every non-primary monitor when the setting is on,
+    /// closes stale ones (setting off, monitor unplugged), and refreshes the
+    /// live ones so appearance/items stay in step with the primary.
+    /// </summary>
+    public static void SyncMirrorDocks()
+    {
+        if (_appServices == null || _shuttingDown) return;
+        bool enabled = _appServices.PositioningService.GetMirrorOnAllMonitors();
+        var wanted = enabled
+            ? _appServices.PositioningService.GetAllScreens().Where(s => !s.IsPrimary).Select(s => s.Id).ToHashSet()
+            : new HashSet<string>();
+
+        foreach (var id in _mirrorDocks.Keys.Where(k => !wanted.Contains(k)).ToArray())
+        {
+            _mirrorDocks[id].Close();
+            _mirrorDocks.Remove(id);
+        }
+        foreach (var id in wanted)
+        {
+            if (_mirrorDocks.TryGetValue(id, out var existing))
+            {
+                (existing.DataContext as MainWindowViewModel)?.UpdateDockUI();
+                continue;
+            }
+            var vm = new MainWindowViewModel(_appServices) { IsMirrorViewModel = true };
+            var w = new MainWindow { DataContext = vm, MirrorScreenId = id };
+            w.SetAppServices(_appServices);
+            _mirrorDocks[id] = w;
+            w.Show();
+        }
+    }
+
+    /// <summary>Primary dock moved (drag / mode change): re-anchor the mirrors.</summary>
+    public static void RepositionMirrorDocks()
+    {
+        foreach (var m in _mirrorDocks.Values)
+            m.ReapplyPosition();
+    }
+
+    public static MainWindowViewModel? PrimaryViewModel => _mainViewModel;
+
+    public static void ForEachMirrorViewModel(Action<MainWindowViewModel> action)
+    {
+        foreach (var m in _mirrorDocks.Values)
+            if (m.DataContext is MainWindowViewModel vm) action(vm);
     }
 
     /// <summary>Whether windows are currently hidden because a fullscreen app is active.</summary>

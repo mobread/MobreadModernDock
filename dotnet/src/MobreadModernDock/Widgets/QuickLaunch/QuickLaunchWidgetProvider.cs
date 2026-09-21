@@ -60,7 +60,7 @@ public sealed class QuickLaunchWidgetProvider : IWidgetProvider
             ItemsSource = vm.Items,
             ItemsPanel = new Avalonia.Controls.Templates.FuncTemplate<Panel?>(() => new UniformGrid
             {
-                [!UniformGrid.ColumnsProperty] = new Avalonia.Data.Binding(nameof(QuickLaunchViewModel.Columns)),
+                [!UniformGrid.ColumnsProperty] = new Avalonia.Data.Binding(nameof(QuickLaunchViewModel.Columns)) { Source = vm },
             }),
             ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<QuickLaunchItemViewModel>((item, _) =>
             {

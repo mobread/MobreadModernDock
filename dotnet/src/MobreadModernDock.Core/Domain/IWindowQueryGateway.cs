@@ -16,6 +16,9 @@ public interface IWindowQueryGateway
     void Minimize(WindowInfo windowInfo) { }
     bool IsForeground(WindowInfo windowInfo) => false;
     bool IsMinimized(WindowInfo windowInfo) => false;
+
+    /// <summary>Executable path of the process owning the foreground window, or null.</summary>
+    string? ForegroundExecutablePath() => null;
 }
 
 /// <summary>Minimal info required to activate and label a window.</summary>

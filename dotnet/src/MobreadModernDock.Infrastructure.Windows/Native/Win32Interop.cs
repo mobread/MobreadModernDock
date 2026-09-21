@@ -289,6 +289,9 @@ public static class User32
     public static extern bool RegisterShellHookWindow(IntPtr hwnd);
 
     [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool DeregisterShellHookWindow(IntPtr hwnd);
+
+    [DllImport("user32.dll", SetLastError = true)]
     public static extern uint RegisterWindowMessage(string lpString);
 
     // GetWindowLongPtr / SetWindowLongPtr — handle 32/64-bit transparently

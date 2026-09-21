@@ -337,11 +337,7 @@ public static class WindowsIconExtractor
 
     private static string GetCacheDirectory()
     {
-        string? appData = Environment.GetEnvironmentVariable("APPDATA");
-        if (string.IsNullOrEmpty(appData))
-            appData = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-        string cacheDir = Path.Combine(appData, "MobreadModernDock", "iconsCache");
+        string cacheDir = Path.Combine(Adapters.AppDataLocator.Root, "iconsCache");
         Directory.CreateDirectory(cacheDir);
         return cacheDir;
     }

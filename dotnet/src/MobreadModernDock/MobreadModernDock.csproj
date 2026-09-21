@@ -7,6 +7,13 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\icons\mobread\logo_256_ICO.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- Single source of truth for the product version. build.ps1 reads it; the
+         About text and the auto-update check use the assembly's informational version. -->
+    <Version>1.3.0</Version>
+    <Company>mobread</Company>
+    <Product>Mobread Modern Dock</Product>
+    <AssemblyTitle>Mobread Modern Dock</AssemblyTitle>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>

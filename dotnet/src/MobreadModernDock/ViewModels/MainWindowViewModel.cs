@@ -173,6 +173,67 @@ public partial class MainWindowViewModel : ViewModelBase
         ApplyAppearance();
         UpdateDockUI();
         StartIndicatorWatcher();
+        StartAttentionMonitor();
+    }
+
+    // --- #13 attention bounce ---
+
+    private Infrastructure.Windows.Native.AttentionMonitor? _attention;
+
+    private void StartAttentionMonitor()
+    {
+        if (IsMirrorViewModel) return; // the primary dock's monitor sets NeedsAttention; mirrors would fight over the static instance
+        try { _attention = new Infrastructure.Windows.Native.AttentionMonitor(OnAppFlashed); }
+        catch (Exception e) { System.Diagnostics.Debug.WriteLine($"[Attention] {e.Message}"); }
+    }
+
+    /// <summary>Windows currently asking for attention, by executable. Cleared when one is focused or its icon clicked.</summary>
+    private readonly Dictionary<string, HashSet<IntPtr>> _flashing = new(StringComparer.OrdinalIgnoreCase);
+
+    private void OnAppFlashed(string executablePath, IntPtr hwnd)
+    {
+        if (_appServices == null || !_appServices.AppearanceService.GetAttentionBounce()) return;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (!_flashing.TryGetValue(executablePath, out var set)) _flashing[executablePath] = set = new();
+            set.Add(hwnd);
+            SetAttention(executablePath, true);
+            App.ForEachMirrorViewModel(vm => vm.SetAttention(executablePath, true));
+        });
+    }
+
+    /// <summary>Flag/unflag every VM (pinned or running) that maps to this executable.</summary>
+    public void SetAttention(string executablePath, bool on)
+    {
+        foreach (var item in Items)
+            if (item.ExecutablePath != null && string.Equals(item.ExecutablePath, executablePath, StringComparison.OrdinalIgnoreCase))
+                item.NeedsAttention = on;
+        if (_runningAppsByPath.TryGetValue(executablePath, out var running))
+            running.NeedsAttention = on;
+    }
+
+    /// <summary>Stop bouncing: called when the user clicks the icon or the flashing window comes to the foreground.</summary>
+    public void ClearAttention(string? executablePath)
+    {
+        if (executablePath == null) return;
+        if (IsMirrorViewModel) { App.PrimaryViewModel?.ClearAttention(executablePath); return; }
+        _flashing.Remove(executablePath);
+        SetAttention(executablePath, false);
+        App.ForEachMirrorViewModel(vm => vm.SetAttention(executablePath, false));
+    }
+
+    /// <summary>
+    /// A flashing window that reaches the foreground no longer needs attention.
+    /// Polled alongside the running indicators. Checks the specific HWNDs that
+    /// flashed — the app may have other windows already in front.
+    /// </summary>
+    private void ClearAttentionForForeground()
+    {
+        if (_appServices == null || IsMirrorViewModel || _flashing.Count == 0) return;
+        string? done = null;
+        foreach (var (exe, hwnds) in _flashing)
+            if (hwnds.Any(Infrastructure.Windows.Native.AttentionMonitor.IsForeground)) { done = exe; break; }
+        if (done != null) Avalonia.Threading.Dispatcher.UIThread.Post(() => ClearAttention(done));
     }
 
     /// <summary>
@@ -264,7 +325,11 @@ public partial class MainWindowViewModel : ViewModelBase
         PreviewDismissAction?.Invoke();
         LayerRefreshAction?.Invoke();
         App.RefreshWidgetAppearance();
+        if (!IsMirrorViewModel) App.SyncMirrorDocks();
     }
+
+    /// <summary>#10 Set on VMs that back a secondary-monitor mirror so they don't recurse into SyncMirrorDocks.</summary>
+    public bool IsMirrorViewModel { get; init; }
     // --- continued below ---
 
     private DockItemViewModel? CreateItemViewModel(DockItem item, LocalizationService loc)
@@ -369,6 +434,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (param is DockItemViewModel itemVm && _appServices != null)
         {
+            ClearAttention(itemVm.ExecutablePath);
             if (itemVm.Item is DockFolderItemModel
                 && _appServices.AppearanceService.GetFolderStacks()
                 && ShowFolderStackAction?.Invoke(itemVm) == true)
@@ -413,6 +479,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 {
                     RefreshIndicators();
                     RefreshRunningApps();
+                    ClearAttentionForForeground();
                     await Task.Delay(1200, token);
                 }
                 catch (OperationCanceledException) { break; }
@@ -602,5 +669,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _indicatorCts?.Cancel();
         _indicatorCts?.Dispose();
         _indicatorCts = null;
+        _attention?.Dispose();
+        _attention = null;
     }
 }

@@ -33,6 +33,24 @@ public class DockItemViewModel : ViewModelBase
         set => SetProperty(ref _isRunning, value);
     }
 
+    private bool _needsAttention;
+    /// <summary>True while the app is flashing for attention; cleared on click or when the app takes focus.</summary>
+    public bool NeedsAttention
+    {
+        get => _needsAttention;
+        set
+        {
+            if (!SetProperty(ref _needsAttention, value)) return;
+            _bounce ??= new BounceAnimator(o => BounceOffset = o);
+            if (value) _bounce.Start(); else _bounce.Stop();
+        }
+    }
+
+    private BounceAnimator? _bounce;
+    private double _bounceOffset;
+    /// <summary>Vertical hop applied to the icon while <see cref="NeedsAttention"/>.</summary>
+    public double BounceOffset { get => _bounceOffset; set => SetProperty(ref _bounceOffset, value); }
+
     /// <summary>True if this item should show a running-app indicator (program items only).</summary>
     public bool ShowIndicator { get; }
 

@@ -109,6 +109,14 @@ public class DockModel
     [JsonPropertyName("hideInFullscreen")]
     public bool HideInFullscreen { get; set; } = true;
 
+    /// <summary>Bounce a dock icon when its app flashes the taskbar for attention.</summary>
+    [JsonPropertyName("attentionBounce")]
+    public bool AttentionBounce { get; set; } = true;
+
+    /// <summary>#10 Show a copy of the dock on every monitor (secondaries use the static anchors).</summary>
+    [JsonPropertyName("mirrorOnAllMonitors")]
+    public bool MirrorOnAllMonitors { get; set; }
+
     /// <summary>Slide the dock off the nearest screen edge when the pointer leaves it; reveal on edge hover.</summary>
     [JsonPropertyName("autoHide")]
     public bool AutoHide { get; set; }
@@ -128,6 +136,10 @@ public class DockModel
     /// </summary>
     [JsonPropertyName("globalOpacity")]
     public double GlobalOpacity { get; set; } = 1.0;
+
+    /// <summary>#11 User-saved appearance presets (built-ins are not persisted).</summary>
+    [JsonPropertyName("presets")]
+    public List<AppearancePreset> Presets { get; set; } = new();
 
     // --- Floating widgets ---
 

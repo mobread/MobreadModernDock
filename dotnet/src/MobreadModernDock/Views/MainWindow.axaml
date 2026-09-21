@@ -21,22 +21,25 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <!-- Dock bar: rounded background with items -->
+    <!-- Dock bar: rounded background with items. The top margin is transparent
+         headroom so an attention-bounce (icon hops 10 px up) isn't clipped by
+         the window edge; ClipToBounds is off for the same reason. -->
     <Border x:Name="DockBar"
             Opacity="{Binding WindowOpacity}"
             Background="{Binding DockBackground}"
             CornerRadius="{Binding DockCornerRadius}"
             Padding="10"
+            Margin="0,12,0,0"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
-            ClipToBounds="True">
+            ClipToBounds="False">
 
         <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}">
             <!-- Pinned dock items. Drag an icon past a small threshold to
                  reorder it in place; a plain click still launches. The Panel
                  overlays a thin drop indicator at the target gap. -->
             <Panel>
-            <ItemsControl x:Name="PinnedItems"
+            <ItemsControl x:Name="PinnedItems" ClipToBounds="False"
                           ItemsSource="{Binding Items}"
                           DragDrop.AllowDrop="True"
                           DragDrop.DragOver="OnPinnedDragOver"
@@ -56,7 +59,7 @@
 
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:DockItemViewModel">
-                        <Button Command="{Binding ClickCommand}"
+                        <Button ClipToBounds="False" Command="{Binding ClickCommand}"
                                 CommandParameter="{Binding}"
                                 Background="Transparent"
                                 BorderBrush="Transparent"
@@ -97,6 +100,10 @@
                                 <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
                                     <Setter Property="Background" Value="Transparent" />
                                 </Style>
+                                <!-- Attention bounce translates the icon above the button; don't clip it. -->
+                                <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                    <Setter Property="ClipToBounds" Value="False" />
+                                </Style>
                             </Button.Styles>
 
                             <!-- Item content: icon + running indicator -->
@@ -106,7 +113,11 @@
                                        Width="{Binding IconSize}"
                                        Height="{Binding IconSize}"
                                        Stretch="Uniform"
-                                       RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                       RenderOptions.BitmapInterpolationMode="HighQuality">
+                                    <Image.RenderTransform>
+                                        <TranslateTransform Y="{Binding BounceOffset}"/>
+                                    </Image.RenderTransform>
+                                </Image>
                                 <Ellipse Width="4" Height="4"
                                          Fill="White"
                                          IsVisible="{Binding IsRunning}" />
@@ -143,7 +154,7 @@
                    RenderOptions.BitmapInterpolationMode="HighQuality"/>
 
             <!-- Running-but-unpinned apps (taskbar-like) -->
-            <ItemsControl ItemsSource="{Binding RunningApps}"
+            <ItemsControl ClipToBounds="False" ItemsSource="{Binding RunningApps}"
                           IsVisible="{Binding HasRunningApps}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -183,6 +194,10 @@
                                 <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
                                     <Setter Property="Background" Value="Transparent" />
                                 </Style>
+                                <!-- Attention bounce translates the icon above the button; don't clip it. -->
+                                <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+                                    <Setter Property="ClipToBounds" Value="False" />
+                                </Style>
                             </Button.Styles>
 
                             <!-- Item content: icon + running indicator -->
@@ -192,7 +207,11 @@
                                        Width="{Binding IconSize}"
                                        Height="{Binding IconSize}"
                                        Stretch="Uniform"
-                                       RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                       RenderOptions.BitmapInterpolationMode="HighQuality">
+                                    <Image.RenderTransform>
+                                        <TranslateTransform Y="{Binding BounceOffset}"/>
+                                    </Image.RenderTransform>
+                                </Image>
                                 <Ellipse Width="4" Height="4"
                                          Fill="White"
                                          IsVisible="{Binding IsRunning}" />

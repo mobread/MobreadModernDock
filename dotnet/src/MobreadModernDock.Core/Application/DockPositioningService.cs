@@ -125,6 +125,44 @@ public class DockPositioningService
     public ScreenBounds GetPrimaryScreenBounds() =>
         _screenBoundsProvider?.GetPrimaryScreenBounds() ?? new ScreenBounds(0, 0, 1920, 1080);
 
+    // --- #10 per-monitor ---
+
+    public IReadOnlyList<ScreenInfo> GetAllScreens() =>
+        _screenBoundsProvider?.GetAllScreens() ?? new[] { new ScreenInfo("primary", true, GetPrimaryScreenBounds()) };
+
+    public ScreenInfo? FindScreen(string id) => GetAllScreens().FirstOrDefault(s => s.Id == id);
+
+    /// <summary>
+    /// Position for a mirrored dock on a secondary monitor. STATIC mode: the
+    /// same anchors against that screen's bounds. DYNAMIC mode: the primary's
+    /// position expressed as a fraction of its screen's free space, re-applied
+    /// to the target screen — so a dock dragged to bottom-centre on the primary
+    /// shows up bottom-centre on every monitor.
+    /// </summary>
+    public (double X, double Y) ResolvePositionOnScreen(ScreenBounds bounds, double windowWidth, double windowHeight)
+    {
+        DockModel dock = _dockService.GetDock();
+        if (dock.PositioningMode == DockPositioningMode.DYNAMIC && _screenBoundsProvider != null)
+        {
+            var p = _screenBoundsProvider.GetPrimaryScreenBounds();
+            double freeW = Math.Max(1, p.Width - windowWidth), freeH = Math.Max(1, p.Height - windowHeight);
+            double fx = Math.Clamp((dock.DockPositionX - p.MinX) / freeW, 0, 1);
+            double fy = Math.Clamp((dock.DockPositionY - p.MinY) / freeH, 0, 1);
+            return (SnapToPixel(bounds.MinX + fx * Math.Max(0, bounds.Width - windowWidth)),
+                    SnapToPixel(bounds.MinY + fy * Math.Max(0, bounds.Height - windowHeight)));
+        }
+        return (SnapToPixel(ResolveHorizontalPosition(bounds, windowWidth, dock)),
+                SnapToPixel(ResolveVerticalPosition(bounds, windowHeight, dock)));
+    }
+
+    public bool GetMirrorOnAllMonitors() => _dockService.GetDock().MirrorOnAllMonitors;
+
+    public void SetMirrorOnAllMonitors(bool value)
+    {
+        _dockService.GetDock().MirrorOnAllMonitors = value;
+        _dockService.SaveChanges();
+    }
+
     public static double SnapToPixel(double value) => Math.Round(value, MidpointRounding.AwayFromZero);
 
     private static double ResolveHorizontalPosition(

@@ -36,6 +36,23 @@ public class RunningAppViewModel : ViewModelBase
         set => SetProperty(ref _isRunning, value);
     }
 
+    private bool _needsAttention;
+    /// <summary>True while the app is flashing for attention.</summary>
+    public bool NeedsAttention
+    {
+        get => _needsAttention;
+        set
+        {
+            if (!SetProperty(ref _needsAttention, value)) return;
+            _bounce ??= new BounceAnimator(o => BounceOffset = o);
+            if (value) _bounce.Start(); else _bounce.Stop();
+        }
+    }
+
+    private BounceAnimator? _bounce;
+    private double _bounceOffset;
+    public double BounceOffset { get => _bounceOffset; set => SetProperty(ref _bounceOffset, value); }
+
     /// <summary>The icon render size in pixels (mirrors the dock's IconsSize setting).</summary>
     private int _iconSize = 48;
     public int IconSize
