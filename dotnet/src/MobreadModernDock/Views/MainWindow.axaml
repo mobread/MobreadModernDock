@@ -33,6 +33,11 @@
         <Style Selector="ItemsControl:not(.magnified) Button.dockitem:pointerover">
             <Setter Property="RenderTransform" Value="scale(1.3)" />
         </Style>
+        <!-- Tooltips wait as long as the window preview while magnified, so a
+             sweep across the dock doesn't trail tooltips behind the cursor. -->
+        <Style Selector="ItemsControl.magnified Button.dockitem">
+            <Setter Property="ToolTip.ShowDelay" Value="1000" />
+        </Style>
     </Window.Styles>
 
     <!-- Dock bar: rounded background with items. The top margin is transparent
