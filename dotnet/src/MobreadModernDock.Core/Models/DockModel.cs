@@ -105,6 +105,14 @@ public class DockModel
     [JsonPropertyName("hideTaskbar")]
     public bool HideTaskbar { get; set; }
 
+    /// <summary>
+    /// Reserve the dock's screen edge as an appbar, so maximized windows stop
+    /// at the dock instead of sitting underneath it. Only applies while the
+    /// dock is snapped to an edge and auto-hide is off.
+    /// </summary>
+    [JsonPropertyName("reserveScreenEdge")]
+    public bool ReserveScreenEdge { get; set; }
+
     /// <summary>Hide the dock and widgets while a fullscreen app (game, video) is in the foreground.</summary>
     [JsonPropertyName("hideInFullscreen")]
     public bool HideInFullscreen { get; set; } = true;
@@ -327,6 +335,7 @@ public class DockModel
         AlwaysOnTop = other.AlwaysOnTop;
         DockRows = other.DockRows;
         HideTaskbar = other.HideTaskbar;
+        ReserveScreenEdge = other.ReserveScreenEdge;
         HideInFullscreen = other.HideInFullscreen;
         AttentionBounce = other.AttentionBounce;
         MirrorOnAllMonitors = other.MirrorOnAllMonitors;

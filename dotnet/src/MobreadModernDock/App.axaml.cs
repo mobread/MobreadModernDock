@@ -305,6 +305,13 @@ public partial class App : Application
             TaskbarVisibility.RestoreIfLeftHidden();
     }
 
+    /// <summary>
+    /// #4 Re-applies the screen-edge reservation on the primary dock (mirrors
+    /// never reserve). Called when the setting changes or anything that moves
+    /// the dock happens outside the window's own layout path.
+    /// </summary>
+    public static void ApplyEdgeReservation() => _mainWindow?.ApplyEdgeReservation();
+
     // --- Fullscreen auto-hide ---
 
     private static System.Threading.Timer? _fullscreenPoll;

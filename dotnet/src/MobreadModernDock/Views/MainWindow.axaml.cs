@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -50,6 +51,7 @@ public partial class MainWindow : Window
         TimeSpan.FromMilliseconds(_appServices?.AppearanceService.GetPreviewDelayMs() ?? 0);
 
     private DockAutoHideController? _autoHide;
+    private AppBarReservation? _reservation;   // #4 screen-edge reservation (primary dock only)
     private FolderStackPopup? _folderStack;
     private Button? _lastPressedPinned;
 
@@ -148,7 +150,7 @@ public partial class MainWindow : Window
         {
             vm.OpenSettingsAction = () => OpenSettings(vm);
             vm.RepositionAction = () => ApplyDockPosition();
-            vm.LayerRefreshAction = () => { ApplyAlwaysOnTop(); ApplyAutoHideSetting(); ApplyBackdrop(); SyncPinnedPanel(); };
+            vm.LayerRefreshAction = () => { ApplyAlwaysOnTop(); ApplyAutoHideSetting(); ApplyBackdrop(); SyncPinnedPanel(); ApplyEdgeReservation(); };
             vm.ShowFolderStackAction = ShowFolderStack;
             vm.PreviewDismissAction = HidePreview;
             vm.Initialize();
@@ -178,6 +180,9 @@ public partial class MainWindow : Window
         // The items panel is realized during the first layout pass, after
         // Initialize() has already run, so seed it once the tree exists.
         Dispatcher.UIThread.Post(SyncPinnedPanel, DispatcherPriority.Loaded);
+        // Reservation needs the finalized window rect, which SizeToContent
+        // only produces after the first layout pass.
+        Dispatcher.UIThread.Post(ApplyEdgeReservation, DispatcherPriority.Loaded);
     }
 
     /// <summary>
@@ -197,6 +202,7 @@ public partial class MainWindow : Window
             return;
         }
         SetScreenPosition((int)x, (int)y);
+        ApplyEdgeReservation();
     }
 
     /// <summary>Primary dock: the positioning service's answer. Mirror: static anchors on its own screen.</summary>
@@ -258,6 +264,8 @@ public partial class MainWindow : Window
         UpdateBackdropRegion();
         if (IsMirror || _appServices?.PositioningService.IsDynamicPositioning() == false)
             ApplyDockPosition();
+        // A taller/wider bar must reserve a correspondingly bigger strip.
+        ApplyEdgeReservation();
     }
 
     /// <summary>
@@ -1241,6 +1249,8 @@ public partial class MainWindow : Window
         }
         _appServices.DockService.SetDockPosition(x, y);
         App.RepositionMirrorDocks();
+        // Dragged to (or away from) an edge: re-evaluate what to reserve.
+        ApplyEdgeReservation();
     }
 
     private void UpdateStatus(string status)
@@ -1302,6 +1312,54 @@ public partial class MainWindow : Window
     {
         if (_appServices == null || _dockBehavior == null) return;
         _dockBehavior.SetAlwaysOnTop(_appServices.AppearanceService.GetAlwaysOnTop());
+    }
+
+    /// <summary>
+    /// #4 Appbar reservation: keeps maximized windows off the dock's screen
+    /// edge. Re-evaluated on every move, resize and settings change, because
+    /// the strip to reserve is derived from where the dock actually sits.
+    ///
+    /// Deliberately skipped in three cases:
+    /// <list type="bullet">
+    /// <item><b>Mirror docks</b> — only the primary dock reserves. One appbar
+    /// per process is what the shell expects, and a secondary monitor's strip
+    /// would fight the primary's for the same registration.</item>
+    /// <item><b>Auto-hide on</b> — a hidden dock that still reserved its edge
+    /// would leave a permanent dead band with nothing visible in it.</item>
+    /// <item><b>Not docked to an edge</b> — a floating dock reserves nothing;
+    /// <see cref="DockReservation.ResolveEdge"/> returns None and the
+    /// registration is released.</item>
+    /// </list>
+    /// </summary>
+    public void ApplyEdgeReservation()
+    {
+        if (IsMirror || _appServices == null) return;
+
+        bool wanted = _appServices.AppearanceService.GetReserveScreenEdge()
+                      && !_appServices.AppearanceService.GetAutoHide();
+        if (!wanted)
+        {
+            _reservation?.Clear();
+            return;
+        }
+
+        // The window rect, not Bounds: SizeToContent plus the bounce headroom
+        // margin mean Bounds is the content, while the reserved strip has to
+        // match what the user sees at the edge.
+        var rect = ScreenGeometry.WindowScreenRect(this);
+        var centre = new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
+
+        // Measured against the full monitor, never the work area: the work
+        // area already excludes our own strip, so deriving the reservation
+        // from it would shrink the dock's band a little more on every pass.
+        var monitor = ScreenGeometry.MonitorAreaAt(centre);
+        var bounds = new ScreenBounds(monitor.X, monitor.Y, monitor.Width, monitor.Height);
+
+        var edge = DockReservation.ResolveEdge(rect.X, rect.Y, rect.Width, rect.Height, bounds);
+        var strip = DockReservation.ComputeReservation(edge, rect.X, rect.Y, rect.Width, rect.Height, bounds);
+
+        _reservation ??= new AppBarReservation();
+        _reservation.Apply(edge, strip);
     }
 
     /// <summary>
@@ -1386,6 +1444,11 @@ public partial class MainWindow : Window
             vm.Shutdown();
         _autoHide?.Dispose();
         _autoHide = null;
+        // Releasing the appbar restores the work area. Must happen before the
+        // process ends: a stale reservation leaves the user's screen shrunk
+        // with no UI left to undo it.
+        _reservation?.Dispose();
+        _reservation = null;
         _folderStack?.Close();
         _folderStack = null;
         _dockBehavior?.Dispose();

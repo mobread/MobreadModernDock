@@ -181,6 +181,14 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    public bool GetReserveScreenEdge() => GetDock().ReserveScreenEdge;
+
+    public void SetReserveScreenEdge(bool value)
+    {
+        GetDock().ReserveScreenEdge = value;
+        _dockService.SaveChanges();
+    }
+
     public bool GetTintIcons() => GetDock().TintIcons;
 
     public void SetTintIcons(bool value)
