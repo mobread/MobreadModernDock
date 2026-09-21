@@ -238,11 +238,34 @@ public partial class MainWindow : Window
         return pos.ResolvePositionOnScreen(bounds, w, h);
     }
 
+    /// <summary>
+    /// The bounds this window positions itself against.
+    ///
+    /// While we reserve a screen edge this must be the <b>full monitor</b>, not
+    /// the work area: the work area already excludes our own reserved strip, so
+    /// re-resolving against it walks the dock inward by the strip's thickness on
+    /// every pass (and the dock then reads as undocked and drops the
+    /// reservation). Without a reservation the work area is right, so the dock
+    /// still respects the real taskbar and other appbars.
+    /// </summary>
     private ScreenBounds OwnScreenBounds()
     {
         var pos = _appServices!.PositioningService;
-        if (IsMirror && pos.FindScreen(MirrorScreenId!) is { } s) return s.Bounds;
-        return pos.GetPrimaryScreenBounds();
+        bool reserving = _appServices.AppearanceService.GetReserveScreenEdge()
+                         && !_appServices.AppearanceService.GetAutoHide();
+
+        if (IsMirror && pos.FindScreen(MirrorScreenId!) is { } s)
+        {
+            if (!reserving) return s.Bounds;
+            // Full bounds of the monitor this mirror lives on.
+            var centre = new PixelPoint(
+                (int)(s.Bounds.MinX + s.Bounds.Width / 2),
+                (int)(s.Bounds.MinY + s.Bounds.Height / 2));
+            var mon = ScreenGeometry.MonitorAreaAt(centre);
+            return new ScreenBounds(mon.X, mon.Y, mon.Width, mon.Height);
+        }
+
+        return reserving ? pos.GetPrimaryMonitorBounds() : pos.GetPrimaryScreenBounds();
     }
 
     /// <summary>
@@ -378,12 +401,31 @@ public partial class MainWindow : Window
         }
 
         if (Math.Abs(vm.MagnifyOverhang - overhang) < 0.5) return;
+
+        // Keep the *bar* where it is. The window grows/shrinks by the headroom
+        // delta on each side, so shift the window by that delta rather than
+        // re-resolving the position: in DYNAMIC mode a forced re-resolve would
+        // re-anchor the dock (and fight a position the user dragged), and in
+        // STATIC mode ApplyDockPosition already runs on the resulting resize.
+        double before = vm.MagnifyOverhang;
         vm.MagnifyOverhang = overhang;
-        // SizeToContent grows the window on the next layout pass, so the bar
-        // has to be re-placed against the new size. force: DYNAMIC mode ignores
-        // unforced calls to protect the user's drags, but this is our own
-        // layout change, not a drag - without it the bar shifts sideways by the
-        // headroom when magnification is switched on.
+
+        if (_appServices?.PositioningService.IsDynamicPositioning() == true && !IsMirror)
+        {
+            int delta = (int)Math.Round((overhang - before) * RenderScaling);
+            if (delta != 0)
+            {
+                var (cx, cy) = GetScreenPosition();
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (vm.IsVerticalDock) SetScreenPosition(cx, cy - delta);
+                    else SetScreenPosition(cx - delta, cy);
+                }, DispatcherPriority.Loaded);
+            }
+            return;
+        }
+
+        // STATIC / mirrors: the anchor is authoritative, so re-place against it.
         Dispatcher.UIThread.Post(() => ApplyDockPosition(force: true), DispatcherPriority.Loaded);
     }
 
@@ -1588,7 +1630,17 @@ public partial class MainWindow : Window
             // Snap what the user sees, then convert back to a window position.
             var inset = MagnifyInset();
             var rect = VisibleBarScreenRect();
-            var work = ScreenGeometry.WorkAreaAt(new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2));
+            var centre = new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
+            // Snap against the FULL monitor while we reserve an edge: the work
+            // area already excludes our own strip, so snapping to it would park
+            // the dock a dock-height above the edge, which then reads as "not
+            // docked" (beyond DockReservation.EdgeTolerance) and silently drops
+            // the reservation. Each snap would walk the dock further inward.
+            bool reserving = _appServices.AppearanceService.GetReserveScreenEdge()
+                             && !_appServices.AppearanceService.GetAutoHide();
+            var work = reserving
+                ? ScreenGeometry.MonitorAreaAt(centre)
+                : ScreenGeometry.WorkAreaAt(centre);
             var snapped = EdgeSnapper.Snap(rect, work, _appServices.AppearanceService.GetEdgeSnapMargin());
             var target = new PixelPoint(snapped.X - inset.X, snapped.Y - inset.Y);
             if (target.X != x || target.Y != y)
@@ -1675,11 +1727,13 @@ public partial class MainWindow : Window
     /// edge. Re-evaluated on every move, resize and settings change, because
     /// the strip to reserve is derived from where the dock actually sits.
     ///
-    /// Deliberately skipped in three cases:
+    /// Every dock window reserves its <i>own</i> monitor's edge, mirrors
+    /// included — the strip is derived from the monitor under that dock, and
+    /// each window owns a separate <see cref="AppBarReservation"/> (the shell
+    /// keys an appbar on its HWND, so they do not contend).
+    ///
+    /// Deliberately skipped in two cases:
     /// <list type="bullet">
-    /// <item><b>Mirror docks</b> — only the primary dock reserves. One appbar
-    /// per process is what the shell expects, and a secondary monitor's strip
-    /// would fight the primary's for the same registration.</item>
     /// <item><b>Auto-hide on</b> — a hidden dock that still reserved its edge
     /// would leave a permanent dead band with nothing visible in it.</item>
     /// <item><b>Not docked to an edge</b> — a floating dock reserves nothing;
@@ -1689,7 +1743,7 @@ public partial class MainWindow : Window
     /// </summary>
     public void ApplyEdgeReservation()
     {
-        if (IsMirror || _appServices == null) return;
+        if (_appServices == null) return;
 
         bool wanted = _appServices.AppearanceService.GetReserveScreenEdge()
                       && !_appServices.AppearanceService.GetAutoHide();

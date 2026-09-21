@@ -145,6 +145,40 @@ public class DockReservationTest
         Assert.Equal(1920, strip.Value.Width, 3);
     }
 
+    /// <summary>
+    /// Regression: snapping must use the FULL monitor while an edge is
+    /// reserved, not the work area.
+    ///
+    /// The work area already excludes the strip this dock reserved, so
+    /// snapping to it parks the bar a dock-height above the screen edge. That
+    /// gap exceeds <see cref="DockReservation.EdgeTolerance"/>, so the next
+    /// pass reads the dock as floating and drops the reservation — and each
+    /// snap walks the dock further inward. Snapping against the monitor keeps
+    /// the dock on its edge and the reservation stable.
+    /// </summary>
+    [Fact]
+    public void SnappingToTheWorkAreaOfOurOwnReservationWouldUndock()
+    {
+        var monitor = new ScreenBounds(0, 0, 1920, 1080);
+        // We reserve the bottom BarH+8; the work area shrinks to match.
+        double reserved = BarH + 8;
+        var workArea = new ScreenBounds(0, 0, 1920, 1080 - reserved);
+
+        // Snapping flush to the work area's bottom edge...
+        double yFromWorkArea = workArea.MaxY - BarH;
+        // ...leaves the bar this far from the real screen edge.
+        double gap = monitor.MaxY - (yFromWorkArea + BarH);
+        Assert.True(gap > DockReservation.EdgeTolerance,
+            $"gap {gap} should exceed the {DockReservation.EdgeTolerance}px tolerance");
+        Assert.Equal(ScreenEdge.None,
+            DockReservation.ResolveEdge(CentredX, yFromWorkArea, BarW, BarH, monitor));
+
+        // Snapping against the monitor keeps it docked, so the reservation holds.
+        double yFromMonitor = monitor.MaxY - BarH;
+        Assert.Equal(ScreenEdge.Bottom,
+            DockReservation.ResolveEdge(CentredX, yFromMonitor, BarW, BarH, monitor));
+    }
+
     [Fact]
     public void DiffersIgnoresSubPixelNoiseButCatchesRealMoves()
     {

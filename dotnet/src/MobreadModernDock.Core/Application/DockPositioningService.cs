@@ -126,6 +126,14 @@ public class DockPositioningService
     public ScreenBounds GetPrimaryScreenBounds() =>
         _screenBoundsProvider?.GetPrimaryScreenBounds() ?? new ScreenBounds(0, 0, 1920, 1080);
 
+    /// <summary>
+    /// Primary monitor's full bounds, taskbar and appbars included. Callers
+    /// whose result feeds back into the dock's own position must use this, not
+    /// the work area — see <see cref="IScreenBoundsProvider.GetPrimaryMonitorBounds"/>.
+    /// </summary>
+    public ScreenBounds GetPrimaryMonitorBounds() =>
+        _screenBoundsProvider?.GetPrimaryMonitorBounds() ?? new ScreenBounds(0, 0, 1920, 1080);
+
     // --- #10 per-monitor ---
 
     public IReadOnlyList<ScreenInfo> GetAllScreens() =>
@@ -139,13 +147,19 @@ public class DockPositioningService
     /// position expressed as a fraction of its screen's free space, re-applied
     /// to the target screen — so a dock dragged to bottom-centre on the primary
     /// shows up bottom-centre on every monitor.
+    ///
+    /// The fraction is taken against the primary's <b>full monitor</b> bounds,
+    /// not its work area. The work area already excludes any edge this app
+    /// reserved, so using it would make the denominator shrink as soon as the
+    /// dock reserved its edge: the fraction would read as 1.0, and a dock the
+    /// user parked at the bottom would drift on every recomputation.
     /// </summary>
     public (double X, double Y) ResolvePositionOnScreen(ScreenBounds bounds, double windowWidth, double windowHeight)
     {
         DockModel dock = _dockService.GetDock();
         if (dock.PositioningMode == DockPositioningMode.DYNAMIC && _screenBoundsProvider != null)
         {
-            var p = _screenBoundsProvider.GetPrimaryScreenBounds();
+            var p = _screenBoundsProvider.GetPrimaryMonitorBounds();
             double freeW = Math.Max(1, p.Width - windowWidth), freeH = Math.Max(1, p.Height - windowHeight);
             double fx = Math.Clamp((dock.DockPositionX - p.MinX) / freeW, 0, 1);
             double fy = Math.Clamp((dock.DockPositionY - p.MinY) / freeH, 0, 1);

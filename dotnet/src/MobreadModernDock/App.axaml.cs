@@ -305,11 +305,17 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// #4 Re-applies the screen-edge reservation on the primary dock (mirrors
-    /// never reserve). Called when the setting changes or anything that moves
-    /// the dock happens outside the window's own layout path.
+    /// #4 Re-applies the screen-edge reservation on every dock window. Each one
+    /// reserves its own monitor's edge, so mirrors are included. Called when the
+    /// setting changes or anything that moves the dock happens outside the
+    /// window's own layout path.
     /// </summary>
-    public static void ApplyEdgeReservation() => _mainWindow?.ApplyEdgeReservation();
+    public static void ApplyEdgeReservation()
+    {
+        _mainWindow?.ApplyEdgeReservation();
+        foreach (var m in _mirrorDocks.Values)
+            m.ApplyEdgeReservation();
+    }
 
     /// <summary>
     /// Centres the dock. Always routed to the primary dock: mirrors have no
@@ -473,7 +479,12 @@ public partial class App : Application
     public static void RepositionMirrorDocks()
     {
         foreach (var m in _mirrorDocks.Values)
+        {
             m.ReapplyPosition();
+            // A mirror that just moved may have arrived at (or left) its own
+            // screen edge, so its reservation has to be re-evaluated too.
+            m.ApplyEdgeReservation();
+        }
     }
 
     public static MainWindowViewModel? PrimaryViewModel => _mainViewModel;

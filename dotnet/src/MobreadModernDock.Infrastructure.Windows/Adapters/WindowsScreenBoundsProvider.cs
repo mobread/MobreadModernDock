@@ -20,6 +20,18 @@ public class WindowsScreenBoundsProvider : IScreenBoundsProvider
             workingArea.Width, workingArea.Height);
     }
 
+    /// <summary>
+    /// The primary monitor's full bounds, taskbar and appbars included.
+    /// Used where our own reserved strip must not skew the result.
+    /// </summary>
+    public ScreenBounds GetPrimaryMonitorBounds()
+    {
+        var bounds = System.Windows.Forms.Screen.PrimaryScreen?.Bounds
+            ?? new System.Drawing.Rectangle(0, 0, 1920, 1080);
+
+        return new ScreenBounds(bounds.X, bounds.Y, bounds.Width, bounds.Height);
+    }
+
     /// <summary>#10 Every monitor, keyed by its GDI device name (\\.\DISPLAY1 …), which is stable across sessions.</summary>
     public IReadOnlyList<ScreenInfo> GetAllScreens()
     {

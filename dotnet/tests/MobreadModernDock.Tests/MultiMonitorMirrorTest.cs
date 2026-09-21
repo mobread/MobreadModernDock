@@ -127,6 +127,63 @@ public class MultiMonitorMirrorTest
         }
     }
 
+    /// <summary>
+    /// Regression: the mirror fraction must be taken against the primary's
+    /// FULL monitor bounds, not its work area.
+    ///
+    /// Once the dock reserves its own screen edge, the work area shrinks by the
+    /// dock's height. Measuring the fraction against that shrunken area made a
+    /// dock parked at the bottom read as fy = 1.0 and pushed every mirror to a
+    /// different offset than the primary — which then sat too far from its own
+    /// screen edge to count as docked, so the mirror silently stopped
+    /// reserving. The reservation must not feed back into the position that
+    /// produces it.
+    /// </summary>
+    [Fact]
+    public void ReservedEdgeDoesNotMoveTheMirrors()
+    {
+        // Deliberately NOT flush against the bottom: at the very bottom both
+        // fractions clamp to 1.0 and the bug hides. A dock part-way down makes
+        // the two denominators produce visibly different mirror positions.
+        var model = new DockModel { PositioningMode = DockPositioningMode.DYNAMIC };
+        model.SetDockPosition(880, 1200);
+        const double w = 800, h = 80;
+
+        var unreserved = new DockPositioningService(
+            new DockService(new InMemoryDockRepository(model)), new FakeScreens());
+        // Same layout, but the primary's work area is 80px shorter because the
+        // dock reserved its bottom edge.
+        var reserved = new DockPositioningService(
+            new DockService(new InMemoryDockRepository(model)), new FakeScreensWithReservedEdge());
+
+        foreach (var screen in unreserved.GetAllScreens().Where(s => !s.IsPrimary))
+        {
+            var before = unreserved.ResolvePositionOnScreen(screen.Bounds, w, h);
+            var after = reserved.ResolvePositionOnScreen(screen.Bounds, w, h);
+            Assert.Equal(before.X, after.X, 3);
+            Assert.Equal(before.Y, after.Y, 3);
+        }
+    }
+
+    /// <summary>
+    /// Same layout as <see cref="FakeScreens"/>, but the primary's work area
+    /// excludes an 80px strip the dock reserved at the bottom. Full monitor
+    /// bounds are unchanged — that is exactly the distinction under test.
+    /// </summary>
+    private sealed class FakeScreensWithReservedEdge : IScreenBoundsProvider
+    {
+        public ScreenBounds GetPrimaryScreenBounds() => new(0, 0, 2560, 1320);
+        public ScreenBounds GetPrimaryMonitorBounds() => new(0, 0, 2560, 1400);
+
+        public IReadOnlyList<ScreenInfo> GetAllScreens() => new[]
+        {
+            new ScreenInfo(@"\\.\DISPLAY1", false, new ScreenBounds(-2560, 0, 2560, 1440)),
+            new ScreenInfo(@"\\.\DISPLAY2", true,  new ScreenBounds(0, 0, 2560, 1320)),
+            new ScreenInfo(@"\\.\DISPLAY3", false, new ScreenBounds(2560, 0, 1920, 1080)),
+            new ScreenInfo(@"\\.\DISPLAY4", false, new ScreenBounds(4480, -200, 1280, 1024)),
+        };
+    }
+
     [Fact]
     public void ScalesToEightMonitors()
     {

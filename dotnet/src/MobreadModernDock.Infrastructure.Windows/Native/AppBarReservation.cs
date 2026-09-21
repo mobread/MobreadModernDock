@@ -15,6 +15,13 @@ using MobreadModernDock.Core.Application;
 /// also tie reservation to the always-on-top toggle. The hidden window is
 /// moved to the reserved strip (as the docs prescribe) but never painted.
 ///
+/// One instance per dock window: the shell keys an appbar on its HWND, so a
+/// mirror dock on a second monitor reserves that monitor's edge through its
+/// own instance. Callbacks are therefore dispatched by HWND rather than to a
+/// single static instance — with a shared static, a second dock would silently
+/// steal the first's ABN_POSCHANGED notifications and the first reservation
+/// would stop re-asserting itself.
+///
 /// Removal must be unconditional and belt-and-braces: a reservation that
 /// outlives the process leaves the user's work area permanently shrunk with
 /// no UI to undo it. <see cref="Clear"/> is safe to call when nothing is
@@ -39,7 +46,10 @@ public sealed class AppBarReservation : IDisposable
     private const string ClassName = "MobreadDockAppBarWindow";
     private static readonly IntPtr HInstance = Kernel32.GetModuleHandle(null);
     private static readonly WndProc WndProcDelegate = WndProcImpl; // class lifetime; never collected
-    private static AppBarReservation? _instance;
+    // HWND -> instance. One entry per dock window that reserves an edge, so
+    // each instance receives its own shell callbacks (see the class remarks).
+    private static readonly Dictionary<IntPtr, AppBarReservation> Instances = new();
+    private static readonly object InstancesSync = new();
     private static bool _classRegistered;
 
     private readonly object _sync = new();
@@ -174,7 +184,6 @@ public sealed class AppBarReservation : IDisposable
     {
         if (_hwnd != IntPtr.Zero && User32.IsWindow(_hwnd)) return;
 
-        _instance = this;
         if (!_classRegistered)
         {
             User32.RegisterClass(new WNDCLASS
@@ -192,14 +201,22 @@ public sealed class AppBarReservation : IDisposable
             Win32Constants.WS_EX_TOOLWINDOW | Win32Constants.WS_EX_NOACTIVATE,
             ClassName, "", Win32Constants.WS_POPUP,
             0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero, HInstance, IntPtr.Zero);
+
+        if (_hwnd != IntPtr.Zero)
+            lock (InstancesSync) Instances[_hwnd] = this;
     }
 
     private static IntPtr WndProcImpl(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
-        if (msg == WM_APPBAR_CALLBACK && _instance != null && wParam.ToInt32() == ABN_POSCHANGED)
+        if (msg == WM_APPBAR_CALLBACK && wParam.ToInt32() == ABN_POSCHANGED)
         {
-            try { _instance.OnPosChanged(); } catch { }
-            return IntPtr.Zero;
+            AppBarReservation? target;
+            lock (InstancesSync) Instances.TryGetValue(hwnd, out target);
+            if (target != null)
+            {
+                try { target.OnPosChanged(); } catch { }
+                return IntPtr.Zero;
+            }
         }
         return User32.DefWindowProc(hwnd, msg, wParam, lParam);
     }
@@ -241,10 +258,10 @@ public sealed class AppBarReservation : IDisposable
             ClearCore();
             if (_hwnd != IntPtr.Zero)
             {
+                lock (InstancesSync) Instances.Remove(_hwnd);
                 User32.DestroyWindow(_hwnd);
                 _hwnd = IntPtr.Zero;
             }
-            if (ReferenceEquals(_instance, this)) _instance = null;
         }
     }
 
