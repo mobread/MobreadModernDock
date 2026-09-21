@@ -520,6 +520,18 @@
                                 <CheckBox Content="{Binding ShowUnpinnedRunningAppsText}" IsChecked="{Binding ShowUnpinnedRunningApps}"/>
                                 <CheckBox Content="{Binding AttentionBounceText}" IsChecked="{Binding AttentionBounce}"/>
                                 <CheckBox Content="{Binding FolderStacksText}" IsChecked="{Binding FolderStacks}"/>
+
+                                <Border Height="1" Background="#333333" Margin="0,4"/>
+
+                                <!-- Hover delay for window previews and tooltips.
+                                     0 = immediate. A delay stops a sweep across
+                                     the dock from firing a preview per icon. -->
+                                <Grid Classes="sliderRow" ColumnDefinitions="120,*,Auto">
+                                    <TextBlock Classes="label" Text="{Binding PreviewDelayTitle}"/>
+                                    <Slider Minimum="0" Maximum="2000" TickFrequency="100" IsSnapToTickEnabled="True" Value="{Binding PreviewDelay}"/>
+                                    <TextBlock Classes="value" MinWidth="64" Text="{Binding PreviewDelayLabel}"/>
+                                </Grid>
+                                <TextBlock Classes="helper" Text="{Binding PreviewDelayHelper}"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

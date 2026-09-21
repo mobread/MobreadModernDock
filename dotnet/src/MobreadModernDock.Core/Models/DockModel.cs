@@ -150,6 +150,15 @@ public class DockModel
     public double MagnifyScale { get; set; } = 1.6;
 
     /// <summary>
+    /// How long the pointer must rest on an icon before its window preview
+    /// (and tooltip) appears, in milliseconds. 0 = immediate. A delay keeps a
+    /// sweep across the dock from firing a preview per icon, which is most
+    /// noticeable with magnification on.
+    /// </summary>
+    [JsonPropertyName("previewDelayMs")]
+    public int PreviewDelayMs { get; set; } = 400;
+
+    /// <summary>
     /// Follow the Windows app light/dark setting: switches the dock colour
     /// between a dark and a light preset whenever the system theme changes.
     /// </summary>
@@ -302,6 +311,7 @@ public class DockModel
         BlurMode = other.BlurMode;
         MagnifyIcons = other.MagnifyIcons;
         MagnifyScale = other.MagnifyScale;
+        PreviewDelayMs = other.PreviewDelayMs;
         FollowSystemTheme = other.FollowSystemTheme;
         GlobalOpacity = other.GlobalOpacity;
         Presets = other.Presets;

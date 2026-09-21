@@ -206,6 +206,22 @@ public partial class SettingsViewModel : ViewModelBase
     public string MagnifyIconsHelper => T("settings.iconsCustomization.magnify.helper");
     public string MagnifyScaleTitle => T("settings.iconsCustomization.magnify.scale");
 
+    // --- Preview / tooltip hover delay ---
+
+    private int _previewDelay = 400;
+    /// <summary>Hover delay before a window preview or tooltip appears, in ms.</summary>
+    public int PreviewDelay
+    {
+        get => _previewDelay;
+        set { if (SetProperty(ref _previewDelay, value)) OnPropertyChanged(nameof(PreviewDelayLabel)); }
+    }
+
+    public string PreviewDelayLabel => PreviewDelay == 0
+        ? T("settings.general.previewDelay.instant")
+        : $"{PreviewDelay} ms";
+    public string PreviewDelayTitle => T("settings.general.previewDelay");
+    public string PreviewDelayHelper => T("settings.general.previewDelay.helper");
+
     /// <summary>
     /// Magnification only works on a single-line dock, so the warning shows
     /// whenever it is enabled while more than one row is configured.
@@ -611,6 +627,7 @@ public partial class SettingsViewModel : ViewModelBase
         BlurMode = app.GetBlurMode();
         MagnifyIcons = app.GetMagnifyIconsSetting();
         MagnifyScale = app.GetMagnifyScalePercentage();
+        PreviewDelay = app.GetPreviewDelayMs();
         FollowSystemTheme = app.GetFollowSystemTheme();
         ReloadPresets();
         _isInitialized = true;
@@ -651,6 +668,7 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(BlurMode): _appServices.AppearanceService.SetBlurMode(BlurMode); _dockRefreshAction(); break;
             case nameof(MagnifyIcons): _appServices.AppearanceService.SetMagnifyIcons(MagnifyIcons); _dockRefreshAction(); break;
             case nameof(MagnifyScale): _appServices.AppearanceService.SetMagnifyScalePercentage(MagnifyScale); _dockRefreshAction(); break;
+            case nameof(PreviewDelay): _appServices.AppearanceService.SetPreviewDelayMs(PreviewDelay); _dockRefreshAction(); break;
             case nameof(FollowSystemTheme): OnFollowSystemThemeChanged(); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
             case nameof(VerticalAnchor): OnVerticalAnchorChanged(); break;

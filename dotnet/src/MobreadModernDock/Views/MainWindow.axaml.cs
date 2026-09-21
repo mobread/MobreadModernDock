@@ -36,22 +36,18 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// How long the pointer must rest on an icon before its window preview
-    /// appears, while magnification is on. Without it a sweep across the dock
-    /// fires one preview per icon, which fights the magnification animation
-    /// and looks noisy. Zero (immediate) when magnification is off, so the
-    /// classic behaviour is unchanged.
+    /// appears. Without a delay a sweep across the dock fires one preview per
+    /// icon, which is noisy — especially with magnification on, where it also
+    /// fights the zoom animation. User-configurable in Settings; 0 restores
+    /// the original load-on-enter behaviour.
     /// </summary>
-    private static readonly TimeSpan MagnifiedPreviewDelay = TimeSpan.FromSeconds(1);
-
     private readonly DispatcherTimer _previewShowDelay = new();
     private Button? _pendingPreviewButton;
     private string _pendingPreviewLabel = "";
     private string _pendingPreviewExecutable = "";
 
     private TimeSpan PreviewShowDelay =>
-        _appServices?.AppearanceService.GetMagnifyIcons() == true
-            ? MagnifiedPreviewDelay
-            : TimeSpan.Zero;
+        TimeSpan.FromMilliseconds(_appServices?.AppearanceService.GetPreviewDelayMs() ?? 0);
 
     private DockAutoHideController? _autoHide;
     private FolderStackPopup? _folderStack;

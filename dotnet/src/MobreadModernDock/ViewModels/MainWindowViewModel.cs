@@ -140,6 +140,14 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
     public CornerRadius DockCornerRadius => new CornerRadius(BorderRounding);
+
+    private int _previewDelayMs = 400;
+    /// <summary>
+    /// Hover delay before an item's tooltip (and its window preview) appears.
+    /// Bound by the item template's ToolTip.ShowDelay; the window applies the
+    /// same value to the preview timer.
+    /// </summary>
+    public int PreviewDelayMs { get => _previewDelayMs; set => SetProperty(ref _previewDelayMs, value); }
     public IBrush DockBackground
     {
         get => _dockBackground;
@@ -583,6 +591,7 @@ public partial class MainWindowViewModel : ViewModelBase
         var appearance = _appServices.AppearanceService;
 
         IconsSize = appearance.GetIconsSize();
+        PreviewDelayMs = appearance.GetPreviewDelayMs();
         foreach (var app in RunningApps)
             app.IconSize = IconsSize;
         Spacing = appearance.GetSpacingBetweenIcons();
