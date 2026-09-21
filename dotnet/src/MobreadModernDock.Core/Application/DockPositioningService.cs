@@ -165,6 +165,30 @@ public class DockPositioningService
 
     public static double SnapToPixel(double value) => Math.Round(value, MidpointRounding.AwayFromZero);
 
+    /// <summary>
+    /// Centres a freely-dragged dock along the edge it sits on, leaving the
+    /// other axis alone so the dock stays on its edge.
+    ///
+    /// A horizontal dock centres left-to-right; a vertical dock (which lives
+    /// on a side edge) centres top-to-bottom. Centring a vertical dock
+    /// horizontally would drag it into the middle of the screen, which is
+    /// never what "centre the dock" means.
+    ///
+    /// Only meaningful in DYNAMIC mode - in STATIC mode the anchors already
+    /// decide the position and the dock cannot be dragged off-centre.
+    /// </summary>
+    public static (double X, double Y) CenterAlongEdge(
+        ScreenBounds bounds, double x, double y, double windowWidth, double windowHeight, bool verticalDock)
+    {
+        if (verticalDock)
+        {
+            double cy = bounds.MinY + (bounds.Height - windowHeight) / 2;
+            return (SnapToPixel(x), SnapToPixel(cy));
+        }
+        double cx = bounds.MinX + (bounds.Width - windowWidth) / 2;
+        return (SnapToPixel(cx), SnapToPixel(y));
+    }
+
     private static double ResolveHorizontalPosition(
         ScreenBounds bounds, double windowWidth, DockModel dock)
     {

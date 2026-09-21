@@ -305,6 +305,20 @@ public partial class App : Application
             TaskbarVisibility.RestoreIfLeftHidden();
     }
 
+    /// <summary>
+    /// #4 Re-applies the screen-edge reservation on the primary dock (mirrors
+    /// never reserve). Called when the setting changes or anything that moves
+    /// the dock happens outside the window's own layout path.
+    /// </summary>
+    public static void ApplyEdgeReservation() => _mainWindow?.ApplyEdgeReservation();
+
+    /// <summary>
+    /// Centres the dock. Always routed to the primary dock: mirrors have no
+    /// position of their own (they derive it from the primary), so centring
+    /// one has to centre the primary and let the mirrors follow.
+    /// </summary>
+    public static void CenterPrimaryDock() => _mainWindow?.CenterDock();
+
     // --- Fullscreen auto-hide ---
 
     private static System.Threading.Timer? _fullscreenPoll;

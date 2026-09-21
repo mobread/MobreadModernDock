@@ -510,6 +510,7 @@
                                 <CheckBox Content="{Binding AutoHideText}" IsChecked="{Binding AutoHide}"/>
                                 <CheckBox Content="{Binding HideInFullscreenText}" IsChecked="{Binding HideInFullscreen}"/>
                                 <CheckBox Content="{Binding HideTaskbarText}" IsChecked="{Binding HideTaskbar}"/>
+                                <CheckBox Content="{Binding ReserveScreenEdgeText}" IsChecked="{Binding ReserveScreenEdge}"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

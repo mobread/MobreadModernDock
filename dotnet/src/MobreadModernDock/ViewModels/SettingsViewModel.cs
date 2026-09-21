@@ -641,6 +641,7 @@ public partial class SettingsViewModel : ViewModelBase
     public string ArrangeVerticalText => T("settings.general.arrangeVertical");
     public string AlwaysOnTopText => T("settings.general.alwaysOnTop");
     public string HideTaskbarText => T("settings.general.hideTaskbar");
+    public string ReserveScreenEdgeText => T("settings.general.reserveScreenEdge");
     public string HideInFullscreenText => T("settings.general.hideInFullscreen");
     public string AttentionBounceText => T("settings.general.attentionBounce");
     public string MirrorMonitorsText => T("settings.general.mirrorMonitors");
@@ -680,6 +681,9 @@ public partial class SettingsViewModel : ViewModelBase
 
     private bool _hideTaskbar;
     public bool HideTaskbar { get => _hideTaskbar; set => SetProperty(ref _hideTaskbar, value); }
+
+    private bool _reserveScreenEdge;
+    public bool ReserveScreenEdge { get => _reserveScreenEdge; set => SetProperty(ref _reserveScreenEdge, value); }
 
     private bool _alwaysOnTop;
     public bool AlwaysOnTop { get => _alwaysOnTop; set => SetProperty(ref _alwaysOnTop, value); }
@@ -732,6 +736,7 @@ public partial class SettingsViewModel : ViewModelBase
         IsVerticalDock = app.GetVerticalDock();
         AlwaysOnTop = app.GetAlwaysOnTop();
         HideTaskbar = app.GetHideTaskbar();
+        ReserveScreenEdge = app.GetReserveScreenEdge();
         HideInFullscreen = app.GetHideInFullscreen();
         AttentionBounce = app.GetAttentionBounce();
         MirrorMonitors = _appServices.PositioningService.GetMirrorOnAllMonitors();
@@ -774,10 +779,11 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(IsVerticalDock): OnVerticalDockChanged(); break;
             case nameof(AlwaysOnTop): OnAlwaysOnTopChanged(); break;
             case nameof(HideTaskbar): OnHideTaskbarChanged(); break;
+            case nameof(ReserveScreenEdge): _appServices.AppearanceService.SetReserveScreenEdge(ReserveScreenEdge); App.ApplyEdgeReservation(); break;
             case nameof(HideInFullscreen): _appServices.AppearanceService.SetHideInFullscreen(HideInFullscreen); break;
             case nameof(AttentionBounce): _appServices.AppearanceService.SetAttentionBounce(AttentionBounce); break;
             case nameof(MirrorMonitors): _appServices.PositioningService.SetMirrorOnAllMonitors(MirrorMonitors); App.SyncMirrorDocks(); break;
-            case nameof(AutoHide): _appServices.AppearanceService.SetAutoHide(AutoHide); _dockRefreshAction(); break;
+            case nameof(AutoHide): _appServices.AppearanceService.SetAutoHide(AutoHide); _dockRefreshAction(); App.ApplyEdgeReservation(); break;
             case nameof(FolderStacks): _appServices.AppearanceService.SetFolderStacks(FolderStacks); break;
             case nameof(EdgeSnapping): _appServices.AppearanceService.SetEdgeSnapping(EdgeSnapping); break;
             case nameof(EdgeSnapMargin): _appServices.AppearanceService.SetEdgeSnapMargin(EdgeSnapMargin); OnPropertyChanged(nameof(EdgeSnapMarginLabel)); break;

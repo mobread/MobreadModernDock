@@ -56,10 +56,45 @@ public class DockItemsPanel : Panel
     public double MagnifyScale { get; set; } = 1.0;
 
     /// <summary>
-    /// Pointer position along the dock's main axis, in this panel's
-    /// coordinates, or null when the pointer is away. Set by the window.
+    /// Pointer position along the dock's main axis, in <b>row</b> coordinates
+    /// (origin = the start of <see cref="MagnifyLeading"/>, i.e. the first
+    /// item of the whole logical dock row), or null when the pointer is away.
+    /// Set by the window.
     /// </summary>
     public double? MagnifyPointer { get; set; }
+
+    /// <summary>
+    /// Rest sizes of the items that precede this panel in the logical dock
+    /// row, and of those that follow it.
+    ///
+    /// The dock row is split across two ItemsControls - pinned items and
+    /// running-but-unpinned apps - with a divider between them. Each panel
+    /// only arranges its own children, but magnification has to be computed
+    /// over the <i>whole</i> row: the falloff must not restart at the seam,
+    /// and <see cref="DockMagnification.ComputeOffsets"/> keeps the row it is
+    /// given centred, so computing per panel would shove each group toward
+    /// its own centre and make the two collide. Each panel therefore computes
+    /// over the full row and applies only its own slice.
+    /// </summary>
+    public IReadOnlyList<double> MagnifyLeading { get; set; } = Array.Empty<double>();
+
+    /// <inheritdoc cref="MagnifyLeading"/>
+    public IReadOnlyList<double> MagnifyTrailing { get; set; } = Array.Empty<double>();
+
+    /// <summary>
+    /// A row index that belongs to neither panel - the divider Image that sits
+    /// between the two dock ItemsControls in the outer StackPanel. It is part
+    /// of the row geometry (it occupies space and is pushed around), but no
+    /// panel owns it, so the panel that computes the row reports its transform
+    /// back and the window applies it to the Image.
+    /// </summary>
+    public int? MagnifyExternalRowIndex { get; set; }
+
+    /// <summary>
+    /// Receives (scale, offset) for <see cref="MagnifyExternalRowIndex"/> on
+    /// every magnified arrange, or (1, 0) when magnification is off.
+    /// </summary>
+    public Action<double, double>? ExternalTransformComputed { get; set; }
 
     private bool MagnificationActive =>
         Lines <= 1 && MagnifyScale > 1.0 && MagnifyPointer.HasValue;
@@ -186,12 +221,21 @@ public class DockItemsPanel : Panel
     private Size ArrangeMagnified(Size finalSize)
     {
         int count = Children.Count;
-        var sizes = new double[count];
+
+        // Build the whole logical row: items before this panel, ours, then
+        // the ones after. Scales and offsets are only meaningful when the
+        // falloff and the centring see the complete row (see MagnifyLeading).
+        int lead = MagnifyLeading.Count;
+        int trail = MagnifyTrailing.Count;
+        var sizes = new double[lead + count + trail];
+
+        for (int i = 0; i < lead; i++) sizes[i] = MagnifyLeading[i];
         for (int i = 0; i < count; i++)
         {
             var d = Children[i].DesiredSize;
-            sizes[i] = IsVertical ? d.Height : d.Width;
+            sizes[lead + i] = IsVertical ? d.Height : d.Width;
         }
+        for (int i = 0; i < trail; i++) sizes[lead + count + i] = MagnifyTrailing[i];
 
         double influence = 0;
         foreach (var s in sizes) influence = Math.Max(influence, s);
@@ -199,15 +243,17 @@ public class DockItemsPanel : Panel
 
         double pointer = MagnifyPointer!.Value;
         var scales = DockMagnification.ComputeScales(sizes, pointer, MagnifyScale, influence);
-
-        // A separator must not balloon; it still gets pushed by its neighbours.
-        for (int i = 0; i < count; i++)
-            if (IsSeparatorChild(Children[i])) scales[i] = 1.0;
-
         var offsets = DockMagnification.ComputeOffsets(sizes, scales);
 
+        // The divider is not our child; hand its transform to the window.
+        if (MagnifyExternalRowIndex is { } ext && ext >= 0 && ext < scales.Length)
+            ExternalTransformComputed?.Invoke(scales[ext], offsets[ext]);
+
+        // Lay our own children out at their rest sizes, centred exactly as the
+        // unmagnified pass would: magnification is a render transform only, so
+        // the panel never resizes and the window never reflows.
         double total = 0;
-        foreach (var s in sizes) total += s;
+        for (int i = 0; i < count; i++) total += sizes[lead + i];
         double start = Math.Max(0, ((IsVertical ? finalSize.Height : finalSize.Width) - total) / 2);
 
         double cursor = start;
@@ -229,7 +275,7 @@ public class DockItemsPanel : Panel
                 cursor += size.Width;
             }
 
-            child.RenderTransform = BuildTransform(scales[i], offsets[i], IsVertical);
+            child.RenderTransform = BuildTransform(scales[lead + i], offsets[lead + i], IsVertical);
             // Anchor the scale to the edge the dock rests against: bottom for a
             // horizontal dock, right for a vertical one on the left, etc. Using
             // the centre would make icons grow into the screen edge instead.
@@ -251,13 +297,4 @@ public class DockItemsPanel : Panel
             : new TranslateTransform(offset, 0));
         return group;
     }
-
-    /// <summary>
-    /// Separators opt out of magnification. They are tagged by the item
-    /// template's style class rather than by type, so the panel needs no
-    /// reference to the view models.
-    /// </summary>
-    private static bool IsSeparatorChild(Control child) =>
-        child.Classes.Contains("separator")
-        || (child is ContentPresenter { Child: Control inner } && inner.Classes.Contains("separator"));
 }

@@ -49,12 +49,25 @@ internal static class ScreenGeometry
     }
 
     /// <summary>Work area (physical pixels) of the monitor containing a point, via Win32.</summary>
-    public static PixelRect WorkAreaAt(PixelPoint point)
+    public static PixelRect WorkAreaAt(PixelPoint point) => MonitorRectAt(point, work: true);
+
+    /// <summary>
+    /// Full bounds (physical pixels) of the monitor containing a point —
+    /// taskbar and appbars included. Appbar reservation must measure against
+    /// this, not the work area: the work area already excludes our own strip,
+    /// so re-deriving the reservation from it would shrink it on every pass.
+    /// </summary>
+    public static PixelRect MonitorAreaAt(PixelPoint point) => MonitorRectAt(point, work: false);
+
+    private static PixelRect MonitorRectAt(PixelPoint point, bool work)
     {
         IntPtr mon = MonitorFromPoint(new POINT { X = point.X, Y = point.Y }, MONITOR_DEFAULTTONEAREST);
         var mi = new MONITORINFO { cbSize = (uint)Marshal.SizeOf<MONITORINFO>() };
         if (mon != IntPtr.Zero && GetMonitorInfo(mon, ref mi))
-            return new PixelRect(mi.rcWork.Left, mi.rcWork.Top, mi.rcWork.Right - mi.rcWork.Left, mi.rcWork.Bottom - mi.rcWork.Top);
+        {
+            var r = work ? mi.rcWork : mi.rcMonitor;
+            return new PixelRect(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top);
+        }
         return new PixelRect(0, 0, 1920, 1080);
     }
 
