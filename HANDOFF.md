@@ -1,11 +1,20 @@
 # Handoff — MobreadModernDock
 
-_Saved 2026-09-20 (session 4, end)._
+_Saved 2026-09-20 (session 5)._
 
 ## Start here (next session)
 
 1. **Cut v1.3.0.** Rebuild the MSI first (`dotnet\installer\build.ps1`), then `gh release create v1.3.0 dotnet/installer/MobreadModernDock-1.3.0-x64.msi`, drop the "no packaged release yet" README line, and confirm the in-app update check picks up the tag.
 2. **Click through the Settings UI paths only verified via config edits** — per-widget layer/auto-hide, presets Save/Apply/Delete, Import Taskbar Pins, weather city search (see "Not exercised by hand" below).
+3. **Eyeball the reorganized Settings window** (session 5) — card contrast, slider-helper tooltips, Ko-fi button colour. Layout verified only via UIA rects.
+4. **Next features:** see `docs/competitor-mydockfinder.md`. Suggested order: acrylic blur → drag-drop pinning + drop-to-open → custom per-item icons.
+
+## Session 5 changes
+
+- Settings window rebuilt: six tabs (Items / Appearance / Layout / Behavior / Widgets / General), shared style vocabulary (`.page/.section/.card/.sliderRow/.swatch`, `Button.primary/.danger/.kofi`). Slider helpers are tooltips on the label. Language dropdown moved into General. `f92c7eb`.
+- General › About: **Support on Ko-fi** button → `https://ko-fi.com/mobreadmeo`. `31a350a`.
+- `docs/competitor-mydockfinder.md`: MyDockFinder feature-gap analysis (quick wins / medium / skip / parity).
+- Scratch: `settings_dump.ps1 -Hwnd <hwnd>` dumps every Settings tab via UIA; `i18n_settings_tabs.py` / `i18n_kofi.py` are the key-adding templates.
 
 ## State
 
