@@ -12,6 +12,10 @@ public class DockProgramItemModel : DockItem
     public string Label { get; set; } = "";
     public string Path { get; set; } = "";
 
+    [JsonPropertyName("customIcon")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CustomIcon { get; set; }
+
     /// <summary>
     /// Optional command-line arguments, e.g. from a .lnk shortcut. Omitted
     /// from JSON when empty so pre-existing configs round-trip unchanged.

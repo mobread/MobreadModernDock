@@ -11,6 +11,10 @@ public class DockSettingsItemModel : DockItem
     public string Label { get; set; } = "Settings";
     public string Path { get; set; } = "/com/github/mobread/mobreadmoderndock/icons/settings.png";
 
+    [JsonPropertyName("customIcon")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CustomIcon { get; set; }
+
     [JsonIgnore]
     public DockItemType Type => DockItemType.SETTINGS;
 
