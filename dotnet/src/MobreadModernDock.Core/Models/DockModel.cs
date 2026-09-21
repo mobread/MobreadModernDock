@@ -138,6 +138,18 @@ public class DockModel
     public string BlurMode { get; set; } = "none";
 
     /// <summary>
+    /// macOS-style hover magnification: icons near the pointer grow and push
+    /// their neighbours aside. Only applies to a single-line dock (see
+    /// <see cref="DockRows"/>); wrapped rows would collide.
+    /// </summary>
+    [JsonPropertyName("magnifyIcons")]
+    public bool MagnifyIcons { get; set; }
+
+    /// <summary>Peak magnification, 1.0 = off. Clamped to 2.5.</summary>
+    [JsonPropertyName("magnifyScale")]
+    public double MagnifyScale { get; set; } = 1.6;
+
+    /// <summary>
     /// Follow the Windows app light/dark setting: switches the dock colour
     /// between a dark and a light preset whenever the system theme changes.
     /// </summary>
@@ -288,6 +300,8 @@ public class DockModel
         EdgeSnapping = other.EdgeSnapping;
         EdgeSnapMargin = other.EdgeSnapMargin;
         BlurMode = other.BlurMode;
+        MagnifyIcons = other.MagnifyIcons;
+        MagnifyScale = other.MagnifyScale;
         FollowSystemTheme = other.FollowSystemTheme;
         GlobalOpacity = other.GlobalOpacity;
         Presets = other.Presets;
