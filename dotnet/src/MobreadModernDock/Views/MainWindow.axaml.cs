@@ -127,7 +127,7 @@ public partial class MainWindow : Window
         {
             vm.OpenSettingsAction = () => OpenSettings(vm);
             vm.RepositionAction = () => ApplyDockPosition();
-            vm.LayerRefreshAction = () => { ApplyAlwaysOnTop(); ApplyAutoHideSetting(); ApplyBackdrop(); };
+            vm.LayerRefreshAction = () => { ApplyAlwaysOnTop(); ApplyAutoHideSetting(); ApplyBackdrop(); SyncPinnedPanel(); };
             vm.ShowFolderStackAction = ShowFolderStack;
             vm.PreviewDismissAction = HidePreview;
             vm.Initialize();
@@ -154,6 +154,9 @@ public partial class MainWindow : Window
         if (IsMirror || _appServices?.PositioningService.IsDynamicPositioning() == false)
             Dispatcher.UIThread.Post(() => ApplyDockPosition(), DispatcherPriority.Loaded);
         Dispatcher.UIThread.Post(RefreshTooltipPlacement, DispatcherPriority.Loaded);
+        // The items panel is realized during the first layout pass, after
+        // Initialize() has already run, so seed it once the tree exists.
+        Dispatcher.UIThread.Post(SyncPinnedPanel, DispatcherPriority.Loaded);
     }
 
     /// <summary>
@@ -234,6 +237,21 @@ public partial class MainWindow : Window
         UpdateBackdropRegion();
         if (IsMirror || _appServices?.PositioningService.IsDynamicPositioning() == false)
             ApplyDockPosition();
+    }
+
+    /// <summary>
+    /// Pushes the row/column count and orientation into the pinned items'
+    /// layout panel. An ItemsPanelTemplate has no DataContext, so these cannot
+    /// be bound in XAML; the panel is also created lazily, hence the lookup on
+    /// each refresh rather than a cached field.
+    /// </summary>
+    private void SyncPinnedPanel()
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+        var panel = PinnedItems.GetVisualDescendants().OfType<DockItemsPanel>().FirstOrDefault();
+        if (panel == null) return;
+        panel.Lines = vm.DockLines;
+        panel.IsVertical = vm.IsVerticalDock;
     }
 
     private void OnItemPointerEntered(object? sender, PointerEventArgs e)

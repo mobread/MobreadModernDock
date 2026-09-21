@@ -60,7 +60,6 @@ public partial class MainWindowViewModel : ViewModelBase
                 OnPropertyChanged(nameof(DockOrientation));
                 OnPropertyChanged(nameof(ShowHorizontalSeparator));
                 OnPropertyChanged(nameof(ShowVerticalSeparator));
-                NotifyGridShape();
             }
         }
     }
@@ -99,37 +98,23 @@ public partial class MainWindowViewModel : ViewModelBase
     public bool ShowVerticalSeparator => HasRunningApps && IsVerticalDock;
 
     // --- Multi-row layout of the pinned items ---
-    // The pinned ItemsControl uses a UniformGrid. For a horizontal dock the
-    // configured value is the number of rows and columns follow from the item
-    // count; for a vertical dock it is the number of columns.
+    // The pinned ItemsControl uses a DockItemsPanel. For a horizontal dock the
+    // configured value is the number of rows; for a vertical dock it is the
+    // number of columns. The window pushes this into the panel (an
+    // ItemsPanelTemplate has no DataContext), so no grid shape is computed
+    // here any more.
     private int _dockLines = 1;
     public int DockLines
     {
         get => _dockLines;
-        set
-        {
-            if (SetProperty(ref _dockLines, Math.Max(1, value)))
-                NotifyGridShape();
-        }
+        set => SetProperty(ref _dockLines, Math.Max(1, value));
     }
-
-    public int GridRows => IsVerticalDock ? CeilDiv(Items.Count, DockLines) : DockLines;
-    public int GridColumns => IsVerticalDock ? DockLines : CeilDiv(Items.Count, DockLines);
 
     /// <summary>
     /// Half the configured spacing on every side of each pinned item, so
-    /// neighbours in the UniformGrid are exactly <see cref="Spacing"/> apart
-    /// in both directions.
+    /// neighbours are exactly <see cref="Spacing"/> apart in both directions.
     /// </summary>
     public Thickness CellMargin => new(Spacing / 2.0);
-
-    private static int CeilDiv(int a, int b) => b <= 0 ? a : (a + b - 1) / b;
-
-    private void NotifyGridShape()
-    {
-        OnPropertyChanged(nameof(GridRows));
-        OnPropertyChanged(nameof(GridColumns));
-    }
 
     public int IconsSize
     {
@@ -506,10 +491,10 @@ public partial class MainWindowViewModel : ViewModelBase
                 Items.Add(vm);
             }
         }
-        NotifyGridShape();
         ApplyAppearance();
         RepositionAction?.Invoke();
         PreviewDismissAction?.Invoke();
+        // LayerRefreshAction also re-syncs the items panel's rows/orientation.
         LayerRefreshAction?.Invoke();
         App.RefreshWidgetAppearance();
         if (!IsMirrorViewModel) App.SyncMirrorDocks();

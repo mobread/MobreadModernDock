@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:MobreadModernDock.ViewModels"
+        xmlns:views="using:MobreadModernDock.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="80"
@@ -51,13 +52,15 @@
                           DragDrop.Drop="OnPinnedDrop">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <!-- UniformGrid wraps the pinned icons into N rows
-                             (horizontal dock) or N columns (vertical dock).
-                             Rows=1 reproduces the classic single line.
-                             Cell spacing is the item margin (see
-                             ItemContainerTheme below) since UniformGrid has
-                             no Spacing property. -->
-                        <UniformGrid Rows="{Binding GridRows}" Columns="{Binding GridColumns}" />
+                        <!-- Variable-width layout: wraps the pinned icons into
+                             N rows (horizontal dock) or N columns (vertical),
+                             but unlike a UniformGrid it gives each item its own
+                             width, so a separator takes only the space it
+                             draws instead of a whole icon cell.
+                             Lines/IsVertical are pushed in from code-behind:
+                             an ItemsPanelTemplate has no DataContext, so a
+                             plain {Binding} here silently binds nothing. -->
+                        <views:DockItemsPanel x:Name="PinnedPanel" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
 
@@ -101,13 +104,17 @@
                                     <Setter Property="RenderTransform" Value="scale(1.3)" />
                                 </Style>
                                 <!-- A separator is not a target: no hover zoom,
-                                     no hand cursor. The Button stays so drag
-                                     reorder and the context menu still work. -->
+                                     no hand cursor, and no icon padding - the
+                                     Button's 4px padding plus the shared cell
+                                     margin would otherwise pad a 2px line out
+                                     to ~13px. -->
                                 <Style Selector="Button.separator:pointerover">
                                     <Setter Property="RenderTransform" Value="scale(1)" />
                                 </Style>
                                 <Style Selector="Button.separator">
                                     <Setter Property="Cursor" Value="Arrow" />
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Margin" Value="3,0" />
                                 </Style>
                                 <!-- The Fluent theme paints a gray hover/pressed background
                                      on the button's template part; dock items must stay
