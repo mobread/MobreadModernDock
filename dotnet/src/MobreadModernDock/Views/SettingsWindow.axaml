@@ -121,16 +121,19 @@
         <Style Selector="Grid.sliderRow > TextBlock.value">
             <Setter Property="Grid.Column" Value="2"/>
         </Style>
-        <Style Selector="Border.swatch">
-            <Setter Property="Width" Value="30"/>
-            <Setter Property="Height" Value="30"/>
-            <Setter Property="Margin" Value="0,0,8,8"/>
-            <Setter Property="CornerRadius" Value="6"/>
+
+        <!-- The ColorPicker's collapsed button is a small swatch + chevron with
+             no border, which disappears against the card on dark colours and
+             reads as "white" when the chosen colour is near-black. Give it the
+             same 48x30 footprint and outline the old preview Border had. -->
+        <Style Selector="ColorPicker">
+            <Setter Property="Width" Value="64"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="#2D2D2D"/>
             <Setter Property="BorderBrush" Value="#666666"/>
             <Setter Property="BorderThickness" Value="1"/>
-        </Style>
-        <Style Selector="Border.swatch:pointerover">
-            <Setter Property="BorderBrush" Value="White"/>
+            <Setter Property="CornerRadius" Value="6"/>
         </Style>
 
         <!-- Controls -->
@@ -319,22 +322,27 @@
                                      driven by the Windows light/dark setting. -->
                                 <CheckBox Content="{Binding FollowSystemThemeText}" IsChecked="{Binding FollowSystemTheme}"/>
                                 <TextBlock Classes="helper" Text="{Binding FollowSystemThemeHelper}"/>
-                                <ItemsControl ItemsSource="{Binding PresetColors}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <WrapPanel Orientation="Horizontal"/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="med:IBrush">
-                                            <Border Classes="swatch" Background="{Binding}" PointerPressed="OnPresetColorPressed"/>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <!-- Colour wheel. The old 12-swatch grid lives
+                                     on as this picker's palette tab, so the
+                                     quick picks are still one click away while
+                                     any colour is now reachable. Alpha is
+                                     hidden: transparency is a separate slider
+                                     and the model stores RGB only. -->
                                 <StackPanel Orientation="Horizontal" Spacing="12">
-                                    <Border Width="48" Height="30" CornerRadius="6" BorderBrush="#666666" BorderThickness="1"
-                                            Background="{Binding DockColorBrush}"/>
-                                    <Button Classes="primary" Content="{Binding CustomColorText}" Click="OnCustomColor" VerticalAlignment="Center"/>
+                                    <ColorPicker Color="{Binding DockColor, Mode=TwoWay}"
+                                                 ColorSpectrumShape="Ring"
+                                                 IsAlphaVisible="False"
+                                                 IsAlphaEnabled="False"
+                                                 IsColorPaletteVisible="True"
+                                                 PaletteColors="{Binding PresetPaletteColors}"
+                                                 PaletteColumnCount="6"/>
+                                    <!-- Live preview: the collapsed picker button
+                                         is small, so the chosen colour is also
+                                         shown at the old swatch size. -->
+                                    <Border Width="48" Height="30" CornerRadius="6"
+                                            BorderBrush="#666666" BorderThickness="1"
+                                            Background="{Binding DockColorBrush}"
+                                            VerticalAlignment="Center"/>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
@@ -367,22 +375,18 @@
                                 <CheckBox Content="{Binding TintIconsTitle}" IsChecked="{Binding TintIcons}"/>
                                 <StackPanel Spacing="8" IsVisible="{Binding TintIcons}">
                                     <TextBlock Classes="helper" Text="{Binding TintColorHelper}"/>
-                                    <ItemsControl ItemsSource="{Binding PresetColors}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel Orientation="Horizontal"/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="med:IBrush">
-                                                <Border Classes="swatch" Background="{Binding}" PointerPressed="OnTintPresetColorPressed"/>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
                                     <StackPanel Orientation="Horizontal" Spacing="12">
-                                        <Border Width="48" Height="30" CornerRadius="6" BorderBrush="#666666" BorderThickness="1"
-                                                Background="{Binding TintColorBrush}"/>
-                                        <Button Classes="primary" Content="{Binding CustomColorText}" Click="OnCustomTintColor" VerticalAlignment="Center"/>
+                                        <ColorPicker Color="{Binding TintColor, Mode=TwoWay}"
+                                                     ColorSpectrumShape="Ring"
+                                                     IsAlphaVisible="False"
+                                                     IsAlphaEnabled="False"
+                                                     IsColorPaletteVisible="True"
+                                                     PaletteColors="{Binding PresetPaletteColors}"
+                                                     PaletteColumnCount="6"/>
+                                        <Border Width="48" Height="30" CornerRadius="6"
+                                                BorderBrush="#666666" BorderThickness="1"
+                                                Background="{Binding TintColorBrush}"
+                                                VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </StackPanel>
                             </StackPanel>
