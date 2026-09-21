@@ -34,6 +34,25 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _previewCloseRefresh = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly DispatcherTimer _positionPersistTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
 
+    /// <summary>
+    /// How long the pointer must rest on an icon before its window preview
+    /// appears, while magnification is on. Without it a sweep across the dock
+    /// fires one preview per icon, which fights the magnification animation
+    /// and looks noisy. Zero (immediate) when magnification is off, so the
+    /// classic behaviour is unchanged.
+    /// </summary>
+    private static readonly TimeSpan MagnifiedPreviewDelay = TimeSpan.FromSeconds(1);
+
+    private readonly DispatcherTimer _previewShowDelay = new();
+    private Button? _pendingPreviewButton;
+    private string _pendingPreviewLabel = "";
+    private string _pendingPreviewExecutable = "";
+
+    private TimeSpan PreviewShowDelay =>
+        _appServices?.AppearanceService.GetMagnifyIcons() == true
+            ? MagnifiedPreviewDelay
+            : TimeSpan.Zero;
+
     private DockAutoHideController? _autoHide;
     private FolderStackPopup? _folderStack;
     private Button? _lastPressedPinned;
@@ -90,6 +109,12 @@ public partial class MainWindow : Window
         {
             _previewCloseRefresh.Stop();
             RefreshPreviewAfterClose();
+        };
+        // Magnification only: the preview waits for the pointer to settle.
+        _previewShowDelay.Tick += (_, _) =>
+        {
+            _previewShowDelay.Stop();
+            StartPreviewLoad();
         };
     }
 
@@ -304,20 +329,60 @@ public partial class MainWindow : Window
         if (button.DataContext is not DockItemViewModel vm || vm.Item is not DockProgramItemModel item)
             return;
 
-        _hoveredButton = button;
+        SchedulePreview(button, vm.Label, item.ExecutablePath);
+    }
+
+    /// <summary>
+    /// Arms the window preview for an icon. With magnification on the load is
+    /// held back until the pointer rests (see <see cref="PreviewShowDelay"/>);
+    /// any preview still on screen is dismissed first so the wait never shows
+    /// the previous icon's windows.
+    /// </summary>
+    private void SchedulePreview(Button button, string label, string executablePath)
+    {
         _previewHideDebounce.Stop();
-        int requestId = ++_previewRequestId;
-        var programItem = item;
-        string label = vm.Label;
-        _previewExecutablePath = programItem.ExecutablePath;
+        _previewShowDelay.Stop();
+
+        var delay = PreviewShowDelay;
+        if (delay > TimeSpan.Zero && _previewPopup?.IsVisible == true)
+            HidePreview(); // clears _hoveredButton, so set it after
+
+        _hoveredButton = button;
+        _pendingPreviewButton = button;
+        _pendingPreviewLabel = label;
+        _pendingPreviewExecutable = executablePath;
+        _previewExecutablePath = executablePath;
         _previewLabel = label;
+
+        if (delay <= TimeSpan.Zero)
+        {
+            StartPreviewLoad();
+            return;
+        }
+
+        _previewShowDelay.Interval = delay;
+        _previewShowDelay.Start();
+    }
+
+    /// <summary>Kicks off the off-thread window query for the pending icon.</summary>
+    private void StartPreviewLoad()
+    {
+        if (_appServices == null) return;
+        var button = _pendingPreviewButton;
+        // The pointer may have moved on while the delay ran.
+        if (button == null || !ReferenceEquals(_hoveredButton, button)) return;
+
+        string label = _pendingPreviewLabel;
+        string executablePath = _pendingPreviewExecutable;
+        int requestId = ++_previewRequestId;
 
         Task.Run(() =>
         {
             List<WindowInfo> windows;
             try
             {
-                windows = _appServices.WindowPreviewService.LoadPreview(programItem);
+                windows = _appServices.WindowPreviewService.LoadPreview(
+                    new DockProgramItemModel(label, executablePath));
             }
             catch (Exception)
             {
@@ -332,29 +397,7 @@ public partial class MainWindow : Window
         if (sender is not Button button || _appServices == null) return;
         if (button.DataContext is not RunningAppViewModel vm) return;
 
-        _hoveredButton = button;
-        _previewHideDebounce.Stop();
-        int requestId = ++_previewRequestId;
-        string executablePath = vm.ExecutablePath;
-        string label = vm.Label;
-        _previewExecutablePath = executablePath;
-        _previewLabel = label;
-
-        Task.Run(() =>
-        {
-            List<WindowInfo> windows;
-            try
-            {
-                // Build a throwaway program item to reuse the preview loader.
-                windows = _appServices.WindowPreviewService.LoadPreview(
-                    new DockProgramItemModel(label, executablePath));
-            }
-            catch (Exception)
-            {
-                windows = new List<WindowInfo>();
-            }
-            Dispatcher.UIThread.Post(() => OnPreviewLoaded(requestId, button, label, windows));
-        });
+        SchedulePreview(button, vm.Label, vm.ExecutablePath);
     }
 
     /// <summary>
@@ -428,6 +471,13 @@ public partial class MainWindow : Window
     {
         if (_hoveredButton == sender) _hoveredButton = null;
         _previewHideDebounce.Stop();
+        // A queued (not yet shown) preview belongs to the icon being left, so
+        // drop it — otherwise it would pop up a second later over nothing.
+        if (ReferenceEquals(_pendingPreviewButton, sender))
+        {
+            _previewShowDelay.Stop();
+            _pendingPreviewButton = null;
+        }
         // During fast icon-to-icon moves the previous icon's Exit can be
         // delivered AFTER the next icon's Enter. Re-arming the hide timer then
         // hides the popup 80ms later (the cursor is over the new icon, not the
@@ -469,6 +519,8 @@ public partial class MainWindow : Window
     private void HidePreview()
     {
         ++_previewRequestId;
+        _previewShowDelay.Stop();
+        _pendingPreviewButton = null;
         _previewPopup?.HidePopup();
         _hoveredButton = null;
     }
@@ -1189,6 +1241,7 @@ public partial class MainWindow : Window
     {
         PositionChanged -= OnDockPositionChanged;
         _positionPersistTimer.Stop();
+        _previewShowDelay.Stop();
         HidePreview();
         if (DataContext is MainWindowViewModel vm)
             vm.Shutdown();
