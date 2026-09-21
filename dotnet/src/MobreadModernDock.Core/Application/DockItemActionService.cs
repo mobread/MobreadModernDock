@@ -50,4 +50,11 @@ public class DockItemActionService
 
         return true;
     }
+
+    /// <summary>
+    /// Opens the given files with a pinned program (drag-and-drop onto its
+    /// dock icon). Returns false when the program could not be launched.
+    /// </summary>
+    public bool OpenWith(DockProgramItemModel program, IReadOnlyList<string> filePaths) =>
+        _programLauncher.LaunchWithFiles(program.ExecutablePath, program.Label, filePaths);
 }
