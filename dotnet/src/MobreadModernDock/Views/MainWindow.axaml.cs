@@ -277,28 +277,159 @@ public partial class MainWindow : Window
     private void SyncPinnedPanel()
     {
         if (DataContext is not MainWindowViewModel vm) return;
-        var panel = PinnedItems.GetVisualDescendants().OfType<DockItemsPanel>().FirstOrDefault();
-        if (panel == null) return;
-        panel.Lines = vm.DockLines;
-        panel.IsVertical = vm.IsVerticalDock;
+        var pinned = FindPanel(PinnedItems);
+        var running = FindPanel(RunningItems);
+        if (pinned == null) return;
+
         // Magnification is single-line only; the service already folds that in.
-        panel.MagnifyScale = _appServices?.AppearanceService.GetMagnifyIcons() == true
+        double scale = _appServices?.AppearanceService.GetMagnifyIcons() == true
             ? _appServices.AppearanceService.GetMagnifyScale()
             : 1.0;
-        // The per-item hover zoom must stand down while the panel is scaling.
-        PinnedItems.Classes.Set("magnified", panel.MagnifyScale > 1.0);
-        if (panel.MagnifyScale <= 1.0) panel.UpdateMagnification(null);
+
+        foreach (var (panel, host) in Panels(pinned, running))
+        {
+            panel.Lines = vm.DockLines;
+            panel.IsVertical = vm.IsVerticalDock;
+            panel.MagnifyScale = scale;
+            // The per-item hover zoom must stand down while the panel is scaling.
+            host.Classes.Set("magnified", scale > 1.0);
+            if (scale <= 1.0) { panel.UpdateMagnification(null); ClearDividerTransform(); }
+        }
+        SyncRowContext(pinned, running);
+    }
+
+    private static DockItemsPanel? FindPanel(ItemsControl host) =>
+        host.GetVisualDescendants().OfType<DockItemsPanel>().FirstOrDefault();
+
+    /// <summary>The realized dock panels in row order, each with its ItemsControl.</summary>
+    private IEnumerable<(DockItemsPanel Panel, ItemsControl Host)> Panels(
+        DockItemsPanel? pinned, DockItemsPanel? running)
+    {
+        if (pinned != null) yield return (pinned, PinnedItems);
+        // Only while it is actually on screen: an invisible running list must
+        // not contribute rest sizes to the row.
+        if (running != null && RunningItems.IsVisible) yield return (running, RunningItems);
     }
 
     /// <summary>
-    /// Feeds the pointer position to the items panel so it can magnify. The
-    /// position is taken along the dock's main axis in panel coordinates,
-    /// which is exactly what DockMagnification expects.
+    /// Tells each panel about the items on the other side of the divider.
+    /// Magnification must be computed over the whole visual row, otherwise the
+    /// falloff restarts at the seam and each group re-centres into the other
+    /// (see DockItemsPanel.MagnifyLeading).
+    ///
+    /// The divider (and any margin between the two controls) is injected as a
+    /// synthetic leading entry so row coordinates match real screen positions;
+    /// without it every running icon would be magnified as though it sat a
+    /// divider-width to the left of where it is drawn.
+    /// </summary>
+    private void SyncRowContext(DockItemsPanel? pinned, DockItemsPanel? running)
+    {
+        bool runningLive = running != null && RunningItems.IsVisible;
+        var pinnedSizes = pinned != null ? RestSizes(pinned) : Array.Empty<double>();
+
+        if (pinned != null)
+        {
+            pinned.MagnifyLeading = Array.Empty<double>();
+            pinned.MagnifyTrailing = runningLive
+                ? Prepend(GapBetweenPanels(pinned, running!), RestSizes(running!))
+                : Array.Empty<double>();
+            // The pinned panel owns the row computation, so it reports the
+            // divider's transform back (index: straight after our children).
+            pinned.MagnifyExternalRowIndex = runningLive ? pinnedSizes.Length : null;
+            pinned.ExternalTransformComputed = runningLive ? ApplyDividerTransform : null;
+        }
+        if (runningLive)
+        {
+            running!.MagnifyLeading = Append(pinnedSizes, GapBetweenPanels(pinned, running));
+            running.MagnifyTrailing = Array.Empty<double>();
+            // Only one panel may drive the divider or they would fight.
+            running.MagnifyExternalRowIndex = null;
+            running.ExternalTransformComputed = null;
+        }
+    }
+
+    /// <summary>
+    /// Applies the row-computed scale/offset to the pinned↔running divider.
+    /// It is a plain Image in the outer StackPanel rather than a child of
+    /// either items panel, so nothing arranges it and it would otherwise be
+    /// the one separator in the dock that never magnified.
+    /// </summary>
+    private void ApplyDividerTransform(double scale, double offset)
+    {
+        bool vertical = _appServices?.AppearanceService.GetVerticalDock() == true;
+        var divider = vertical ? RunningDividerV : RunningDividerH;
+        if (divider is null || !divider.IsVisible) return;
+
+        var group = new TransformGroup();
+        group.Children.Add(new ScaleTransform(scale, scale));
+        group.Children.Add(vertical
+            ? new TranslateTransform(0, offset)
+            : new TranslateTransform(offset, 0));
+        divider.RenderTransform = group;
+    }
+
+    /// <summary>Returns the divider to its rest size (magnification off or pointer away).</summary>
+    private void ClearDividerTransform()
+    {
+        if (RunningDividerH is { } h) h.RenderTransform = null;
+        if (RunningDividerV is { } v) v.RenderTransform = null;
+    }
+
+    /// <summary>
+    /// Distance along the dock's main axis from the end of the pinned panel to
+    /// the start of the running panel: the divider image plus any margins.
+    /// Measured from the live visual tree, so it follows the icon size and the
+    /// separator's visibility without a second source of truth.
+    /// </summary>
+    private double GapBetweenPanels(DockItemsPanel? pinned, DockItemsPanel running)
+    {
+        if (pinned is null) return 0;
+        var from = pinned.TranslatePoint(new Point(pinned.Bounds.Width, pinned.Bounds.Height), this);
+        var to = running.TranslatePoint(new Point(0, 0), this);
+        if (from is not { } a || to is not { } b) return 0;
+        double gap = running.IsVertical ? b.Y - a.Y : b.X - a.X;
+        return Math.Max(0, gap);
+    }
+
+    private static double[] Prepend(double first, IReadOnlyList<double> rest)
+    {
+        var result = new double[rest.Count + 1];
+        result[0] = first;
+        for (int i = 0; i < rest.Count; i++) result[i + 1] = rest[i];
+        return result;
+    }
+
+    private static double[] Append(IReadOnlyList<double> head, double last)
+    {
+        var result = new double[head.Count + 1];
+        for (int i = 0; i < head.Count; i++) result[i] = head[i];
+        result[^1] = last;
+        return result;
+    }
+
+    /// <summary>Each child's rest size along the dock's main axis.</summary>
+    private static double[] RestSizes(DockItemsPanel panel)
+    {
+        var sizes = new double[panel.Children.Count];
+        for (int i = 0; i < sizes.Length; i++)
+        {
+            var d = panel.Children[i].DesiredSize;
+            sizes[i] = panel.IsVertical ? d.Height : d.Width;
+        }
+        return sizes;
+    }
+
+    /// <summary>
+    /// Feeds the pointer position to both items panels so they magnify as one
+    /// row. The position is converted to row coordinates - the origin is the
+    /// start of the pinned panel - so an icon's scale depends only on where it
+    /// sits on screen, not which ItemsControl owns it.
     /// </summary>
     private void UpdateMagnifier(PointerEventArgs e)
     {
-        var panel = PinnedItems.GetVisualDescendants().OfType<DockItemsPanel>().FirstOrDefault();
-        if (panel is null) return;
+        var pinned = FindPanel(PinnedItems);
+        var running = FindPanel(RunningItems);
+        if (pinned is null) return;
 
         // Re-read the setting here rather than trusting a value pushed in
         // earlier: SyncPinnedPanel can run before the panel is realized, and
@@ -306,25 +437,48 @@ public partial class MainWindow : Window
         double scale = _appServices?.AppearanceService.GetMagnifyIcons() == true
             ? _appServices.AppearanceService.GetMagnifyScale()
             : 1.0;
-        if (panel.MagnifyScale != scale)
+
+        foreach (var (panel, host) in Panels(pinned, running))
         {
-            panel.MagnifyScale = scale;
-            PinnedItems.Classes.Set("magnified", scale > 1.0);
+            if (panel.MagnifyScale != scale)
+            {
+                panel.MagnifyScale = scale;
+                host.Classes.Set("magnified", scale > 1.0);
+            }
         }
+
         if (scale <= 1.0)
         {
-            panel.UpdateMagnification(null);
+            pinned.UpdateMagnification(null);
+            running?.UpdateMagnification(null);
+            ClearDividerTransform();
             return;
         }
 
-        var p = e.GetPosition(panel);
-        panel.UpdateMagnification(panel.IsVertical ? p.Y : p.X);
+        // Rest sizes change as apps open and close, so refresh the row context
+        // on every move rather than only when the items collection changes.
+        SyncRowContext(pinned, running);
+
+        // Row origin = the pinned panel's origin. Each panel is told the same
+        // row-space pointer; it indexes its own slice via MagnifyLeading.
+        var p = e.GetPosition(pinned);
+        double pointer = pinned.IsVertical ? p.Y : p.X;
+        pinned.UpdateMagnification(pointer);
+
+        if (running != null && RunningItems.IsVisible)
+        {
+            // The running panel's children are offset from the row origin by
+            // the pinned items plus the divider, which its MagnifyLeading
+            // already accounts for - so it gets the same row-space value.
+            running.UpdateMagnification(pointer);
+        }
     }
 
     private void ClearMagnifier()
     {
-        var panel = PinnedItems.GetVisualDescendants().OfType<DockItemsPanel>().FirstOrDefault();
-        panel?.UpdateMagnification(null);
+        FindPanel(PinnedItems)?.UpdateMagnification(null);
+        FindPanel(RunningItems)?.UpdateMagnification(null);
+        ClearDividerTransform();
     }
 
     private void OnItemPointerEntered(object? sender, PointerEventArgs e)

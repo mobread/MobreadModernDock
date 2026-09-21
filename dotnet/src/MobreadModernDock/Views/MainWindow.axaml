@@ -192,29 +192,40 @@
                     HorizontalAlignment="Left" VerticalAlignment="Top" />
             </Panel>
 
-            <!-- Separator between pinned items and running apps -->
-            <Image Source="/Assets/icons/open-softwares-separator-1.png"
+            <!-- Separator between pinned items and running apps.
+                 Named so the magnifier can transform it: it lives in this
+                 StackPanel, not in either items panel, so no panel arranges
+                 it - the window applies the transform the row computes. -->
+            <Image x:Name="RunningDividerH"
+                   Source="/Assets/icons/open-softwares-separator-1.png"
                    Width="14" Height="{Binding IconsSize}"
                    Stretch="Uniform"
                    VerticalAlignment="Center"
+                   RenderTransformOrigin="50%, 100%"
                    Margin="4,0"
                    IsVisible="{Binding ShowHorizontalSeparator}"
                    RenderOptions.BitmapInterpolationMode="HighQuality"/>
-            <Image Source="/Assets/icons/open-softwares-separator-2.png"
+            <Image x:Name="RunningDividerV"
+                   Source="/Assets/icons/open-softwares-separator-2.png"
                    Width="{Binding IconsSize}" Height="14"
                    Stretch="Uniform"
                    VerticalAlignment="Center"
                    HorizontalAlignment="Center"
+                   RenderTransformOrigin="100%, 50%"
                    Margin="0,4"
                    IsVisible="{Binding ShowVerticalSeparator}"
                    RenderOptions.BitmapInterpolationMode="HighQuality"/>
 
             <!-- Running-but-unpinned apps (taskbar-like) -->
-            <ItemsControl ClipToBounds="False" ItemsSource="{Binding RunningApps}"
+            <ItemsControl x:Name="RunningItems" ClipToBounds="False" ItemsSource="{Binding RunningApps}"
                           IsVisible="{Binding HasRunningApps}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}" />
+                        <!-- Same panel as the pinned items so hover magnification
+                             continues across the divider. MainWindow.SyncPinnedPanel
+                             pushes the row context (Lines / IsVertical / scale and
+                             the pinned items' rest sizes as MagnifyLeading). -->
+                        <views:DockItemsPanel x:Name="RunningPanel" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
 
@@ -224,6 +235,7 @@
                                 BorderBrush="Transparent"
                                 Padding="4"
                                 Cursor="Hand"
+                                Margin="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).CellMargin}"
                                 ToolTip.Tip="{Binding Label}"
                                 ToolTip.Placement="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).TooltipPlacement}"
                                 ToolTip.VerticalOffset="0"
@@ -242,10 +254,14 @@
                             </Button.Transitions>
 
                             <Button.Styles>
-                                <Style Selector="Button">
+                                <!-- Scoped behind :not(.magnified): an unconditional
+                                     RenderTransform setter beats the local value the
+                                     panel writes, silently cancelling magnification.
+                                     The window sets the class on this ItemsControl. -->
+                                <Style Selector="ItemsControl:not(.magnified) Button">
                                     <Setter Property="RenderTransform" Value="scale(1)" />
                                 </Style>
-                                <Style Selector="Button:pointerover">
+                                <Style Selector="ItemsControl:not(.magnified) Button:pointerover">
                                     <Setter Property="RenderTransform" Value="scale(1.3)" />
                                 </Style>
                                 <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
