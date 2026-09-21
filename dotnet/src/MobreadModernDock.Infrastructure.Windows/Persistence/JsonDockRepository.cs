@@ -108,6 +108,15 @@ public sealed class JsonDockRepository : IDockRepository
         return options;
     }
 
+    /// <summary>
+    /// The exact serializer settings used for config.json, so export/import
+    /// produces files interchangeable with the live config.
+    /// </summary>
+    public static JsonSerializerOptions SerializerOptions { get; } = CreateSerializerOptions();
+
+    /// <summary>Absolute path of the config file this repository reads and writes.</summary>
+    public string ConfigFilePath => _configFilePath;
+
     private static string GetDefaultConfigPath()
     {
         string configDir = Adapters.AppDataLocator.Root;
