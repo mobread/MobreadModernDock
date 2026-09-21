@@ -9,17 +9,17 @@ Built on [Cedro Modern Dock](https://github.com/Cedro-Software/cedro-modern-dock
 <br>
 
 > ## How To Install
-> **Installer** — download **[MobreadModernDock-1.0.1-x64.msi](https://github.com/mobread/MobreadModernDock/releases/latest)** and run it. Adds Start-menu and desktop shortcuts, and uninstalls from Add/Remove Programs.
+> **Installer** — download **[MobreadModernDock-1.0.2-x64.msi](https://github.com/mobread/MobreadModernDock/releases/latest)** and run it. Adds Start-menu and desktop shortcuts, and uninstalls from Add/Remove Programs.
 >
-> **Portable** — download **[MobreadModernDock-1.0.1-x64-portable.zip](https://github.com/mobread/MobreadModernDock/releases/latest)**, unzip anywhere and run it. No install, no admin; settings live beside the exe, so the folder travels with you and deleting it leaves nothing behind.
+> **Portable** — download **[MobreadModernDock-1.0.2-x64-portable.zip](https://github.com/mobread/MobreadModernDock/releases/latest)**, unzip anywhere and run it. No install, no admin; settings live beside the exe, so the folder travels with you and deleting it leaves nothing behind.
 >
 > Either way: Windows 10/11 64-bit, no .NET install needed (the runtime is bundled).
 >
 > Neither download is code-signed, so SmartScreen will show *"Windows protected your PC"* — click **More info → Run anyway**. Verify a download if you prefer:
 > ```powershell
-> Get-FileHash MobreadModernDock-1.0.1-x64.msi -Algorithm SHA256
-> # MSI  6AAEC5F37767592557EE1B21943145CCCA496E0CA722BFFB0DC679C2895FD8F3
-> # ZIP  DCD90CF79E6D74603A2CB814671BD8F31810BEFC3C827C42941D78AD084A168D
+> Get-FileHash MobreadModernDock-1.0.2-x64.msi -Algorithm SHA256
+> # MSI  592E06CE6932BD287B33061AF543BAFB0D65D8F3BEC81819BBBE2A4216A64046
+> # ZIP  BB93ADBBB69383E1A23F65DB89EDEB3DBE359B3811544B1ECB0D0DE5202CAC30
 > ```
 > Prefer to build it yourself? See [How To Contribute](#how-to-contribute) below.
 >
@@ -34,6 +34,7 @@ Everything in this section is new relative to Cedro Modern Dock v1.2.
 ### Replace the taskbar
 
 - **Hide the Windows taskbar** — one checkbox hides the taskbar on every monitor and expands the work area so maximized windows use the full screen. Restored automatically when you uncheck it, quit, or if the app crashes; a taskbar left hidden by a force-kill is repaired on the next launch.
+- **Reserve the dock's screen edge** — maximized windows stop at the dock instead of sliding underneath it, the way the real taskbar behaves. Applies while the dock is snapped to an edge with auto-hide off; the screen space is released the moment you turn it off, quit, or the app is killed.
 - **System tray widget** — your notification-area icons (Discord, Steam, NVIDIA, etc.) as a free-floating panel. Left-click activates, right-click opens the app's real context menu. Horizontal or vertical, wrapped into 1–6 rows or columns, with a toggle for the system icons (volume, network, battery).
 - **Taskbar-style clicks** — click a running app to focus it, click again to minimize it, keep clicking to cycle through its windows. The mouse wheel over an icon cycles too.
 - **Running apps you haven't pinned** appear on the dock; right-click to **pin** them, or **unpin** a pinned one.
@@ -62,6 +63,8 @@ Free-floating panels that follow the dock's colour and corner rounding. Each rem
 - **Auto-hide** — the dock slides off the nearest screen edge after a short grace period, leaving a 3 px sliver; touch it with the pointer to bring it back. Won't hide while you're hovering a preview or dragging an icon.
 - **Fullscreen auto-hide** — dock and widgets get out of the way while a fullscreen app is running. Borderless-window games count; a merely maximized window doesn't.
 - **Edge snapping** — drop the dock or a widget within 24 px of a screen edge or the centre line and it snaps flush, each axis independently.
+- **Center dock** — right-click the settings gear and pick *Center dock* to line a dragged dock back up along the edge it sits on.
+- **Hover magnification** — macOS-style zoom that swells icons under the pointer and pushes their neighbours aside, with an adjustable curve. Single-row docks only.
 - **Always on top** — keep the dock and widgets over every window, or leave them on the desktop layer where they survive Win+D.
 - **Drag to reorder** icons directly on the dock, with a drop indicator. Works across rows. The settings gear always stays last.
 
