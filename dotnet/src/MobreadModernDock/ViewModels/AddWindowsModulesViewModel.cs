@@ -11,7 +11,8 @@ public sealed record WindowsModuleEntry(string Name, Bitmap? Icon);
 /// <summary>ViewModel for the Add Windows Modules modal. Port of AddWindowsModulesModalController.</summary>
 public class AddWindowsModulesViewModel : ViewModelBase
 {
-    private static readonly string[] ModuleIds = { "start", "mypc", "trash", "ctrlpnl", "pconfig" };
+    private static readonly string[] ModuleIds = { "start", "mypc", "trash", "ctrlpnl", "pconfig",
+                                                   "shutdown", "restart", "signout", "sleep", "lock" };
 
     private readonly AppServices _appServices;
     private readonly Action _dockRefreshAction;
@@ -49,6 +50,11 @@ public class AddWindowsModulesViewModel : ViewModelBase
             "trash" => "Recycle Bin",
             "ctrlpnl" => "Control Panel",
             "pconfig" => "Settings",
+            "shutdown" => "Shut Down",
+            "restart" => "Restart",
+            "signout" => "Sign Out",
+            "sleep" => "Sleep",
+            "lock" => "Lock",
             _ => moduleId
         };
 
@@ -69,6 +75,11 @@ public class AddWindowsModulesViewModel : ViewModelBase
                 "trash" => loc.Text("windowsModule.recycleBin"),
                 "ctrlpnl" => loc.Text("windowsModule.controlPanel"),
                 "pconfig" => loc.Text("windowsModule.settings"),
+                "shutdown" => loc.Text("windowsModule.shutdown"),
+                "restart" => loc.Text("windowsModule.restart"),
+                "signout" => loc.Text("windowsModule.signOut"),
+                "sleep" => loc.Text("windowsModule.sleep"),
+                "lock" => loc.Text("windowsModule.lock"),
                 _ => id
             };
             ModuleNames.Add(new WindowsModuleEntry(name, LoadModuleIcon(id)));
