@@ -2,10 +2,10 @@
 
 _Source: [r/desktops — "Free and Open-source alternative to Winstep Nexus Dock! Cedro Modern Dock"](https://www.reddit.com/r/desktops/comments/1s6i6r9/free_and_opensource_alternative_to_winstep_nexus/) by u/Arthur_DK7, ~6 months old, 343 upvotes, 52 comments. Analysed 2026-09-20._
 
-**Framing:** this is the *upstream* (Cedro) announcement thread, posted before the
-mobread fork. The fork inherits the codebase, so it inherits this feedback and
-these users' expectations. Several items OP publicly promised ("added to the
-backlog") are now shipped here — worth saying so if the fork is ever announced.
+**Framing:** this thread announced the project this codebase grew out of, before
+Mobread Modern Dock existed. The feedback and user expectations carry over.
+Several items the original author publicly promised ("added to the backlog") are
+now shipped here — worth saying so if this project is ever announced.
 
 Status legend: **✅ shipped** · **🟡 written this session, uncommitted/untested** · **❌ open**
 

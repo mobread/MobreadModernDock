@@ -2,8 +2,6 @@
 
 A macOS-style dock for Windows 11 that can **replace the taskbar** — pinned apps, running apps, folder stacks, live window previews, and a widget system that lives on the desktop layer or floats on top.
 
-Built on [Cedro Modern Dock](https://github.com/Cedro-Software/cedro-modern-dock) by [@arthurdeka](https://github.com/arthurdeka). This project keeps that foundation and adds the features below.
-
 <img alt="Mobread Modern Dock — two-row dock with live window previews for Chrome, running-app indicators, and a tray widget" src="docs/screenshot.png" />
 
 <br>
@@ -23,13 +21,11 @@ Built on [Cedro Modern Dock](https://github.com/Cedro-Software/cedro-modern-dock
 > ```
 > Prefer to build it yourself? See [How To Contribute](#how-to-contribute) below.
 >
-> On the very first launch the dock seeds itself from your Windows taskbar pins, so it is usable straight away. Upgrading from **Cedro Modern Dock**? Your shortcuts and settings are picked up automatically instead.
+> On the very first launch the dock seeds itself from your Windows taskbar pins, so it is usable straight away.
 
 <br>
 
-## What's new in Mobread Modern Dock
-
-Everything in this section is new relative to Cedro Modern Dock v1.2.
+## Features
 
 ### Replace the taskbar
 
@@ -37,7 +33,7 @@ Everything in this section is new relative to Cedro Modern Dock v1.2.
 - **Reserve the dock's screen edge** — maximized windows stop at the dock instead of sliding underneath it, the way the real taskbar behaves. Applies while the dock is snapped to an edge with auto-hide off; the screen space is released the moment you turn it off, quit, or the app is killed.
 - **System tray widget** — your notification-area icons (Discord, Steam, NVIDIA, etc.) as a free-floating panel. Left-click activates, right-click opens the app's real context menu. Horizontal or vertical, wrapped into 1–6 rows or columns, with a toggle for the system icons (volume, network, battery).
 - **Taskbar-style clicks** — click a running app to focus it, click again to minimize it, keep clicking to cycle through its windows. The mouse wheel over an icon cycles too.
-- **Running apps you haven't pinned** appear on the dock; right-click to **pin** them, or **unpin** a pinned one.
+- **Running apps you haven't pinned** appear on the dock; right-click to **pin** them, or **unpin** a pinned one. A dot under an icon marks anything currently running.
 
 ### Widgets
 
@@ -80,7 +76,9 @@ Free-floating panels that follow the dock's colour and corner rounding. Each rem
 
 ### Appearance
 
-- **Global opacity slider** (20–100 %) fades the entire dock — icons and background — and every widget that follows it. Independent of the existing background-only transparency.
+- **Icon tint** — iOS-style tinting with 12 presets or a custom colour.
+- **Global opacity slider** (20–100 %) fades the entire dock — icons and background — and every widget that follows it. Independent of the background-only transparency.
+- **Dock transparency and corner rounding**, plus a **vertical dock** orientation.
 - **Per-widget opacity** — follow global, or set a custom value per widget.
 - **Resizable settings window** — 860×700 by default, drag to resize.
 
@@ -91,14 +89,9 @@ The dock and widgets are placed with true screen coordinates, so they land on th
 ### Under the hood
 
 - **Portable mode** — drop a file named `portable.marker` next to `MobreadModernDock.exe` and all settings, icon cache and logs stay in that folder instead of `%APPDATA%`. Good for a USB stick or a synced folder.
+- **Auto-start with Windows**, and **in-place upgrades that keep your settings**.
 - **Update check** — Settings › General › *Check for updates* looks at GitHub Releases and links the download.
 - **Login-safe startup** — waits for the Windows shell to be ready before attaching to the desktop, so an auto-started dock never races Explorer.
-
-<br>
-
-## Also included (from Cedro Modern Dock)
-
-Live window previews · running-app indicators · iOS-style icon tint with 12 presets or a custom colour · vertical dock · dock transparency and rounding · auto-start with Windows · 21 languages · in-place upgrades that keep your settings.
 
 <br>
 
@@ -144,7 +137,7 @@ The project follows a layered architecture:
 
 `App.axaml.cs` composes these dependencies and injects them into the view models. New widgets implement `IWidgetProvider` and register in `WidgetRegistry`.
 
-For the implementation notes behind each feature — the Win11 tray XAML island, DWM capture limits, appbar re-creation, parent-relative coordinates on Progman — see [`CUSTOMIZATIONS.md`](CUSTOMIZATIONS.md).
+For the implementation notes behind each feature — the Win11 tray XAML island, DWM capture limits, appbar re-creation, parent-relative coordinates on Progman — see [`IMPLEMENTATION_NOTES.md`](IMPLEMENTATION_NOTES.md).
 
 ### Prerequisites
 

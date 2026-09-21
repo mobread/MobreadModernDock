@@ -1,10 +1,8 @@
-# Mobread Modern Dock — what's different from upstream
+# Mobread Modern Dock — implementation notes
 
-What this fork adds on top of [Cedro-Software/cedro-modern-dock](https://github.com/Cedro-Software/cedro-modern-dock).
-
-**19 feature commits · ~8,000 lines across 95 files · 78 tests passing**
-
-All work lives on `feature/mobread-customizations`. `main` tracks upstream verbatim (plus `.github/FUNDING.yml`).
+How the trickier features actually work, and the Windows-shell behaviour that
+forced each design. Written for anyone changing this code — the pitfalls here
+were all found the hard way.
 
 ---
 
@@ -12,7 +10,7 @@ All work lives on `feature/mobread-customizations`. `main` tracks upstream verba
 
 | Feature | What it does |
 |---|---|
-| **Multi-row dock** | `Rows` slider (1–4) in Icons Customization. Icons wrap into N rows horizontally, N columns vertically. Default 1 keeps existing configs visually unchanged. |
+| **Multi-row dock** | `Rows` slider (1–4) in Icons Customization. Icons wrap into N rows horizontally, N columns vertically. Default 1. |
 | **Auto-hide** | Dock slides to the nearest screen edge (ease-out, 160 ms) leaving a 3 px sliver after a 600 ms grace period; returns when the pointer touches the sliver. Suppressed during hover previews and drag-reorders. |
 | **Fullscreen auto-hide** | Dock and widgets hide while a fullscreen app is active. `FullscreenDetector` combines `SHQueryUserNotificationState` with a foreground-covers-monitor check, so borderless games count but maximized windows don't. |
 | **Edge snapping** | Drag ending within 24 px of a screen edge or centre line pulls the window flush (8 px margin; exact on centre), each axis independently. Applied on the position-persist timer so it never fights the OS drag loop. |
@@ -52,15 +50,15 @@ A generic `IWidgetProvider` + `WidgetWindow` system — each provider supplies a
 
 ## Appearance
 
-- **Global opacity slider** (20–100%) fades the whole dock — icons and background — plus every widget that follows it. Distinct from the existing Dock Transparency, which only affects the background fill.
+- **Global opacity slider** (20–100%) fades the whole dock — icons and background — plus every widget that follows it. Distinct from Dock Transparency, which only affects the background fill.
 - **Per-widget opacity override** — "Follow global" (default) or "Custom". Stored in the widget's settings dict, so no per-type work is needed.
-- **Resizable settings window** — 780×544 fixed → 860×700 default, resizable, min 720×520.
+- **Resizable settings window** — 860×700 default, resizable, min 720×520.
 
 ## Other
 
 - **Single shutdown path** — `App.RequestShutdown()` is the one exit route, so the taskbar is always restored.
-- **i18n** — new keys added across all 21 language bundles.
-- **Tests** — 78 passing, including `EdgeSnapperTest`, `ClockFormatsTest`, `ShellLinkResolverTest`, `WidgetOpacityTest`, `WidgetServiceTest`.
+- **i18n** — every user-facing string is keyed across all 21 language bundles.
+- **Tests** — xUnit suite covering the pure geometry and service layers (`DockMagnificationTest`, `EdgeSnapperTest`, `ClockFormatsTest`, `ShellLinkResolverTest`, `WidgetOpacityTest`, `WidgetServiceTest`, `ThemeFileTest`).
 
 ---
 

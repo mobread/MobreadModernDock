@@ -69,7 +69,7 @@ public class UpdateCheckerTest
     [Theory]
     [InlineData("latest")]
     [InlineData("")]
-    [InlineData("Version-1.0")]   // the upstream Cedro tag style
+    [InlineData("Version-1.0")]   // a tag style we don't publish
     public void RejectsUnparseableTags(string tag)
         => Assert.Null(UpdateChecker.ParseVersion(tag));
 

@@ -18,6 +18,10 @@ public sealed class JsonDockRepository : IDockRepository
 {
     private const string ConfigFileName = "config.json";
     private const string AppDataFolder = "MobreadModernDock";
+    // Migration shim, not branding: settings written by the app this one grew
+    // out of still live here. Reading it means an upgrader keeps their dock
+    // instead of silently starting from defaults. Safe to drop only once
+    // upgraders can be assumed to have moved over.
     private const string LegacyAppDataFolder = "CedroModernDock";
 
     private readonly string _configFilePath;
