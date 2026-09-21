@@ -124,7 +124,7 @@ public partial class App : Application
 
     private static void OnTrayIconClick()
     {
-        // Left-click on tray icon → open settings (same as Java SystemTrayManager).
+        // Left-click on tray icon → open settings.
         OpenSettingsFromTray();
     }
 
@@ -193,7 +193,6 @@ public partial class App : Application
 
     /// <summary>
     /// Composes all application services with their Windows-specific adapters.
-    /// Direct port of App.java createServices().
     /// </summary>
     private static AppServices CreateServices()
     {

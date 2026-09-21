@@ -4,7 +4,7 @@ using System.Diagnostics;
 using MobreadModernDock.Core.Domain;
 
 /// <summary>
-/// Direct port of DefaultWindowsModuleLauncher.java. Opens built-in Windows
+/// Opens built-in Windows
 /// surfaces (This PC, Recycle Bin, Control Panel, Settings, Start menu).
 /// </summary>
 public class WindowsModuleLauncher : IWindowsModuleLauncher

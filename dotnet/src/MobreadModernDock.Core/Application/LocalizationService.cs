@@ -4,9 +4,8 @@ using System.Text;
 using MobreadModernDock.Core.Models;
 
 /// <summary>
-/// Direct port of LocalizationService. Loads language bundles from embedded
-/// .properties files (Java ResourceBundle format) and provides localized text
-/// with {0}/{1} style format arguments (equivalent to Java MessageFormat).
+/// Loads language bundles from embedded .properties files and provides
+/// localized text with {0}/{1} style format arguments.
 /// </summary>
 public class LocalizationService
 {
@@ -85,7 +84,7 @@ public class LocalizationService
 
     /// <summary>
     /// Static helper for bootstrap contexts (before services are wired up),
-    /// e.g. the single-instance dialog. Direct port of bootstrapText.
+    /// e.g. the single-instance dialog.
     /// </summary>
     public static string BootstrapText(SupportedLanguage language, string key, params object[] arguments)
     {

@@ -1,6 +1,6 @@
 namespace MobreadModernDock.Core.Models;
 
-/// <summary>Direct port of the Java DockItemType enum.</summary>
+/// <summary>What a dock item is, and therefore what clicking it does.</summary>
 public enum DockItemType
 {
     PROGRAM,

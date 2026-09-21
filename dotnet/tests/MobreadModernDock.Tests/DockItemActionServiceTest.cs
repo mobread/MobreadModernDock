@@ -4,7 +4,7 @@ using MobreadModernDock.Core.Application;
 using MobreadModernDock.Core.Domain;
 using MobreadModernDock.Core.Models;
 
-/// <summary>Direct port of DockItemActionServiceTest.java</summary>
+/// <summary>Dispatching a dock item to the right launcher for its type.</summary>
 public class DockItemActionServiceTest
 {
     [Fact]
@@ -90,8 +90,7 @@ public class DockItemActionServiceTest
         Assert.Equal("settings", capture.Kind);
     }
 
-    // Small adapter wrappers so lambdas can be passed as interface parameters
-    // (C# interfaces are not delegates, unlike Java functional interfaces).
+    // Small adapter wrappers so lambdas can be passed as interface parameters.
     private static IProgramLauncher LambdaProgramLauncher(InvocationCapture c) =>
         new ProgramLauncherImpl((path, label) => c.Record("program", path, label));
     private static IFolderLauncher LambdaFolderLauncher(InvocationCapture c) =>

@@ -3,7 +3,7 @@ namespace MobreadModernDock.Infrastructure.Windows.Adapters;
 using System.Diagnostics;
 using MobreadModernDock.Core.Domain;
 
-/// <summary>Direct port of DefaultFolderLauncher.java.</summary>
+/// <summary>Opens a folder in Explorer.</summary>
 public class WindowsFolderLauncher : IFolderLauncher
 {
     public void Launch(string folderPath, string label)

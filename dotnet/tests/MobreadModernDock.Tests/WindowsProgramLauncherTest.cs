@@ -3,7 +3,7 @@ namespace MobreadModernDock.Tests;
 using System.IO;
 using MobreadModernDock.Infrastructure.Windows.Adapters;
 
-/// <summary>Direct port of DefaultProgramLauncherTest.java</summary>
+/// <summary>Launching executables, including Squirrel apps and elevation fallback.</summary>
 public class WindowsProgramLauncherTest
 {
     private string _tempDir = null!;

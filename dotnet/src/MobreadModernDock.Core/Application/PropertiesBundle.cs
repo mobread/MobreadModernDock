@@ -4,9 +4,8 @@ using System.Reflection;
 using System.Text;
 
 /// <summary>
-/// Reads Java-style .properties resource files embedded in the assembly.
-/// Handles the ISO-8859-1 encoding with \uXXXX escape sequences that Java
-/// ResourceBundle uses, so the original 21 locale files can be used verbatim.
+/// Reads .properties resource files embedded in the assembly, resolving the
+/// \uXXXX escape sequences the format uses for non-Latin scripts.
 /// </summary>
 internal static class PropertiesBundle
 {
@@ -35,9 +34,9 @@ internal static class PropertiesBundle
         if (stream == null)
             return;
 
-        // The original .properties files were saved as UTF-8 (not the Java-standard
-        // ISO-8859-1), so we read them as UTF-8. \uXXXX escapes are still resolved
-        // for the files that use them (e.g. non-Latin scripts).
+        // Our .properties files are UTF-8 rather than the format's traditional
+        // ISO-8859-1. \uXXXX escapes are still resolved for the files that use
+        // them (e.g. non-Latin scripts).
         using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
         string? line;
         while ((line = reader.ReadLine()) != null)

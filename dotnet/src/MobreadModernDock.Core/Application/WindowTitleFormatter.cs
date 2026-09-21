@@ -1,7 +1,7 @@
 namespace MobreadModernDock.Core.Application;
 
 /// <summary>
-/// Direct port of WindowPreviewPopup's title/contrast logic (JavaFX).
+/// Title and contrast logic for the window-preview popup.
 /// Pure functions — no UI dependency.
 /// </summary>
 public static class WindowTitleFormatter
@@ -35,7 +35,7 @@ public static class WindowTitleFormatter
 
     /// <summary>
     /// True when the dock background RGB is dark enough to need white text
-    /// (brightness threshold 128, JavaFX parity).
+    /// (brightness threshold 128).
     /// </summary>
     public static bool IsDarkBackground(string? colorRgb)
     {

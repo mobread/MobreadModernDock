@@ -3,7 +3,7 @@ namespace MobreadModernDock.Core.Models;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// Direct port of DockSettingsItemModel. The serialized "path" property
+/// The serialized "path" property
 /// holds the icon resource path; "label" defaults to "Settings".
 /// </summary>
 public class DockSettingsItemModel : DockItem

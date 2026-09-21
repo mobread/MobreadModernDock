@@ -5,7 +5,6 @@ using MobreadModernDock.Infrastructure.Windows.Native;
 
 /// <summary>
 /// Adapter wrapping WindowsIconExtractor to implement IIconGateway.
-/// Direct port of CachedWindowsIconGateway.java.
 /// </summary>
 public class CachedWindowsIconGateway : IIconGateway
 {

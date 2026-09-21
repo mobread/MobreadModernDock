@@ -4,13 +4,9 @@ using System.Globalization;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// Polymorphic dock-item interface. The JSON attributes replicate the Jackson
-/// <c>@JsonTypeInfo</c>/<c>@JsonSubTypes</c> configuration so that config.json
-/// stays <b>format-compatible</b> with the original Java application.
-///
-/// The <c>@type</c> discriminator property maps to the same subtype names:
-/// programItem, folderItem, windowsModuleItem, settingsItem. The
-/// separatorItem subtype is an addition of this fork.
+/// Polymorphic dock-item interface. The <c>@type</c> discriminator property
+/// distinguishes the subtypes in config.json: programItem, folderItem,
+/// windowsModuleItem, settingsItem, separatorItem.
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "@type")]
 [JsonDerivedType(typeof(DockProgramItemModel), "programItem")]

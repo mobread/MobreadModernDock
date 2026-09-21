@@ -10,16 +10,12 @@ public static class AutoStartHelper
 {
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string AppName = "MobreadModernDock";
-    // Migration shim, not branding: an auto-start entry written by the app this
-    // one grew out of. Recognising it stops an upgrader ending up with two
-    // startup entries, or a stale one pointing at a program they removed.
-    private const string LegacyAppName = "CedroModernDock";
 
     /// <summary>Returns true if the app is registered for auto-start.</summary>
     public static bool IsAutoStartEnabled()
     {
         using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath);
-        return key?.GetValue(AppName) != null || key?.GetValue(LegacyAppName) != null;
+        return key?.GetValue(AppName) != null;
     }
 
     /// <summary>Registers the app to start on Windows login.</summary>
@@ -30,7 +26,6 @@ public static class AutoStartHelper
         {
             string exePath = Environment.ProcessPath ?? Application.ExecutablePath;
             key.SetValue(AppName, $"\"{exePath}\"");
-            key.DeleteValue(LegacyAppName, false); // pre-rename entry pointed at the old exe
         }
     }
 
@@ -39,6 +34,5 @@ public static class AutoStartHelper
     {
         using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: true);
         key?.DeleteValue(AppName, false);
-        key?.DeleteValue(LegacyAppName, false);
     }
 }

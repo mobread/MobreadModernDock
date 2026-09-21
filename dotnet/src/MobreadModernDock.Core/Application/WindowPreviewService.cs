@@ -3,7 +3,7 @@ namespace MobreadModernDock.Core.Application;
 using MobreadModernDock.Core.Domain;
 using MobreadModernDock.Core.Models;
 
-/// <summary>Direct port of WindowPreviewService.</summary>
+/// <summary>Lists the open windows of a program, for the hover preview popup.</summary>
 public class WindowPreviewService
 {
     private readonly IWindowQueryGateway _windowQueryGateway;

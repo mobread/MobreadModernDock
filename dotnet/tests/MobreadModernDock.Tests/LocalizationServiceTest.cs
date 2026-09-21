@@ -4,7 +4,7 @@ using MobreadModernDock.Core.Application;
 using MobreadModernDock.Core.Domain;
 using MobreadModernDock.Core.Models;
 
-/// <summary>Direct port of LocalizationServiceTest.java</summary>
+/// <summary>Language bundle loading, fallbacks and format arguments.</summary>
 public class LocalizationServiceTest
 {
     [Fact]

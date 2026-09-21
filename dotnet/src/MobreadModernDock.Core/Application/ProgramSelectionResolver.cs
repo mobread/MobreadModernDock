@@ -3,7 +3,7 @@ namespace MobreadModernDock.Core.Application;
 using System.IO;
 
 /// <summary>
-/// Direct port of ProgramSelectionResolver. Resolves a user-selected executable,
+/// Resolves a user-selected executable,
 /// handling Squirrel-installed apps (e.g. Discord) where the user picks Update.exe
 /// but the real app lives inside an app-x.y.z subfolder.
 /// </summary>

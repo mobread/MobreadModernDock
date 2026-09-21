@@ -1,6 +1,6 @@
 namespace MobreadModernDock.Core.Models;
 
-/// <summary>Direct port of the Java DockHorizontalAnchor enum.</summary>
+/// <summary>Which screen edge the dock anchors to horizontally.</summary>
 public enum DockHorizontalAnchor
 {
     LEFT,

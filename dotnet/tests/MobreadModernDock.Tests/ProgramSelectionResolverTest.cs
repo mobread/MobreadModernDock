@@ -3,7 +3,7 @@ namespace MobreadModernDock.Tests;
 using System.IO;
 using MobreadModernDock.Core.Application;
 
-/// <summary>Direct port of ProgramSelectionResolverTest.java</summary>
+/// <summary>Resolving a user-picked executable or shortcut into a dock item.</summary>
 public class ProgramSelectionResolverTest
 {
     private string _tempDir = null!;

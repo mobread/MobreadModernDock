@@ -4,7 +4,7 @@ using MobreadModernDock.Core.Application;
 using MobreadModernDock.Core.Domain;
 using MobreadModernDock.Core.Models;
 
-/// <summary>Direct port of DockServiceTest.java, extended for the "Settings gear stays last" rule.</summary>
+/// <summary>Dock item CRUD, persistence, and the "Settings gear stays last" rule.</summary>
 public class DockServiceTest
 {
     [Fact]

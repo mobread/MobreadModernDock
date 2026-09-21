@@ -16,8 +16,7 @@ namespace MobreadModernDock.ViewModels;
 
 /// <summary>
 /// Main dock ViewModel. Holds the dock items collection, appearance settings,
-/// and the running-app indicator watcher. Direct port of DockController's
-/// state and update logic, expressed as MVVM bindings.
+/// and the running-app indicator watcher, expressed as MVVM bindings.
 /// </summary>
 public partial class MainWindowViewModel : ViewModelBase
 {

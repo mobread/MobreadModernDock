@@ -5,8 +5,6 @@ namespace MobreadModernDock.Infrastructure.Windows.Native;
 
 /// <summary>
 /// P/Invoke additions for Windows Shell icon extraction.
-/// Direct equivalents of the JNA Shell32Ex/User32Ex/Comctl32Ex interfaces
-/// in the original WindowsIconHandler.java.
 /// </summary>
 internal static class Shell32
 {

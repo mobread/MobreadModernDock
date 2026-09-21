@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using System.Xml;
 
 /// <summary>
-/// Direct port of WindowsIconHandler.java. Extracts high-resolution (256x256)
+/// Extracts high-resolution (256x256)
 /// icons from executables and folders using the Windows Shell API, and caches
 /// them as PNG files in %APPDATA%\MobreadModernDock\iconsCache.
 /// Uses System.Drawing.Icon.FromHandle() for HICON→Bitmap conversion.

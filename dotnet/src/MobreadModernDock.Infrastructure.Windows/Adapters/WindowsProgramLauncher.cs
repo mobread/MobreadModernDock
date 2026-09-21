@@ -4,9 +4,9 @@ using System.Diagnostics;
 using MobreadModernDock.Core.Domain;
 
 /// <summary>
-/// Direct port of DefaultProgramLauncher.java. Launches executables,
-/// with special handling for Discord (Squirrel-installed apps) and
-/// automatic elevation (UAC) when the standard launch fails with error=740.
+/// Launches executables, with special handling for Discord (Squirrel-installed
+/// apps) and automatic elevation (UAC) when the standard launch fails with
+/// error=740.
 /// </summary>
 public class WindowsProgramLauncher : IProgramLauncher
 {
@@ -190,6 +190,5 @@ public class WindowsProgramLauncher : IProgramLauncher
 
     private static string EscapePowerShellArgument(string argument) => argument.Replace("'", "''");
 
-    /// <summary>Direct port of the Java LaunchCommand record.</summary>
     public sealed record LaunchCommand(string ExecutablePath, string[] Arguments);
 }

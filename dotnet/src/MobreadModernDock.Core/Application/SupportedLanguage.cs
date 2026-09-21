@@ -3,9 +3,8 @@ namespace MobreadModernDock.Core.Application;
 using System.Globalization;
 
 /// <summary>
-/// Direct port of the Java SupportedLanguage enum.
 /// Each value carries a .NET culture and a native display name.
-/// The enum is serialized by name (e.g. "EN_US") to match the Java config.json.
+/// The enum is serialized by name (e.g. "EN_US") in config.json.
 /// </summary>
 public enum SupportedLanguage
 {

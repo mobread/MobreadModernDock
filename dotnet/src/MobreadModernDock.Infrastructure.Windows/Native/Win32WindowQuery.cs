@@ -4,7 +4,6 @@ using System.IO;
 namespace MobreadModernDock.Infrastructure.Windows.Native;
 
 /// <summary>
-/// Direct port of the original Java NativeWindowUtils.
 /// Enumerates open top-level windows matching a given executable path,
 /// and activates (restores + foregrounds) a specific window.
 /// </summary>

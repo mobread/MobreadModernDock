@@ -1610,7 +1610,7 @@ public partial class MainWindow : Window
             vm.StatusText = status;
     }
 
-    /// <summary>Opens the settings window. Port of App.java openSettingsWindow().</summary>
+    /// <summary>Opens the settings window.</summary>
     private void OpenSettings(MainWindowViewModel vm)
     {
         if (_appServices == null) return;
@@ -1622,7 +1622,7 @@ public partial class MainWindow : Window
         );
     }
 
-    /// <summary>Port of App.java handlePositioningModeChange().</summary>
+    /// <summary></summary>
     private void HandlePositioningModeChange(DockPositioningMode mode)
     {
         if (_appServices == null) return;

@@ -2,7 +2,10 @@ namespace MobreadModernDock.Core.Application;
 
 using MobreadModernDock.Core.Models;
 
-/// <summary>Direct port of DockAppearanceService.</summary>
+/// <summary>
+/// Reads and writes every appearance setting on the dock model — icon size,
+/// spacing, colour, rounding, magnification and the rest — saving on each change.
+/// </summary>
 public class DockAppearanceService
 {
     private readonly DockService _dockService;

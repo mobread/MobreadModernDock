@@ -4,10 +4,10 @@ using System.Text.Json.Serialization;
 using MobreadModernDock.Core.Application;
 
 /// <summary>
-/// Direct port of DockModel. Holds the full dock configuration: items,
+/// Holds the full dock configuration: items,
 /// appearance settings, positioning, and language.
 ///
-/// JSON property names use camelCase to match the original Java/Jackson
+/// JSON property names use camelCase to match the established
 /// config.json format exactly, ensuring existing user configs load as-is.
 /// </summary>
 public class DockModel

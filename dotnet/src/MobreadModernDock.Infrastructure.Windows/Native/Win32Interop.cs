@@ -5,8 +5,6 @@ namespace MobreadModernDock.Infrastructure.Windows.Native;
 
 /// <summary>
 /// Win32 constants and P/Invoke declarations used by the dock's native interop layer.
-/// Direct equivalent of the JNA calls in the original Java project's NativeWindowUtils
-/// and WindowsIconHandler, now expressed as idiomatic .NET P/Invoke.
 /// </summary>
 public static class Win32Constants
 {

@@ -1,6 +1,6 @@
 namespace MobreadModernDock.Core.Models;
 
-/// <summary>Direct port of the Java DockVerticalAnchor enum.</summary>
+/// <summary>Which screen edge the dock anchors to vertically.</summary>
 public enum DockVerticalAnchor
 {
     TOP,

@@ -3,8 +3,8 @@ namespace MobreadModernDock.Infrastructure.Windows.Adapters;
 using System.Threading;
 
 /// <summary>
-/// Single-instance guard using a named Mutex (more robust than the Java
-/// FileLock approach). Prevents multiple instances of the dock from running.
+/// Single-instance guard using a named Mutex. Prevents multiple instances of
+/// the dock from running at once.
 /// </summary>
 public sealed class SingleInstanceGuard : IDisposable
 {

@@ -2,8 +2,8 @@ namespace MobreadModernDock.Core.Application;
 
 /// <summary>
 /// Port providing screen geometry, abstracting the platform-specific screen
-/// enumeration (JavaFX Screen / Avalonia Screen / Win32 monitor enumeration).
-/// Coordinates are in device pixels, matching the original JavaFX visual bounds.
+/// enumeration (Avalonia Screen / Win32 monitor enumeration).
+/// Coordinates are in device pixels, and exclude the taskbar and other appbars.
 /// </summary>
 public interface IScreenBoundsProvider
 {

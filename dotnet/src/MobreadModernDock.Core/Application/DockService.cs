@@ -4,8 +4,8 @@ using MobreadModernDock.Core.Domain;
 using MobreadModernDock.Core.Models;
 
 /// <summary>
-/// Direct port of DockService. Holds the dock model loaded from the repository
-/// and persists changes on every mutating operation.
+/// Holds the dock model loaded from the repository and persists changes on
+/// every mutating operation.
 /// </summary>
 public class DockService
 {

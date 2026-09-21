@@ -3,7 +3,10 @@ namespace MobreadModernDock.Core.Application;
 using MobreadModernDock.Core.Domain;
 using MobreadModernDock.Core.Models;
 
-/// <summary>Direct port of DockItemActionService.</summary>
+/// <summary>
+/// Executes a dock item: launches a program, opens a folder, or opens a
+/// built-in Windows surface, depending on the item's type.
+/// </summary>
 public class DockItemActionService
 {
     private readonly IFolderLauncher _folderLauncher;

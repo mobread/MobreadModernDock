@@ -3,7 +3,7 @@ namespace MobreadModernDock.Core.Models;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// Direct port of DockWindowsModuleItemModel. The "module" field identifies
+/// The "module" field identifies
 /// which built-in Windows surface this item opens (start, mypc, trash, ctrlpnl, pconfig).
 /// The icon path is derived from the module in the constructor.
 /// </summary>

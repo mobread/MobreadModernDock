@@ -7,22 +7,17 @@ using MobreadModernDock.Core.Domain;
 using MobreadModernDock.Core.Models;
 
 /// <summary>
-/// Direct port of JsonDockRepository. Persists the dock configuration to
-/// config.json using System.Text.Json with polymorphic @type discrimination,
-/// keeping the JSON format identical to the original Java/Jackson output.
+/// Persists the dock configuration to config.json with System.Text.Json,
+/// using polymorphic @type discrimination for the dock-item subtypes.
 ///
-/// The config file lives in %APPDATA%\MobreadModernDock\config.json (Windows-specific).
+/// The config file lives in %APPDATA%\MobreadModernDock\config.json (Windows-specific),
+/// or beside the executable in portable mode.
 /// A future Infrastructure.MacOS/Linux sibling would use a different base path.
 /// </summary>
 public sealed class JsonDockRepository : IDockRepository
 {
     private const string ConfigFileName = "config.json";
     private const string AppDataFolder = "MobreadModernDock";
-    // Migration shim, not branding: settings written by the app this one grew
-    // out of still live here. Reading it means an upgrader keeps their dock
-    // instead of silently starting from defaults. Safe to drop only once
-    // upgraders can be assumed to have moved over.
-    private const string LegacyAppDataFolder = "CedroModernDock";
 
     private readonly string _configFilePath;
     private readonly JsonSerializerOptions _serializerOptions;
@@ -149,7 +144,7 @@ public sealed class JsonDockRepository : IDockRepository
         var options = new JsonSerializerOptions
         {
             WriteIndented = true,
-            // Use camelCase to match the original Java/Jackson config.json format
+            // Use camelCase to match the established config.json format
             // (label, path, module, iconsSize, dockColorRGB, etc.). Explicit
             // [JsonPropertyName] attributes on DockModel take precedence and are
             // kept for clarity, but the policy ensures DockItem subtypes' plain
@@ -173,43 +168,9 @@ public sealed class JsonDockRepository : IDockRepository
     private static string GetDefaultConfigPath()
     {
         string configDir = Adapters.AppDataLocator.Root;
-        if (!Adapters.AppDataLocator.IsPortable)
-        {
-            string? appDataPath = Path.GetDirectoryName(configDir);
-            if (!string.IsNullOrEmpty(appDataPath)) MigrateLegacyAppData(appDataPath, configDir);
-        }
         if (!Directory.Exists(configDir))
             Directory.CreateDirectory(configDir);
 
         return Path.Combine(configDir, ConfigFileName);
-    }
-
-    /// <summary>
-    /// One-time carry-over from the pre-rename %APPDATA%\CedroModernDock folder:
-    /// if the new folder doesn't exist yet and the legacy one does, copy it
-    /// (config + icon cache) so the first launch after upgrading keeps the
-    /// user's shortcuts and settings. The legacy folder is left in place.
-    /// </summary>
-    private static void MigrateLegacyAppData(string appDataPath, string configDir)
-    {
-        try
-        {
-            string legacyDir = Path.Combine(appDataPath, LegacyAppDataFolder);
-            if (Directory.Exists(configDir) || !Directory.Exists(legacyDir)) return;
-            CopyDirectory(legacyDir, configDir);
-        }
-        catch (Exception e)
-        {
-            System.Diagnostics.Debug.WriteLine($"Legacy app-data migration failed: {e.Message}");
-        }
-    }
-
-    private static void CopyDirectory(string source, string target)
-    {
-        Directory.CreateDirectory(target);
-        foreach (string file in Directory.GetFiles(source))
-            File.Copy(file, Path.Combine(target, Path.GetFileName(file)), overwrite: false);
-        foreach (string dir in Directory.GetDirectories(source))
-            CopyDirectory(dir, Path.Combine(target, Path.GetFileName(dir)));
     }
 }

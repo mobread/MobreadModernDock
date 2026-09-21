@@ -3,7 +3,7 @@ namespace MobreadModernDock.Core.Models;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// Direct port of DockFolderItemModel. The serialized "path" property
+/// The serialized "path" property
 /// holds the folder path; FolderPath is a non-serialized convenience alias.
 /// </summary>
 public class DockFolderItemModel : DockItem

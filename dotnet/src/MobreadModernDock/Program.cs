@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using System;
 using System.IO;
 using MobreadModernDock.Core.Application;
@@ -29,7 +29,7 @@ sealed class Program
         catch { }
 
         // Single-instance guard — prevents multiple dock instances.
-        // Port of App.java's SingleInstanceGuard + localized warning dialog.
+        //
         _singleInstanceGuard = new SingleInstanceGuard();
         if (!_singleInstanceGuard.TryAcquire())
         {

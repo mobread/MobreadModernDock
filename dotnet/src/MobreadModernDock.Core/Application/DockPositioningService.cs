@@ -3,7 +3,8 @@ namespace MobreadModernDock.Core.Application;
 using MobreadModernDock.Core.Models;
 
 /// <summary>
-/// Direct port of DockPositioningService, with the JavaFX Screen dependency
+/// Decides where the dock sits: anchored to a screen edge in STATIC mode, or
+/// at the user's dragged position in DYNAMIC mode. Screen geometry is
 /// abstracted behind IScreenBoundsProvider so the Core stays platform-agnostic.
 /// </summary>
 public class DockPositioningService

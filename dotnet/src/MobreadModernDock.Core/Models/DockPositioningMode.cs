@@ -1,6 +1,9 @@
 namespace MobreadModernDock.Core.Models;
 
-/// <summary>Direct port of the Java DockPositioningMode enum.</summary>
+/// <summary>
+/// STATIC anchors the dock to a screen edge; DYNAMIC keeps the position the
+/// user dragged it to.
+/// </summary>
 public enum DockPositioningMode
 {
     STATIC,

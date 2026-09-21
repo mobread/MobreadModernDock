@@ -3,9 +3,8 @@ namespace MobreadModernDock.Core.Models;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// Direct port of DockProgramItemModel. The serialized "path" property
-/// holds the executable path; the ExecutablePath accessor is a non-serialized
-/// convenience alias (matching the Java @JsonIgnore getExecutablePath).
+/// A pinned program. The serialized "path" property holds the executable
+/// path; the ExecutablePath accessor is a non-serialized convenience alias.
 /// </summary>
 public class DockProgramItemModel : DockItem
 {

@@ -6,7 +6,6 @@ using MobreadModernDock.Infrastructure.Windows.Native;
 
 /// <summary>
 /// Adapter wrapping Win32WindowQuery to implement IWindowQueryGateway.
-/// Direct port of JnaWindowQueryGateway.java.
 /// </summary>
 public class Win32WindowQueryGateway : IWindowQueryGateway
 {

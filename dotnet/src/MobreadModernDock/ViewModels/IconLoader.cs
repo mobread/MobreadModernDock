@@ -92,16 +92,16 @@ public static class IconLoader
     }
 
     /// <summary>
-    /// Maps a Java-style resource path (e.g. "/com/github/.../icons/settings.png")
-    /// to the Avalonia asset path ("Assets/icons/settings.png").
+    /// Maps a legacy slash-separated resource path (e.g.
+    /// "/com/github/.../icons/settings.png") stored in older configs to the
+    /// Avalonia asset path ("Assets/icons/settings.png").
     /// </summary>
-    public static string? MapResourcePath(string? javaResourcePath)
+    public static string? MapResourcePath(string? resourcePath)
     {
-        if (string.IsNullOrEmpty(javaResourcePath))
+        if (string.IsNullOrEmpty(resourcePath))
             return null;
 
-        // Extract the filename from the Java resource path.
-        string fileName = Path.GetFileName(javaResourcePath);
+        string fileName = Path.GetFileName(resourcePath);
         return $"Assets/icons/{fileName}";
     }
 }

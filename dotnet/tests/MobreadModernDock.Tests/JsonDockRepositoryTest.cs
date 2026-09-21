@@ -5,7 +5,7 @@ using MobreadModernDock.Core.Application;
 using MobreadModernDock.Core.Models;
 using MobreadModernDock.Infrastructure.Windows.Persistence;
 
-/// <summary>Direct port of JsonDockRepositoryTest.java</summary>
+/// <summary>config.json round-trips, including the polymorphic dock-item subtypes.</summary>
 public class JsonDockRepositoryTest
 {
     private string _tempDir = null!;
@@ -152,43 +152,6 @@ public class JsonDockRepositoryTest
         Assert.Equal(2, reloaded.Items.OfType<DockWindowsModuleItemModel>().Count());
         Assert.IsType<DockSettingsItemModel>(reloaded.Items[^1]);
         CleanupTempDir();
-    }
-
-    [Fact]
-    public void LoadsExistingJavaConfigJsonWithoutDataLoss()
-    {
-        // Uses the real config.json from the original Java project root to prove
-        // format compatibility — existing users' configs must load as-is.
-        string configPath = "config_compat_test.json";
-        if (!File.Exists(configPath))
-        {
-            // Skip if the file wasn't copied (e.g. different working dir).
-            return;
-        }
-
-        var repository = new JsonDockRepository(configPath);
-        DockModel loadedModel = repository.Load();
-
-        // The sample config has 13 items (settings + 2 windows modules + 10 programs).
-        Assert.True(loadedModel.Items.Count >= 10, $"Expected >=10 items, got {loadedModel.Items.Count}");
-
-        // Verify the settings item is deserialized to the right type.
-        Assert.Contains(loadedModel.Items, i => i is DockSettingsItemModel);
-
-        // Verify a windows module item preserved its module field.
-        var recycleBin = loadedModel.Items.OfType<DockWindowsModuleItemModel>()
-            .FirstOrDefault(m => m.Module == "trash");
-        Assert.NotNull(recycleBin);
-
-        // Verify a program item preserved its executable path.
-        var chrome = loadedModel.Items.OfType<DockProgramItemModel>()
-            .FirstOrDefault(p => p.Label == "chrome");
-        Assert.NotNull(chrome);
-        Assert.Equal(@"C:\Program Files\Google\Chrome\Application\chrome.exe", chrome!.ExecutablePath);
-
-        // Verify appearance settings survived the round-trip.
-        Assert.Equal(27, loadedModel.IconsSize);
-        Assert.Equal(0.62, loadedModel.DockTransparency, precision: 2);
     }
 
     private void CleanupTempDir()

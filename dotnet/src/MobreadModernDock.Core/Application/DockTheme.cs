@@ -1,4 +1,4 @@
 namespace MobreadModernDock.Core.Application;
 
-/// <summary>Direct port of the Java DockTheme record.</summary>
+/// <summary>The dock bar's visual identity: colour, transparency and corner rounding.</summary>
 public sealed record DockTheme(string ColorRgb, double Transparency, int BorderRounding);
