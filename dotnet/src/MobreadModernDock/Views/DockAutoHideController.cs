@@ -25,6 +25,7 @@ internal sealed class DockAutoHideController
 
     private readonly Func<DockWindowBehavior?> _behavior;
     private readonly Func<(int W, int H)> _size;
+    private readonly Func<(int X, int Y)> _inset;  // transparent headroom per side
     private readonly Func<bool> _blockHide;    // preview / menu open
     private readonly Func<(int X, int Y)> _restPosition; // where the dock lives when shown
     private readonly Func<(int L, int T, int R, int B)> _screenBounds;
@@ -46,13 +47,15 @@ internal sealed class DockAutoHideController
         Func<(int W, int H)> size,
         Func<(int X, int Y)> restPosition,
         Func<(int L, int T, int R, int B)> screenBounds,
-        Func<bool> blockHide)
+        Func<bool> blockHide,
+        Func<(int X, int Y)>? inset = null)
     {
         _behavior = behavior;
         _size = size;
         _restPosition = restPosition;
         _screenBounds = screenBounds;
         _blockHide = blockHide;
+        _inset = inset ?? (() => (0, 0));
         _poll.Tick += (_, _) => Poll();
         _hideDelay.Tick += (_, _) => { _hideDelay.Stop(); if (_enabled && !PointerOverDock() && !_blockHide()) Hide(); };
         _anim.Tick += (_, _) => AnimStep();
@@ -118,12 +121,21 @@ internal sealed class DockAutoHideController
         return p.X >= x && p.X < x + w && p.Y >= y && p.Y < y + h;
     }
 
+    /// <summary>
+    /// Rect of the <i>visible bar</i> in screen pixels: the window rect minus
+    /// the transparent headroom it carries for the attention bounce and for
+    /// magnified end icons. Hover detection and the hide-edge choice both have
+    /// to use this - the headroom is invisible, so treating it as part of the
+    /// dock would keep the dock awake while the pointer is over empty space,
+    /// and could pick the wrong edge to hide against.
+    /// </summary>
     private (int X, int Y, int W, int H) CurrentRect()
     {
         var b = _behavior();
         var (w, h) = _size();
         var (x, y) = b?.GetScreenPosition() ?? _restPosition();
-        return (x, y, w, h);
+        var (ix, iy) = _inset();
+        return (x + ix, y + iy, Math.Max(1, w - 2 * ix), Math.Max(1, h - 2 * iy));
     }
 
     private void Hide() { _hidden = true; SlideTo(HiddenPosition()); }
@@ -135,12 +147,18 @@ internal sealed class DockAutoHideController
         var (rx, ry) = _restPosition();
         var (w, h) = _size();
         var (l, t, r, btm) = _screenBounds();
-        int dLeft = rx - l, dRight = r - (rx + w), dTop = ry - t, dBottom = btm - (ry + h);
+        var (ix, iy) = _inset();
+        // Measure the bar, not the padded window, so the nearest edge is the
+        // one the user sees the dock against.
+        int bx = rx + ix, by = ry + iy;
+        int bw = Math.Max(1, w - 2 * ix), bh = Math.Max(1, h - 2 * iy);
+        int dLeft = bx - l, dRight = r - (bx + bw), dTop = by - t, dBottom = btm - (by + bh);
         int min = Math.Min(Math.Min(dLeft, dRight), Math.Min(dTop, dBottom));
-        if (min == dBottom) return (rx, btm - SliverPx);
-        if (min == dTop) return (rx, t - h + SliverPx);
-        if (min == dLeft) return (l - w + SliverPx, ry);
-        return (r - SliverPx, ry);
+        // Targets are window positions: push the bar off-screen, then convert.
+        if (min == dBottom) return (rx, btm - SliverPx - iy);
+        if (min == dTop) return (rx, t - bh + SliverPx - iy);
+        if (min == dLeft) return (l - bw + SliverPx - ix, ry);
+        return (r - SliverPx - ix, ry);
     }
 
     private void SlideTo((int X, int Y) target, bool animate = true)

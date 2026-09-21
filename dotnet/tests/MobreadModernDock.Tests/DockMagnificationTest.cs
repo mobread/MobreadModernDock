@@ -173,4 +173,79 @@ public class DockMagnificationTest
         Assert.True(DockMagnification.IsOutOfRange(sizes, 900, 120));
         Assert.False(DockMagnification.IsOutOfRange(sizes, 100, 120));
     }
+
+    // --- Side headroom for the end icons ---
+
+    /// <summary>
+    /// The contract that keeps the end icons on screen: whatever pointer
+    /// position the user picks, neither end item may be displaced further than
+    /// the headroom the window reserved. If this fails the end icons get
+    /// sliced off at the window edge.
+    /// </summary>
+    [Fact]
+    public void ReservedOverhangCoversEveryPointerPosition()
+    {
+        var sizes = Sizes(21, 52);
+        double influence = 52 * DockMagnification.InfluenceIcons;
+        double reserved = DockMagnification.MaxOverhang(sizes, 1.8, influence);
+
+        double total = 0;
+        foreach (var s in sizes) total += s;
+
+        for (double p = -60; p <= total + 60; p += 3)
+        {
+            var scales = DockMagnification.ComputeScales(sizes, p, 1.8, influence);
+            var offsets = DockMagnification.ComputeOffsets(sizes, scales);
+
+            // Outer edges of the end items once scaled about their centres.
+            double left = -(offsets[0] - sizes[0] * (scales[0] - 1) / 2);
+            double right = offsets[^1] + sizes[^1] * (scales[^1] - 1) / 2;
+
+            Assert.True(left <= reserved + 1e-6,
+                $"left overhang {left:F2} exceeded reserved {reserved:F2} at pointer {p}");
+            Assert.True(right <= reserved + 1e-6,
+                $"right overhang {right:F2} exceeded reserved {reserved:F2} at pointer {p}");
+        }
+    }
+
+    /// <summary>
+    /// The headroom costs window width, so it must vanish when the feature is
+    /// off - a non-magnifying dock keeps exactly its old size.
+    /// </summary>
+    [Fact]
+    public void NoOverhangIsReservedWhenMagnificationIsOff()
+    {
+        var sizes = Sizes(10);
+        Assert.Equal(0, DockMagnification.MaxOverhang(sizes, 1.0, 120), 6);
+        Assert.Equal(0, DockMagnification.MaxOverhang(sizes, 1.8, 0), 6);
+        Assert.Equal(0, DockMagnification.MaxOverhang(Array.Empty<double>(), 1.8, 120), 6);
+    }
+
+    [Fact]
+    public void OverhangGrowsWithScaleAndIconSize()
+    {
+        double infl = 48 * DockMagnification.InfluenceIcons;
+        double small = DockMagnification.MaxOverhang(Sizes(15), 1.3, infl);
+        double large = DockMagnification.MaxOverhang(Sizes(15), 2.0, infl);
+        Assert.True(large > small, $"a bigger scale must need more room ({large} vs {small})");
+
+        double bigIcons = DockMagnification.MaxOverhang(
+            Sizes(15, 96), 2.0, 96 * DockMagnification.InfluenceIcons);
+        Assert.True(bigIcons > large, "bigger icons must need more room");
+    }
+
+    /// <summary>
+    /// A dock with only a couple of icons cannot expand as much as a long one
+    /// (most of the falloff window hangs off the row), so it must not reserve
+    /// the full-length worst case.
+    /// </summary>
+    [Fact]
+    public void AShortDockReservesLessThanALongOne()
+    {
+        double infl = 48 * DockMagnification.InfluenceIcons;
+        double shortDock = DockMagnification.MaxOverhang(Sizes(2), 1.8, infl);
+        double longDock = DockMagnification.MaxOverhang(Sizes(30), 1.8, infl);
+        Assert.True(shortDock < longDock, $"{shortDock} should be < {longDock}");
+        Assert.True(shortDock > 0);
+    }
 }

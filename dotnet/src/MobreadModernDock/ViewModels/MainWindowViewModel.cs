@@ -60,6 +60,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 OnPropertyChanged(nameof(DockOrientation));
                 OnPropertyChanged(nameof(ShowHorizontalSeparator));
                 OnPropertyChanged(nameof(ShowVerticalSeparator));
+                // The magnification headroom swaps axes with the dock.
+                OnPropertyChanged(nameof(DockBarMargin));
             }
         }
     }
@@ -152,6 +154,37 @@ public partial class MainWindowViewModel : ViewModelBase
         set { if (SetProperty(ref _dockPadding, value)) OnPropertyChanged(nameof(DockPadding)); }
     }
     public Thickness DockPadding => new Thickness(_dockPadding);
+
+    private double _magnifyOverhang;
+    /// <summary>
+    /// Transparent headroom, in layout units, reserved either side of the bar
+    /// so magnified end icons are not sliced off at the window's edge.
+    ///
+    /// A window cannot paint outside its own bounds, so <c>ClipToBounds</c>
+    /// alone cannot save them: the room has to exist in the window. The dock
+    /// already reserves 12px above the bar for the attention bounce; this is
+    /// the same idea along the dock's main axis, sized from the magnification
+    /// settings (see <see cref="DockMagnification.MaxOverhang"/>) and 0 while
+    /// magnification is off, so a non-magnifying dock keeps its exact old size.
+    /// </summary>
+    public double MagnifyOverhang
+    {
+        get => _magnifyOverhang;
+        set
+        {
+            if (SetProperty(ref _magnifyOverhang, value))
+                OnPropertyChanged(nameof(DockBarMargin));
+        }
+    }
+
+    /// <summary>
+    /// Margin around the dock bar: 12px of bounce headroom above, plus
+    /// magnification headroom along the main axis. Vertical docks need the
+    /// overhang top and bottom instead of left and right.
+    /// </summary>
+    public Thickness DockBarMargin => IsVerticalDock
+        ? new Thickness(0, 12 + _magnifyOverhang, 0, _magnifyOverhang)
+        : new Thickness(_magnifyOverhang, 12, _magnifyOverhang, 0);
 
     private int _previewDelayMs = 400;
     /// <summary>

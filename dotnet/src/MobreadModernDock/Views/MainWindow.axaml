@@ -35,15 +35,19 @@
         </Style>
     </Window.Styles>
 
-    <!-- Dock bar: rounded background with items. The top margin is transparent
-         headroom so an attention-bounce (icon hops 10 px up) isn't clipped by
-         the window edge; ClipToBounds is off for the same reason. -->
+    <!-- Dock bar: rounded background with items. The margin is transparent
+         headroom: 12px above so an attention-bounce (icon hops 10 px up) isn't
+         clipped by the window edge, plus room along the dock's main axis for
+         magnified end icons, which are pushed outward past the bar. A window
+         cannot draw outside its own bounds, so that room has to exist here -
+         ClipToBounds alone cannot rescue them. It is 0 unless magnification
+         is on. -->
     <Border x:Name="DockBar"
             Opacity="{Binding WindowOpacity}"
             Background="{Binding DockBackground}"
             CornerRadius="{Binding DockCornerRadius}"
             Padding="{Binding DockPadding}"
-            Margin="0,12,0,0"
+            Margin="{Binding DockBarMargin}"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
             ClipToBounds="False"

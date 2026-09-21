@@ -167,7 +167,8 @@ public partial class MainWindow : Window
                 var sb = OwnScreenBounds();
                 return ((int)sb.MinX, (int)sb.MinY, (int)sb.MaxX, (int)sb.MaxY);
             },
-            blockHide: () => _previewPopup?.IsVisible == true || _folderStack?.IsVisible == true || _reorderInProgress);
+            blockHide: () => _previewPopup?.IsVisible == true || _folderStack?.IsVisible == true || _reorderInProgress,
+            inset: () => { var i = MagnifyInset(); return (i.X, i.Y); });
         ApplyAutoHideSetting();
 
         // Static anchors must use the finalized window size, which SizeToContent
@@ -186,6 +187,24 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Transparent headroom either side of the bar, in physical pixels, along
+    /// the dock's main axis. Everything that positions the dock works in terms
+    /// of the <i>visible bar</i>, so this converts between the two:
+    /// <c>window = bar - inset</c>.
+    ///
+    /// Without it an edge-anchored or edge-snapped dock would sit inset by the
+    /// headroom, and the bar would jump sideways whenever the magnification
+    /// setting changed the headroom's size.
+    /// </summary>
+    private PixelPoint MagnifyInset()
+    {
+        if (DataContext is not MainWindowViewModel vm || vm.MagnifyOverhang <= 0)
+            return new PixelPoint(0, 0);
+        int px = (int)Math.Round(vm.MagnifyOverhang * RenderScaling);
+        return vm.IsVerticalDock ? new PixelPoint(0, px) : new PixelPoint(px, 0);
+    }
+
+    /// <summary>
     /// Applies the dock position from the positioning service. In STATIC mode
     /// this re-anchors the dock to the current screen edge; in DYNAMIC mode the
     /// saved position is only applied once at startup (force) so the user's
@@ -195,7 +214,12 @@ public partial class MainWindow : Window
     {
         if (_appServices == null) return;
         if (!IsMirror && !force && _appServices.PositioningService.IsDynamicPositioning()) return;
-        var (x, y) = ResolveOwnPosition(Width, Height);
+        // Resolve against the visible bar, then step back by the headroom.
+        var inset = MagnifyInset();
+        double scale = Math.Max(0.01, RenderScaling);
+        var (bx, by) = ResolveOwnPosition(
+            Width - 2 * (inset.X / scale), Height - 2 * (inset.Y / scale));
+        var (x, y) = (bx - inset.X, by - inset.Y);
         if (_autoHide is { IsEnabled: true, IsHidden: true })
         {
             _autoHide.OnLayoutChanged();
@@ -229,8 +253,11 @@ public partial class MainWindow : Window
     private (int X, int Y) RestPosition()
     {
         if (_appServices == null) return GetScreenPosition();
-        var (x, y) = ResolveOwnPosition(Bounds.Width, Bounds.Height);
-        return ((int)x, (int)y);
+        var inset = MagnifyInset();
+        double scale = Math.Max(0.01, RenderScaling);
+        var (bx, by) = ResolveOwnPosition(
+            Bounds.Width - 2 * (inset.X / scale), Bounds.Height - 2 * (inset.Y / scale));
+        return ((int)bx - inset.X, (int)by - inset.Y);
     }
 
     private void ApplyAutoHideSetting()
@@ -256,6 +283,25 @@ public partial class MainWindow : Window
 
     private (int X, int Y) GetScreenPosition() =>
         _dockBehavior?.GetScreenPosition() ?? (Position.X, Position.Y);
+
+    /// <summary>
+    /// Screen rect of the <i>visible bar</i>: the window rect with the
+    /// transparent magnification headroom taken off each side.
+    ///
+    /// Edge snapping, centring, appbar reservation and tooltip placement all
+    /// have to reason about what the user can see. Using the raw window rect
+    /// would make a "snapped" dock sit a headroom-width away from the edge and
+    /// reserve a band of empty space.
+    /// </summary>
+    private PixelRect VisibleBarScreenRect()
+    {
+        var rect = ScreenGeometry.WindowScreenRect(this);
+        var inset = MagnifyInset();
+        return new PixelRect(
+            rect.X + inset.X, rect.Y + inset.Y,
+            Math.Max(1, rect.Width - 2 * inset.X),
+            Math.Max(1, rect.Height - 2 * inset.Y));
+    }
 
     private void OnDockSizeChanged(object? sender, SizeChangedEventArgs e)
     {
@@ -294,6 +340,51 @@ public partial class MainWindow : Window
             if (scale <= 1.0) { panel.UpdateMagnification(null); ClearDividerTransform(); }
         }
         SyncRowContext(pinned, running);
+        SyncMagnifyOverhang(vm, pinned, running);
+    }
+
+    /// <summary>
+    /// Sizes the transparent side headroom that keeps magnified end icons on
+    /// screen. Magnification pushes the row's end items outward by up to half
+    /// the row's expansion, and a window cannot paint outside its own bounds -
+    /// without this the end icons are sliced off at the window edge.
+    ///
+    /// Computed from the whole row (both panels plus the divider) so it matches
+    /// the geometry the panels actually arrange, and re-run from
+    /// <see cref="SyncPinnedPanel"/>, which already fires whenever the items or
+    /// the appearance settings change.
+    /// </summary>
+    private void SyncMagnifyOverhang(
+        MainWindowViewModel vm, DockItemsPanel pinned, DockItemsPanel? running)
+    {
+        double overhang = 0;
+        if (pinned.MagnifyScale > 1.0 && vm.DockLines <= 1)
+        {
+            // The same row the panels magnify over: ours, the divider gap, then
+            // the running apps (RestSizes already excludes a hidden panel).
+            var row = new List<double>(RestSizes(pinned));
+            if (running != null && RunningItems.IsVisible)
+            {
+                row.Add(GapBetweenPanels(pinned, running));
+                row.AddRange(RestSizes(running));
+            }
+
+            double influence = 0;
+            foreach (var s in row) influence = Math.Max(influence, s);
+            influence *= DockMagnification.InfluenceIcons;
+
+            overhang = DockMagnification.MaxOverhang(row, pinned.MagnifyScale, influence);
+            overhang = Math.Ceiling(overhang);
+        }
+
+        if (Math.Abs(vm.MagnifyOverhang - overhang) < 0.5) return;
+        vm.MagnifyOverhang = overhang;
+        // SizeToContent grows the window on the next layout pass, so the bar
+        // has to be re-placed against the new size. force: DYNAMIC mode ignores
+        // unforced calls to protect the user's drags, but this is our own
+        // layout change, not a drag - without it the bar shifts sideways by the
+        // headroom when magnification is switched on.
+        Dispatcher.UIThread.Post(() => ApplyDockPosition(force: true), DispatcherPriority.Loaded);
     }
 
     private static DockItemsPanel? FindPanel(ItemsControl host) =>
@@ -1306,17 +1397,21 @@ public partial class MainWindow : Window
     {
         if (_appServices == null || IsMirror) return;
 
-        var rect = ScreenGeometry.WindowScreenRect(this);
+        // Centre the visible bar, not the padded window.
+        var inset = MagnifyInset();
+        var rect = VisibleBarScreenRect();
         var work = ScreenGeometry.WorkAreaAt(
             new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2));
         var bounds = new ScreenBounds(work.X, work.Y, work.Width, work.Height);
 
-        var (x, y) = DockPositioningService.CenterAlongEdge(
+        var (bx, by) = DockPositioningService.CenterAlongEdge(
             bounds, rect.X, rect.Y, rect.Width, rect.Height,
             _appServices.AppearanceService.GetVerticalDock());
+        var (x, y) = (bx - inset.X, by - inset.Y);
 
         SetScreenPosition((int)x, (int)y);
-        _appServices.DockService.SetDockPosition((int)x, (int)y);
+        // Persist the bar position, matching how it is read back.
+        _appServices.DockService.SetDockPosition((int)bx, (int)by);
         App.RepositionMirrorDocks();
         ApplyEdgeReservation();
         // Auto-hide caches where the dock rests; without this the next hide
@@ -1466,6 +1561,21 @@ public partial class MainWindow : Window
         _positionPersistTimer.Start();
     }
 
+    /// <summary>
+    /// Persisted dock position, in <i>visible bar</i> coordinates.
+    ///
+    /// The saved position is read back as a bar position (see
+    /// <see cref="ApplyDockPosition"/>), so it has to be written as one too.
+    /// Storing the raw window position would shift the dock by the headroom
+    /// on the next launch, and again each time the headroom changed size.
+    /// </summary>
+    private (int X, int Y) BarPositionForPersist()
+    {
+        var (x, y) = GetScreenPosition();
+        var inset = MagnifyInset();
+        return (x + inset.X, y + inset.Y);
+    }
+
     private void PersistDockPosition()
     {
         if (_appServices == null || IsMirror) return;
@@ -1475,16 +1585,20 @@ public partial class MainWindow : Window
         var (x, y) = GetScreenPosition();
         if (_appServices.AppearanceService.GetEdgeSnapping())
         {
-            var rect = ScreenGeometry.WindowScreenRect(this);
+            // Snap what the user sees, then convert back to a window position.
+            var inset = MagnifyInset();
+            var rect = VisibleBarScreenRect();
             var work = ScreenGeometry.WorkAreaAt(new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2));
             var snapped = EdgeSnapper.Snap(rect, work, _appServices.AppearanceService.GetEdgeSnapMargin());
-            if (snapped.X != x || snapped.Y != y)
+            var target = new PixelPoint(snapped.X - inset.X, snapped.Y - inset.Y);
+            if (target.X != x || target.Y != y)
             {
-                SetScreenPosition(snapped.X, snapped.Y);
-                (x, y) = (snapped.X, snapped.Y);
+                SetScreenPosition(target.X, target.Y);
+                (x, y) = (target.X, target.Y);
             }
         }
-        _appServices.DockService.SetDockPosition(x, y);
+        var (px, py) = BarPositionForPersist();
+        _appServices.DockService.SetDockPosition(px, py);
         App.RepositionMirrorDocks();
         // Dragged to (or away from) an edge: re-evaluate what to reserve.
         ApplyEdgeReservation();
@@ -1515,15 +1629,20 @@ public partial class MainWindow : Window
         var currentMode = _appServices.PositioningService.GetPositioningMode();
         if (currentMode == DockPositioningMode.STATIC && mode == DockPositioningMode.DYNAMIC)
         {
-            var (x, y) = GetScreenPosition();
+            var (x, y) = BarPositionForPersist();
             _appServices.DockService.SetDockPosition(x, y);
         App.RepositionMirrorDocks();
         }
         _appServices.PositioningService.SetPositioningMode(mode);
     }
 
-    /// <summary>Current absolute screen position, for callers outside the window (App).</summary>
-    public (int X, int Y) CurrentScreenPosition => GetScreenPosition();
+    /// <summary>
+    /// Current position of the <i>visible bar</i>, for callers outside the
+    /// window (App). Bar coordinates, not window coordinates: the window
+    /// carries transparent headroom, and every persisted/derived position in
+    /// the app is expressed against what the user can see.
+    /// </summary>
+    public (int X, int Y) CurrentScreenPosition => BarPositionForPersist();
 
     /// <summary>Mirror docks: recompute the anchored position (primary moved or layout changed).</summary>
     public void ReapplyPosition() => ApplyDockPosition(force: true);
@@ -1534,7 +1653,7 @@ public partial class MainWindow : Window
         if (DataContext is not MainWindowViewModel vm) return;
         try
         {
-            var rect = ScreenGeometry.WindowScreenRect(this);
+            var rect = VisibleBarScreenRect();
             var work = ScreenGeometry.WorkAreaAt(new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2));
             vm.UpdateTooltipPlacement(rect.X, rect.Y, rect.Width, rect.Height, work.X, work.Y, work.Right, work.Bottom);
         }
@@ -1580,10 +1699,10 @@ public partial class MainWindow : Window
             return;
         }
 
-        // The window rect, not Bounds: SizeToContent plus the bounce headroom
-        // margin mean Bounds is the content, while the reserved strip has to
-        // match what the user sees at the edge.
-        var rect = ScreenGeometry.WindowScreenRect(this);
+        // The visible bar, not the window rect: SizeToContent plus the bounce
+        // and magnification headroom mean the window is larger than what the
+        // user sees, and the reserved strip has to match the visible bar.
+        var rect = VisibleBarScreenRect();
         var centre = new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
 
         // Measured against the full monitor, never the work area: the work
