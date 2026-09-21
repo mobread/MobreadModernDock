@@ -243,6 +243,7 @@
                                 <Button Classes="primary" Content="{Binding AddFolderText}" Click="OnAddFolder" HorizontalAlignment="Stretch"/>
                                 <Button Classes="primary" Content="{Binding AddModuleText}" Click="OnAddModule" HorizontalAlignment="Stretch"/>
                                 <Button Classes="primary" Content="{Binding ImportTaskbarText}" Click="OnImportTaskbar" HorizontalAlignment="Stretch"/>
+                                <Button Content="{Binding AddSeparatorText}" Click="OnAddSeparator" HorizontalAlignment="Stretch"/>
                                 <Button Classes="danger" Content="{Binding RemoveText}" Click="OnRemove" IsEnabled="{Binding CanRemove}"
                                         HorizontalAlignment="Stretch" Margin="0,6,0,0"/>
                             </StackPanel>
@@ -297,8 +298,27 @@
 
                                 <Border Height="1" Background="#333333" Margin="0,4"/>
 
+                                <!-- Backdrop material. The radios bind to the
+                                     three IsBlur* flags rather than a shared
+                                     enum, so only the newly-checked one writes
+                                     back (see SettingsViewModel.BlurMode). -->
+                                <TextBlock Classes="label" Text="{Binding BlurTitle}"/>
+                                <TextBlock Classes="helper" Text="{Binding BlurHelper}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="16">
+                                    <RadioButton GroupName="blurMode" Content="{Binding BlurNoneText}" IsChecked="{Binding IsBlurNone}"/>
+                                    <RadioButton GroupName="blurMode" Content="{Binding BlurBlurText}" IsChecked="{Binding IsBlurBlur}"/>
+                                    <RadioButton GroupName="blurMode" Content="{Binding BlurAcrylicText}" IsChecked="{Binding IsBlurAcrylic}"/>
+                                </StackPanel>
+
+                                <Border Height="1" Background="#333333" Margin="0,4"/>
+
                                 <TextBlock Classes="label" Text="{Binding BgColorTitle}"/>
                                 <TextBlock Classes="helper" Text="{Binding BgColorHelper}"/>
+                                <!-- Sits with the colour picker because it
+                                     overrides it: while on, the dock colour is
+                                     driven by the Windows light/dark setting. -->
+                                <CheckBox Content="{Binding FollowSystemThemeText}" IsChecked="{Binding FollowSystemTheme}"/>
+                                <TextBlock Classes="helper" Text="{Binding FollowSystemThemeHelper}"/>
                                 <ItemsControl ItemsSource="{Binding PresetColors}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -525,6 +545,20 @@
                                     <ComboBox ItemsSource="{Binding LanguageNames}" SelectedIndex="{Binding SelectedLanguageIndex}" MinWidth="200"/>
                                 </StackPanel>
                                 <CheckBox Content="{Binding StartWithWindowsText}" IsChecked="{Binding IsAutoStartEnabled}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Classes="section">
+                        <TextBlock Classes="title" Text="{Binding ConfigTitle}"/>
+                        <TextBlock Classes="helper" Text="{Binding ConfigHelper}"/>
+                        <Border Classes="card">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Classes="primary" Content="{Binding ConfigExportText}" Click="OnExportConfig"/>
+                                    <Button Content="{Binding ConfigImportText}" Click="OnImportConfig"/>
+                                    <TextBlock Classes="label" Text="{Binding ConfigStatusText}" VerticalAlignment="Center"/>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                     </StackPanel>

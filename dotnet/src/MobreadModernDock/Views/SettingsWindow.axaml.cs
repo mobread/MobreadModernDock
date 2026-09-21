@@ -68,12 +68,15 @@ public partial class SettingsWindow : Window
     private async void OnAddProgram(object? sender, RoutedEventArgs e) => await Vm?.AddProgramAsync(this)!;
     private async void OnAddFolder(object? sender, RoutedEventArgs e) => await Vm?.AddFolderAsync(this)!;
     private void OnImportTaskbar(object? sender, RoutedEventArgs e) => Vm?.ImportFromTaskbar();
+    private void OnAddSeparator(object? sender, RoutedEventArgs e) => Vm?.AddSeparator();
     private void OnApplyPreset(object? sender, RoutedEventArgs e) => Vm?.ApplySelectedPreset();
     private void OnDeletePreset(object? sender, RoutedEventArgs e) => Vm?.DeleteSelectedPreset();
     private void OnSavePreset(object? sender, RoutedEventArgs e) => Vm?.SaveCurrentAsPreset();
     private async void OnCheckUpdates(object? sender, RoutedEventArgs e) { if (Vm != null) await Vm.CheckForUpdatesAsync(); }
     private void OnDownloadUpdate(object? sender, RoutedEventArgs e) => Vm?.OpenUpdateDownload();
     private void OnKofi(object? sender, RoutedEventArgs e) => Vm?.OpenKofi();
+    private async void OnExportConfig(object? sender, RoutedEventArgs e) { if (Vm != null) await Vm.ExportConfigAsync(this); }
+    private async void OnImportConfig(object? sender, RoutedEventArgs e) { if (Vm != null) await Vm.ImportConfigAsync(this); }
 
     private async void OnAddModule(object? sender, RoutedEventArgs e)
     {

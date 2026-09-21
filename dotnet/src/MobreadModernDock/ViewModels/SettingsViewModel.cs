@@ -116,6 +116,61 @@ public partial class SettingsViewModel : ViewModelBase
     public IBrush TintColorBrush => new SolidColorBrush(TintColor);
 
     public bool IsStaticMode { get => _isStaticMode; set => SetProperty(ref _isStaticMode, value); }
+
+    // --- Backdrop blur / acrylic ---
+
+    private string _blurMode = DockAppearanceService.BlurNone;
+    /// <summary>Selected backdrop material ("none" / "blur" / "acrylic").</summary>
+    public string BlurMode
+    {
+        get => _blurMode;
+        set
+        {
+            if (!SetProperty(ref _blurMode, value)) return;
+            OnPropertyChanged(nameof(IsBlurNone));
+            OnPropertyChanged(nameof(IsBlurBlur));
+            OnPropertyChanged(nameof(IsBlurAcrylic));
+        }
+    }
+
+    // Radio buttons bind two-way to these; only the "checked" transition writes.
+    public bool IsBlurNone
+    {
+        get => BlurMode == DockAppearanceService.BlurNone;
+        set { if (value) BlurMode = DockAppearanceService.BlurNone; }
+    }
+    public bool IsBlurBlur
+    {
+        get => BlurMode == DockAppearanceService.BlurBlur;
+        set { if (value) BlurMode = DockAppearanceService.BlurBlur; }
+    }
+    public bool IsBlurAcrylic
+    {
+        get => BlurMode == DockAppearanceService.BlurAcrylic;
+        set { if (value) BlurMode = DockAppearanceService.BlurAcrylic; }
+    }
+
+    public string BlurTitle => T("settings.dockCustomization.blur.title");
+    public string BlurHelper => T("settings.dockCustomization.blur.helper");
+    public string BlurNoneText => T("settings.dockCustomization.blur.none");
+    public string BlurBlurText => T("settings.dockCustomization.blur.blur");
+    public string BlurAcrylicText => T("settings.dockCustomization.blur.acrylic");
+
+    private bool _followSystemTheme;
+    /// <summary>Swap the dock colour with the Windows light/dark app theme.</summary>
+    public bool FollowSystemTheme { get => _followSystemTheme; set => SetProperty(ref _followSystemTheme, value); }
+    public string FollowSystemThemeText => T("settings.general.followSystemTheme");
+    public string FollowSystemThemeHelper => T("settings.general.followSystemTheme.helper");
+
+    // --- Config export / import ---
+
+    public string ConfigTitle => T("settings.general.config.title");
+    public string ConfigHelper => T("settings.general.config.helper");
+    public string ConfigExportText => T("settings.general.config.export");
+    public string ConfigImportText => T("settings.general.config.import");
+    private string _configStatusText = "";
+    public string ConfigStatusText { get => _configStatusText; set => SetProperty(ref _configStatusText, value); }
+
     public DockVerticalAnchor VerticalAnchor { get => _verticalAnchor; set => SetProperty(ref _verticalAnchor, value); }
     public DockHorizontalAnchor HorizontalAnchor { get => _horizontalAnchor; set => SetProperty(ref _horizontalAnchor, value); }
 
@@ -201,6 +256,18 @@ public partial class SettingsViewModel : ViewModelBase
     public string AddProgramText => T("settings.icons.addProgram");
     public string AddFolderText => T("settings.icons.addFolder");
     public string ImportTaskbarText => T("settings.icons.importTaskbar");
+    public string AddSeparatorText => T("settings.icons.addSeparator");
+
+    /// <summary>
+    /// Appends a divider to the dock. Separators are the one item type that
+    /// is meaningfully repeatable, so there is no duplicate check.
+    /// </summary>
+    public void AddSeparator()
+    {
+        _appServices.DockService.AddItem(new DockSeparatorItemModel());
+        RefreshItemLabels();
+        _dockRefreshAction();
+    }
 
     // --- #11 presets ---
     public string PresetsTitle => T("settings.dockCustomization.presets.title");
@@ -491,6 +558,8 @@ public partial class SettingsViewModel : ViewModelBase
         FolderStacks = app.GetFolderStacks();
         EdgeSnapping = app.GetEdgeSnapping();
         EdgeSnapMargin = app.GetEdgeSnapMargin();
+        BlurMode = app.GetBlurMode();
+        FollowSystemTheme = app.GetFollowSystemTheme();
         ReloadPresets();
         _isInitialized = true;
     }
@@ -525,6 +594,8 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(FolderStacks): _appServices.AppearanceService.SetFolderStacks(FolderStacks); break;
             case nameof(EdgeSnapping): _appServices.AppearanceService.SetEdgeSnapping(EdgeSnapping); break;
             case nameof(EdgeSnapMargin): _appServices.AppearanceService.SetEdgeSnapMargin(EdgeSnapMargin); OnPropertyChanged(nameof(EdgeSnapMarginLabel)); break;
+            case nameof(BlurMode): _appServices.AppearanceService.SetBlurMode(BlurMode); _dockRefreshAction(); break;
+            case nameof(FollowSystemTheme): OnFollowSystemThemeChanged(); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
             case nameof(VerticalAnchor): OnVerticalAnchorChanged(); break;
             case nameof(HorizontalAnchor): OnHorizontalAnchorChanged(); break;
@@ -581,6 +652,71 @@ public partial class SettingsViewModel : ViewModelBase
     public void OnAlwaysOnTopChanged()
     {
         _appServices.AppearanceService.SetAlwaysOnTop(AlwaysOnTop);
+        _dockRefreshAction();
+    }
+
+    /// <summary>
+    /// Turning "follow system theme" on immediately adopts the current Windows
+    /// theme colour, so the effect is visible without waiting for a switch.
+    /// </summary>
+    public void OnFollowSystemThemeChanged()
+    {
+        _appServices.AppearanceService.SetFollowSystemTheme(FollowSystemTheme);
+        if (!FollowSystemTheme) return;
+        App.ApplySystemTheme(Infrastructure.Windows.Native.SystemThemeWatcher.IsLightTheme());
+        // Reflect the colour the dock just adopted in the picker.
+        _isInitialized = false;
+        DockColor = ParseRgbColor(_appServices.AppearanceService.GetDockColorRGB());
+        _isInitialized = true;
+    }
+
+    // --- Config export / import ---
+
+    public async Task ExportConfigAsync(Window window)
+    {
+        var file = await window.StorageProvider.SaveFilePickerAsync(
+            new Avalonia.Platform.Storage.FilePickerSaveOptions
+            {
+                Title = T("settings.general.config.export"),
+                SuggestedFileName = Infrastructure.Windows.Persistence.ConfigTransfer.SuggestedFileName,
+                DefaultExtension = "json",
+                FileTypeChoices = new[]
+                {
+                    new Avalonia.Platform.Storage.FilePickerFileType("JSON") { Patterns = new[] { "*.json" } },
+                }
+            });
+        if (file == null) return;
+        bool ok = Infrastructure.Windows.Persistence.ConfigTransfer.Export(
+            _appServices.DockService, file.Path.LocalPath);
+        ConfigStatusText = T(ok ? "settings.general.config.exported" : "settings.general.config.failed");
+    }
+
+    public async Task ImportConfigAsync(Window window)
+    {
+        var files = await window.StorageProvider.OpenFilePickerAsync(
+            new Avalonia.Platform.Storage.FilePickerOpenOptions
+            {
+                Title = T("settings.general.config.import"),
+                AllowMultiple = false,
+                FileTypeFilter = new[]
+                {
+                    new Avalonia.Platform.Storage.FilePickerFileType("JSON") { Patterns = new[] { "*.json" } },
+                }
+            });
+        if (files.Count == 0) return;
+
+        bool ok = Infrastructure.Windows.Persistence.ConfigTransfer.Import(
+            _appServices.DockService, files[0].Path.LocalPath);
+        ConfigStatusText = T(ok ? "settings.general.config.imported" : "settings.general.config.invalid");
+        if (!ok) return;
+
+        // Everything may have changed — re-read the whole window from the model
+        // without the change handlers writing each value back one by one.
+        _isInitialized = false;
+        Initialize();
+        RefreshAllProperties();
+        App.SyncMirrorDocks();
+        App.ApplyTaskbarVisibility();
         _dockRefreshAction();
     }
 
@@ -770,6 +906,10 @@ public partial class SettingsViewModel : ViewModelBase
 
     private Bitmap? ResolveItemIcon(DockItem item)
     {
+        // A user-chosen icon wins; a missing file falls through to the default.
+        var custom = IconLoader.LoadCustomIcon(item.CustomIcon);
+        if (custom != null) return custom;
+
         if (item is DockSettingsItemModel)
         {
             var icon = IconLoader.LoadFromAsset(IconLoader.MapResourcePath(item.Path));
