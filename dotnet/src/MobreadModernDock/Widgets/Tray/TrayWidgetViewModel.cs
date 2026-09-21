@@ -37,6 +37,24 @@ public sealed class TrayWidgetViewModel : WidgetViewModelBase
     private Orientation _orientation = Orientation.Horizontal;
     public Orientation Orientation { get => _orientation; set => SetProperty(ref _orientation, value); }
 
+    /// <summary>Number of rows (horizontal) or columns (vertical) the icons wrap into.</summary>
+    private int _lines = 1;
+    public int Lines { get => _lines; set { if (SetProperty(ref _lines, value)) UpdateGridShape(); } }
+
+    // UniformGrid shape: the "lines" axis is fixed, the other grows with the icon count.
+    private int _gridRows = 1, _gridColumns;
+    public int GridRows { get => _gridRows; private set => SetProperty(ref _gridRows, value); }
+    public int GridColumns { get => _gridColumns; private set => SetProperty(ref _gridColumns, value); }
+
+    private void UpdateGridShape()
+    {
+        int n = Math.Max(1, Icons.Count);
+        int lines = Math.Clamp(Lines, 1, 12);
+        int per = (n + lines - 1) / lines;
+        if (Orientation == Orientation.Horizontal) { GridRows = lines; GridColumns = per; }
+        else { GridColumns = lines; GridRows = per; }
+    }
+
     private bool _showSystemIcons;
     private bool _isEmpty = true;
     public bool IsEmpty { get => _isEmpty; set => SetProperty(ref _isEmpty, value); }
@@ -55,10 +73,12 @@ public sealed class TrayWidgetViewModel : WidgetViewModelBase
         Spacing = Math.Clamp(_definition.GetSettingInt(TrayWidgetSettings.Spacing, 6), 0, 30);
         Orientation = _definition.GetSettingBool(TrayWidgetSettings.Vertical, false)
             ? Orientation.Vertical : Orientation.Horizontal;
+        Lines = Math.Clamp(_definition.GetSettingInt(TrayWidgetSettings.Lines, 1), 1, 12);
+        UpdateGridShape();
         bool showSystem = _definition.GetSettingBool(TrayWidgetSettings.ShowSystemIcons, false);
         bool filterChanged = showSystem != _showSystemIcons;
         _showSystemIcons = showSystem;
-        foreach (var icon in Icons) icon.Size = IconSize;
+        foreach (var icon in Icons) { icon.Size = IconSize; icon.ItemMargin = new Avalonia.Thickness(Spacing / 2.0); }
         if (filterChanged) Task.Run(PollOnce);
     }
 
@@ -112,7 +132,7 @@ public sealed class TrayWidgetViewModel : WidgetViewModelBase
             var info = desired[i];
             if (!_byKey.TryGetValue(info.Key, out var vm))
             {
-                vm = new TrayIconViewModel(info.Key, this) { Size = IconSize };
+                vm = new TrayIconViewModel(info.Key, this) { Size = IconSize, ItemMargin = new Avalonia.Thickness(Spacing / 2.0) };
                 _byKey[info.Key] = vm;
                 Icons.Insert(Math.Min(i, Icons.Count), vm);
             }
@@ -125,6 +145,7 @@ public sealed class TrayWidgetViewModel : WidgetViewModelBase
         }
 
         IsEmpty = Icons.Count == 0;
+        UpdateGridShape();
     }
 
     internal void Activate(string key) => Task.Run(() => _services.TrayIconGateway.Activate(key));
@@ -146,6 +167,10 @@ public sealed class TrayIconViewModel : ViewModels.ViewModelBase
 
     private int _size = 20;
     public int Size { get => _size; set => SetProperty(ref _size, value); }
+
+    /// <summary>Half the owner's Spacing on every side — UniformGrid has no gap property.</summary>
+    private Avalonia.Thickness _itemMargin;
+    public Avalonia.Thickness ItemMargin { get => _itemMargin; set => SetProperty(ref _itemMargin, value); }
 
     private bool _hasIcon;
     public bool HasIcon { get => _hasIcon; set => SetProperty(ref _hasIcon, value); }
