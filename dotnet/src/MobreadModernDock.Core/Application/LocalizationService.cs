@@ -55,6 +55,9 @@ public class LocalizationService
         if (item is DockSettingsItemModel)
             return Text("dockItem.settings");
 
+        if (item is DockSeparatorItemModel)
+            return Text("dockItem.separator");
+
         if (item is DockWindowsModuleItemModel windowsModuleItem)
         {
             return windowsModuleItem.Module switch
@@ -64,6 +67,11 @@ public class LocalizationService
                 "trash" => Text("windowsModule.recycleBin"),
                 "ctrlpnl" => Text("windowsModule.controlPanel"),
                 "pconfig" => Text("windowsModule.settings"),
+                "shutdown" => Text("windowsModule.shutdown"),
+                "restart" => Text("windowsModule.restart"),
+                "signout" => Text("windowsModule.signOut"),
+                "sleep" => Text("windowsModule.sleep"),
+                "lock" => Text("windowsModule.lock"),
                 _ => item.Label
             };
         }

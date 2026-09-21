@@ -6,5 +6,8 @@ public enum DockItemType
     PROGRAM,
     FOLDER,
     WINDOWS_MODULE,
-    SETTINGS
+    SETTINGS,
+
+    /// <summary>A non-interactive divider the user can place between icons.</summary>
+    SEPARATOR
 }

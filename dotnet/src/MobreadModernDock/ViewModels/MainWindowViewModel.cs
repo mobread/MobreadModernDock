@@ -155,11 +155,32 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
     public CornerRadius DockCornerRadius => new CornerRadius(BorderRounding);
-    public IBrush DockBackground { get => _dockBackground; set => SetProperty(ref _dockBackground, value); }
+    public IBrush DockBackground
+    {
+        get => _dockBackground;
+        set { if (SetProperty(ref _dockBackground, value)) OnPropertyChanged(nameof(EffectiveDockBackground)); }
+    }
 
     private double _windowOpacity = 1.0;
     /// <summary>Whole-dock opacity (icons + background), from the global opacity setting.</summary>
     public double WindowOpacity { get => _windowOpacity; set => SetProperty(ref _windowOpacity, value); }
+
+    private bool _suppressBarBackground;
+    /// <summary>
+    /// Set while an acrylic backdrop is active: the DWM already tints the
+    /// window, so the bar's own background brush is switched to transparent to
+    /// avoid stacking two layers of the same colour.
+    /// </summary>
+    public bool SuppressBarBackground
+    {
+        get => _suppressBarBackground;
+        set { if (SetProperty(ref _suppressBarBackground, value)) OnPropertyChanged(nameof(EffectiveDockBackground)); }
+    }
+
+    /// <summary>The brush actually painted behind the dock items.</summary>
+    public IBrush EffectiveDockBackground =>
+        SuppressBarBackground ? Brushes.Transparent : DockBackground;
+
     public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
 
     public ICommand LaunchCommand { get; }
@@ -319,6 +340,148 @@ public partial class MainWindowViewModel : ViewModelBase
         Task.Run(RefreshRunningApps);
     }
 
+    /// <summary>
+    /// Sets or clears a dock item's custom icon. Passing null restores the
+    /// icon resolved from the target (exe/folder/module).
+    /// </summary>
+    public void SetCustomIcon(DockItemViewModel item, string? iconPath)
+    {
+        if (_appServices == null) return;
+        int index = _appServices.DockService.GetItems().IndexOf(item.Item);
+        if (index < 0) return;
+        _appServices.DockService.SetCustomIcon(index, iconPath);
+        UpdateDockUI();
+    }
+
+    /// <summary>
+    /// Inserts a divider directly after the given item (right-click → Add
+    /// separator). Passing null appends it before the Settings gear.
+    /// </summary>
+    public void AddSeparatorAfter(DockItemViewModel? item)
+    {
+        if (_appServices == null) return;
+        var items = _appServices.DockService.GetItems();
+        int index = item != null ? items.IndexOf(item.Item) + 1 : items.Count;
+        _appServices.DockService.InsertItem(new DockSeparatorItemModel(), index);
+        UpdateDockUI();
+    }
+
+    /// <summary>Removes a divider from the dock (right-click → Remove separator).</summary>
+    public void RemoveSeparator(DockItemViewModel item)
+    {
+        if (_appServices == null || item.Item is not DockSeparatorItemModel) return;
+        int index = _appServices.DockService.GetItems().IndexOf(item.Item);
+        if (index < 0) return;
+        _appServices.DockService.RemoveItem(index);
+        UpdateDockUI();
+    }
+
+    /// <summary>
+    /// Pins files or folders dropped from Explorer onto the dock at the given
+    /// gap index. Executables and shortcuts become program items, directories
+    /// become folder items, and any other file is pinned as a program item
+    /// opened by its default handler. Already-pinned targets are skipped.
+    /// Returns how many items were added.
+    /// </summary>
+    public int PinDroppedPaths(IReadOnlyList<string> paths, int gapIndex)
+    {
+        if (_appServices == null || paths.Count == 0) return 0;
+
+        var existing = new HashSet<string>(
+            _appServices.DockService.GetItems().OfType<DockProgramItemModel>().Select(p => p.ExecutablePath),
+            StringComparer.OrdinalIgnoreCase);
+        var existingFolders = new HashSet<string>(
+            _appServices.DockService.GetItems().OfType<DockFolderItemModel>().Select(f => f.FolderPath),
+            StringComparer.OrdinalIgnoreCase);
+
+        int added = 0;
+        foreach (var path in paths)
+        {
+            DockItem? item = BuildDroppedItem(path);
+            if (item == null) continue;
+
+            if (item is DockProgramItemModel p)
+            {
+                if (!existing.Add(p.ExecutablePath)) continue;
+                _appServices.IconGateway.CacheProgramIcon(p.ExecutablePath);
+            }
+            else if (item is DockFolderItemModel f)
+            {
+                if (!existingFolders.Add(f.FolderPath)) continue;
+                _appServices.IconGateway.CacheFolderIcon(f.FolderPath);
+            }
+
+            // Each insert shifts the following ones, so drops keep their order.
+            _appServices.DockService.InsertItem(item, gapIndex + added);
+            added++;
+        }
+
+        if (added > 0)
+        {
+            UpdateDockUI();
+            Task.Run(RefreshRunningApps);
+        }
+        return added;
+    }
+
+    /// <summary>
+    /// Turns a dropped path into a dock item: directory → folder item,
+    /// .lnk → its resolved target, .exe → program item. Any other file is
+    /// pinned as a program item too — launching it goes through the shell,
+    /// which opens it with its registered handler.
+    /// </summary>
+    private static DockItem? BuildDroppedItem(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                string name = Path.GetFileName(Path.TrimEndingDirectorySeparator(path));
+                return new DockFolderItemModel(string.IsNullOrWhiteSpace(name) ? path : name, path);
+            }
+            if (!File.Exists(path)) return null;
+
+            if (ShellLinkResolver.IsShortcut(path))
+            {
+                var link = ShellLinkResolver.Resolve(path);
+                if (link == null || string.IsNullOrWhiteSpace(link.TargetPath)) return null;
+                // A shortcut to a folder pins the folder itself.
+                if (Directory.Exists(link.TargetPath))
+                    return new DockFolderItemModel(
+                        Path.GetFileNameWithoutExtension(path), link.TargetPath);
+                if (!File.Exists(link.TargetPath)) return null;
+                var target = ProgramSelectionResolver.Resolve(link.TargetPath);
+                return new DockProgramItemModel(
+                    Path.GetFileNameWithoutExtension(path), target.ExecutablePath, link.Arguments);
+            }
+
+            if (path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                var resolved = ProgramSelectionResolver.Resolve(path);
+                return new DockProgramItemModel(resolved.Label, resolved.ExecutablePath);
+            }
+
+            return new DockProgramItemModel(Path.GetFileNameWithoutExtension(path), path);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Files dropped onto a program icon are opened with that program.
+    /// Returns false when the item is not a program (folders, modules and the
+    /// Settings gear don't take drops).
+    /// </summary>
+    public bool OpenFilesWith(DockItemViewModel item, IReadOnlyList<string> filePaths)
+    {
+        if (_appServices == null || filePaths.Count == 0) return false;
+        if (item.Item is not DockProgramItemModel program) return false;
+        PreviewDismissAction?.Invoke();
+        return _appServices.ItemActionService.OpenWith(program, filePaths);
+    }
+
     public void UpdateDockUI()
     {
         if (_appServices == null) return;
@@ -360,22 +523,35 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         string label = loc.DockItemLabel(item);
 
+        // A user-chosen icon wins over everything else. A missing/invalid file
+        // falls through to the normal resolution below.
+        var custom = IconLoader.LoadCustomIcon(item.CustomIcon);
+
+        // A user-placed divider: no icon, no action, no tooltip.
+        if (item is DockSeparatorItemModel)
+        {
+            return new DockItemViewModel(item, "", LaunchCommand)
+            {
+                IsVerticalDock = IsVerticalDock
+            };
+        }
+
         if (item is DockSettingsItemModel)
         {
-            var icon = IconLoader.LoadFromAsset(IconLoader.MapResourcePath(item.Path));
+            var icon = custom ?? IconLoader.LoadFromAsset(IconLoader.MapResourcePath(item.Path));
             return new DockItemViewModel(item, label, LaunchCommand) { Icon = IconTinter.Apply(icon) };
         }
 
         if (item is DockWindowsModuleItemModel moduleItem)
         {
-            var icon = IconLoader.LoadWindowsModuleIcon(moduleItem.Module);
+            var icon = custom ?? IconLoader.LoadWindowsModuleIcon(moduleItem.Module);
             return new DockItemViewModel(item, label, LaunchCommand) { Icon = IconTinter.Apply(icon) };
         }
 
         if (item is DockProgramItemModel programItem)
         {
             string? iconPath = _appServices!.IconGateway.ResolveProgramIcon(programItem.ExecutablePath);
-            var icon = IconLoader.LoadFromFile(iconPath);
+            var icon = custom ?? IconLoader.LoadFromFile(iconPath);
             var itemVm = new DockItemViewModel(item, label, LaunchCommand,
                 showIndicator: true, executablePath: programItem.ExecutablePath)
             {
@@ -404,7 +580,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (item is DockFolderItemModel folderItem)
         {
             string? iconPath = _appServices!.IconGateway.ResolveFolderIcon(folderItem.FolderPath);
-            var icon = IconLoader.LoadFromFile(iconPath);
+            var icon = custom ?? IconLoader.LoadFromFile(iconPath);
             if (icon == null)
             {
                 _ = Task.Run(() => _appServices.IconGateway.CacheFolderIcon(folderItem.FolderPath));
@@ -458,10 +634,20 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (param is DockItemViewModel itemVm && _appServices != null)
         {
+            // A divider is not clickable.
+            if (itemVm.Item is DockSeparatorItemModel) return;
+
             ClearAttention(itemVm.ExecutablePath);
             if (itemVm.Item is DockFolderItemModel
                 && _appServices.AppearanceService.GetFolderStacks()
                 && ShowFolderStackAction?.Invoke(itemVm) == true)
+                return;
+
+            // Power actions that end the session ask first — a mis-click on a
+            // dock icon should never close every open document.
+            if (itemVm.Item is DockWindowsModuleItemModel module
+                && DockWindowsModuleItemModel.NeedsConfirmation(module.Module)
+                && !ConfirmPowerAction(module))
                 return;
 
             // Taskbar semantics for running programs: focus / minimize /
@@ -487,6 +673,26 @@ public partial class MainWindowViewModel : ViewModelBase
                     System.Windows.Forms.MessageBoxIcon.Warning);
             }
         }
+    }
+
+    /// <summary>
+    /// Confirmation prompt for the session-ending power actions. Uses the
+    /// same WinForms MessageBox as the "program not found" dialog — the dock
+    /// window is WS_EX_NOACTIVATE, so an Avalonia dialog owned by it cannot
+    /// take focus and would sit there unfocused behind the pointer.
+    /// </summary>
+    private bool ConfirmPowerAction(DockWindowsModuleItemModel module)
+    {
+        if (_appServices == null) return false;
+        var loc = _appServices.LocalizationService;
+        string label = loc.DockItemLabel(module);
+        var result = System.Windows.Forms.MessageBox.Show(
+            loc.Text("dialog.powerAction.message", label),
+            loc.Text("dialog.powerAction.title"),
+            System.Windows.Forms.MessageBoxButtons.YesNo,
+            System.Windows.Forms.MessageBoxIcon.Warning,
+            System.Windows.Forms.MessageBoxDefaultButton.Button2);
+        return result == System.Windows.Forms.DialogResult.Yes;
     }
 
     private void StartIndicatorWatcher()

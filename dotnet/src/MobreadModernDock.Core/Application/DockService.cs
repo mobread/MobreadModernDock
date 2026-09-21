@@ -49,6 +49,31 @@ public class DockService
         SaveChanges();
     }
 
+    /// <summary>
+    /// Sets (or clears, with null) the user-chosen icon of the item at
+    /// <paramref name="index"/>. The path is stored as given; the icon loader
+    /// falls back to the default when the file disappears later.
+    /// </summary>
+    public void SetCustomIcon(int index, string? iconPath)
+    {
+        if (index < 0 || index >= _dock.Items.Count) return;
+        _dock.Items[index].CustomIcon = string.IsNullOrWhiteSpace(iconPath) ? null : iconPath;
+        SaveChanges();
+    }
+
+    /// <summary>
+    /// Inserts an item at a specific gap (0..Count). Used by drag-and-drop
+    /// pinning, where the drop position decides the slot. The Settings gear is
+    /// kept last regardless of the requested index.
+    /// </summary>
+    public void InsertItem(DockItem item, int index)
+    {
+        index = Math.Clamp(index, 0, _dock.Items.Count);
+        _dock.Items.Insert(index, item);
+        _dock.KeepSettingsLast();
+        SaveChanges();
+    }
+
     public void SetDockPosition(double positionX, double positionY)
     {
         _dock.SetDockPosition(

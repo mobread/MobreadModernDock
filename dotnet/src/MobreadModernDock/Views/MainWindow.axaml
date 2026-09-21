@@ -26,13 +26,17 @@
          the window edge; ClipToBounds is off for the same reason. -->
     <Border x:Name="DockBar"
             Opacity="{Binding WindowOpacity}"
-            Background="{Binding DockBackground}"
+            Background="{Binding EffectiveDockBackground}"
             CornerRadius="{Binding DockCornerRadius}"
             Padding="10"
             Margin="0,12,0,0"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
-            ClipToBounds="False">
+            ClipToBounds="False"
+            DragDrop.AllowDrop="True"
+            DragDrop.DragOver="OnDockDragOver"
+            DragDrop.DragLeave="OnDockDragLeave"
+            DragDrop.Drop="OnDockDrop">
 
         <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}">
             <!-- Pinned dock items. Drag an icon past a small threshold to
@@ -61,6 +65,7 @@
                     <DataTemplate x:DataType="vm:DockItemViewModel">
                         <Button ClipToBounds="False" Command="{Binding ClickCommand}"
                                 CommandParameter="{Binding}"
+                                Classes.separator="{Binding IsSeparator}"
                                 Background="Transparent"
                                 BorderBrush="Transparent"
                                 Padding="4"
@@ -95,6 +100,15 @@
                                 <Style Selector="Button:pointerover">
                                     <Setter Property="RenderTransform" Value="scale(1.3)" />
                                 </Style>
+                                <!-- A separator is not a target: no hover zoom,
+                                     no hand cursor. The Button stays so drag
+                                     reorder and the context menu still work. -->
+                                <Style Selector="Button.separator:pointerover">
+                                    <Setter Property="RenderTransform" Value="scale(1)" />
+                                </Style>
+                                <Style Selector="Button.separator">
+                                    <Setter Property="Cursor" Value="Arrow" />
+                                </Style>
                                 <!-- The Fluent theme paints a gray hover/pressed background
                                      on the button's template part; dock items must stay
                                      background-free (scoped styles override the theme). -->
@@ -110,22 +124,40 @@
                                 </Style>
                             </Button.Styles>
 
-                            <!-- Item content: icon + running indicator -->
-                            <StackPanel Orientation="Vertical" Spacing="3"
-                                        HorizontalAlignment="Center">
-                                <Image Source="{Binding Icon}"
-                                       Width="{Binding IconSize}"
-                                       Height="{Binding IconSize}"
-                                       Stretch="Uniform"
-                                       RenderOptions.BitmapInterpolationMode="HighQuality">
-                                    <Image.RenderTransform>
-                                        <TranslateTransform Y="{Binding BounceOffset}"/>
-                                    </Image.RenderTransform>
-                                </Image>
-                                <Ellipse Width="4" Height="4"
-                                         Fill="White"
-                                         IsVisible="{Binding IsRunning}" />
-                            </StackPanel>
+                            <!-- Item content: icon + running indicator, or a
+                                 plain divider for separator items. Both live
+                                 in the same Button so drag-reorder, hit
+                                 testing and cell sizing are identical. -->
+                            <Panel HorizontalAlignment="Center" ClipToBounds="False">
+                                <Panel IsVisible="{Binding IsNotSeparator}" ClipToBounds="False">
+                                    <Image Source="{Binding Icon}"
+                                           Width="{Binding IconSize}"
+                                           Height="{Binding IconSize}"
+                                           Stretch="Uniform"
+                                           RenderOptions.BitmapInterpolationMode="HighQuality">
+                                        <Image.RenderTransform>
+                                            <TranslateTransform Y="{Binding BounceOffset}"/>
+                                        </Image.RenderTransform>
+                                    </Image>
+                                    <Ellipse Width="4" Height="4"
+                                             Fill="White"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Bottom"
+                                             Margin="0,0,0,-7"
+                                             IsVisible="{Binding IsRunning}" />
+                                </Panel>
+                                <!-- Divider: sized across the dock's minor axis
+                                     by the VM, so it follows icon size and
+                                     flips with a vertical dock. -->
+                                <Border IsVisible="{Binding IsSeparator}"
+                                        Width="{Binding SeparatorWidth}"
+                                        Height="{Binding SeparatorHeight}"
+                                        Background="White"
+                                        Opacity="0.35"
+                                        CornerRadius="1"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                            </Panel>
                         </Button>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
@@ -208,9 +240,19 @@
                                 </Style>
                             </Button.Styles>
 
-                            <!-- Item content: icon + running indicator -->
-                            <StackPanel Orientation="Vertical" Spacing="3"
-                                        HorizontalAlignment="Center">
+                            <!-- Item content: icon + running indicator.
+                                 The dot must NOT take part in layout: in a
+                                 StackPanel it appears only while running, so
+                                 the cell grew by dot+spacing and the centered
+                                 icon visibly hopped up the moment an app
+                                 opened. Here a Panel is sized by the icon
+                                 alone and the dot is pulled below it with a
+                                 negative bottom margin (-7 cancels its own
+                                 4px height, leaving a 3px gap), so toggling
+                                 it never moves anything. It draws into the
+                                 dock bar's 10px padding — ClipToBounds is
+                                 already off all the way up for the bounce. -->
+                            <Panel HorizontalAlignment="Center" ClipToBounds="False">
                                 <Image Source="{Binding Icon}"
                                        Width="{Binding IconSize}"
                                        Height="{Binding IconSize}"
@@ -222,8 +264,11 @@
                                 </Image>
                                 <Ellipse Width="4" Height="4"
                                          Fill="White"
+                                         HorizontalAlignment="Center"
+                                         VerticalAlignment="Bottom"
+                                         Margin="0,0,0,-7"
                                          IsVisible="{Binding IsRunning}" />
-                            </StackPanel>
+                            </Panel>
                         </Button>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

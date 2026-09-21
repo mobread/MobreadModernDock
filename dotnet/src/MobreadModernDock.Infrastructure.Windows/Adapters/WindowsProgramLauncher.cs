@@ -12,6 +12,43 @@ public class WindowsProgramLauncher : IProgramLauncher
 {
     public bool Launch(string executablePath, string label) => Launch(executablePath, label, null);
 
+    /// <summary>
+    /// Opens dropped files with this program: the file paths become the
+    /// program's arguments. Uses ArgumentList so each path is quoted by the
+    /// runtime — dropped names routinely contain spaces.
+    /// </summary>
+    public bool LaunchWithFiles(string executablePath, string label, IReadOnlyList<string> filePaths)
+    {
+        if (filePaths.Count == 0) return Launch(executablePath, label, null);
+        if (string.IsNullOrWhiteSpace(executablePath)) return false;
+
+        try
+        {
+            var launchCommand = ResolveLaunchCommand(executablePath);
+            if (!File.Exists(launchCommand.ExecutablePath)) return false;
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = launchCommand.ExecutablePath,
+                UseShellExecute = false,
+                WorkingDirectory = Path.GetDirectoryName(launchCommand.ExecutablePath) ?? ""
+            };
+            foreach (var arg in launchCommand.Arguments)
+                startInfo.ArgumentList.Add(arg);
+            foreach (var file in filePaths)
+                startInfo.ArgumentList.Add(file);
+
+            Process.Start(startInfo);
+            Debug.WriteLine($"Opening {filePaths.Count} file(s) with: {label}");
+            return true;
+        }
+        catch (Exception e)
+        {
+            Debug.WriteLine($"Failed to open files with {label}: {e.Message}");
+            return false;
+        }
+    }
+
     public bool Launch(string executablePath, string label, string? arguments)
     {
         Debug.WriteLine($"{label} Clicked");

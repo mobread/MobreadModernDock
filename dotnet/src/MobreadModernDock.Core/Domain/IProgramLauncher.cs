@@ -16,4 +16,13 @@ public interface IProgramLauncher
     /// arguments fall back to a plain launch.
     /// </summary>
     bool Launch(string executablePath, string label, string? arguments) => Launch(executablePath, label);
+
+    /// <summary>
+    /// Opens the given files with this program (drag a file onto a dock icon).
+    /// Paths are passed as separate arguments, so names containing spaces are
+    /// quoted correctly by the implementation. Returns true when the launch
+    /// was attempted successfully.
+    /// </summary>
+    bool LaunchWithFiles(string executablePath, string label, IReadOnlyList<string> filePaths)
+        => Launch(executablePath, label);
 }

@@ -6,12 +6,35 @@ using Avalonia.Platform;
 namespace MobreadModernDock.ViewModels;
 
 /// <summary>
-/// Helper for loading dock icons from two sources:
-/// 1. Cached PNG files (program/folder icons extracted by WindowsIconExtractor)
-/// 2. Avalonia asset resources (built-in icons: settings, my_computer, etc.)
+/// Helper for loading dock icons from three sources:
+/// 1. A user-chosen custom icon (.png/.ico/.exe) set per dock item
+/// 2. Cached PNG files (program/folder icons extracted by WindowsIconExtractor)
+/// 3. Avalonia asset resources (built-in icons: settings, my_computer, etc.)
 /// </summary>
 public static class IconLoader
 {
+    /// <summary>Extensions accepted by the "Change icon…" picker.</summary>
+    public static readonly string[] CustomIconExtensions = { ".png", ".ico", ".exe", ".dll", ".jpg", ".jpeg", ".bmp" };
+
+    /// <summary>
+    /// Loads a user-chosen custom icon. Image files are decoded directly;
+    /// an .exe/.dll goes through the shell icon extractor (and its cache), so
+    /// users can point at "the icon of that other program". Returns null when
+    /// the file is gone or unreadable, so callers fall back to the default.
+    /// </summary>
+    public static Bitmap? LoadCustomIcon(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
+
+        string ext = Path.GetExtension(path).ToLowerInvariant();
+        if (ext is ".exe" or ".dll")
+        {
+            var extracted = Infrastructure.Windows.Native.WindowsIconExtractor.ExtractAndCacheIcon(path);
+            return LoadFromFile(extracted);
+        }
+        return LoadFromFile(path);
+    }
+
     /// <summary>Loads a bitmap from a file path (cached icon PNG).</summary>
     public static Bitmap? LoadFromFile(string? path)
     {
@@ -58,6 +81,11 @@ public static class IconLoader
             "trash" => "/com/github/mobread/mobreadmoderndock/icons/trash.png",
             "ctrlpnl" => "/com/github/mobread/mobreadmoderndock/icons/control.png",
             "pconfig" => "/com/github/mobread/mobreadmoderndock/icons/windows_settings.png",
+            "shutdown" => "/com/github/mobread/mobreadmoderndock/icons/power_shutdown.png",
+            "restart" => "/com/github/mobread/mobreadmoderndock/icons/power_restart.png",
+            "signout" => "/com/github/mobread/mobreadmoderndock/icons/power_signout.png",
+            "sleep" => "/com/github/mobread/mobreadmoderndock/icons/power_sleep.png",
+            "lock" => "/com/github/mobread/mobreadmoderndock/icons/power_lock.png",
             _ => null
         };
         return LoadFromAsset(MapResourcePath(resourcePath));

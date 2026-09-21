@@ -61,6 +61,32 @@ public class WindowsModuleLauncher : IWindowsModuleLauncher
                         CreateNoWindow = true
                     });
                     break;
+
+                // --- Power actions ---
+                // shutdown.exe is used for the session-ending ones (the
+                // documented, UAC-free path); sleep and lock have no
+                // shutdown.exe equivalent that works reliably, so they go
+                // through their own APIs.
+                case "shutdown":
+                    RunShutdownExe("/s /t 0");
+                    break;
+                case "restart":
+                    RunShutdownExe("/r /t 0");
+                    break;
+                case "signout":
+                    RunShutdownExe("/l");
+                    break;
+                case "sleep":
+                    // bForce=false so apps can veto; bWakeupEventsDisabled=false.
+                    // Note: on a machine with hibernation enabled this suspends
+                    // to RAM, matching the Start-menu "Sleep" entry.
+                    if (!SetSuspendState(false, false, false))
+                        throw new InvalidOperationException("SetSuspendState failed.");
+                    break;
+                case "lock":
+                    if (!LockWorkStation())
+                        throw new InvalidOperationException("LockWorkStation failed.");
+                    break;
             }
         }
         catch (Exception e) when (e is not InvalidOperationException)
@@ -70,4 +96,28 @@ public class WindowsModuleLauncher : IWindowsModuleLauncher
 
         Debug.WriteLine($"{label} Clicked");
     }
+
+    /// <summary>
+    /// Runs shutdown.exe with the given switches, detached and windowless.
+    /// UseShellExecute=false + CreateNoWindow avoids the console flash that a
+    /// shell-executed console app produces.
+    /// </summary>
+    private static void RunShutdownExe(string arguments)
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "shutdown.exe",
+            Arguments = arguments,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool LockWorkStation();
+
+    [System.Runtime.InteropServices.DllImport("powrprof.dll", SetLastError = true)]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool SetSuspendState(bool hibernate, bool forceCritical, bool disableWakeEvent);
 }

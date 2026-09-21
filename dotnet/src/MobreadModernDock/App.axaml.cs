@@ -61,6 +61,7 @@ public partial class App : Application
                 SyncMirrorDocks();
                 ApplyTaskbarVisibility();
                 StartFullscreenWatcher();
+                StartThemeWatcher();
             };
             desktop.ShutdownRequested += (_, _) => TaskbarVisibility.Restore();
             desktop.Exit += (_, _) => TaskbarVisibility.Restore();
@@ -144,6 +145,8 @@ public partial class App : Application
         if (_shuttingDown) return;
         _shuttingDown = true;
         try { TaskbarVisibility.Restore(); } catch { }
+        _themeWatcher?.Dispose();
+        _themeWatcher = null;
         _mainViewModel?.Shutdown();
         foreach (var m in _mirrorDocks.Values.ToList())
         {
@@ -330,10 +333,35 @@ public partial class App : Application
             w.SetNativeVisible(visible);
     }
 
+    // --- Follow system light/dark theme ---
+
+    private static Infrastructure.Windows.Native.SystemThemeWatcher? _themeWatcher;
+
+    /// <summary>
+    /// Starts watching the Windows app theme. The dock colour is also synced
+    /// once at startup so a theme change made while the app was closed is
+    /// picked up. The watcher stays subscribed even when the setting is off —
+    /// ApplySystemTheme is a no-op then, and this avoids having to start/stop
+    /// it from the settings toggle.
+    /// </summary>
+    private static void StartThemeWatcher()
+    {
+        if (_appServices == null || _themeWatcher != null) return;
+        ApplySystemTheme(Infrastructure.Windows.Native.SystemThemeWatcher.IsLightTheme());
+        _themeWatcher = new Infrastructure.Windows.Native.SystemThemeWatcher(isLight =>
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => ApplySystemTheme(isLight)));
+    }
+
+    /// <summary>Applies the light/dark dock colour and rebuilds the dock if it changed.</summary>
+    public static void ApplySystemTheme(bool isLightTheme)
+    {
+        if (_appServices == null || _shuttingDown) return;
+        if (!_appServices.AppearanceService.ApplySystemTheme(isLightTheme)) return;
+        _mainViewModel?.UpdateDockUI();
+    }
+
     // --- #10 per-monitor mirrors ---
-
     private static readonly Dictionary<string, MainWindow> _mirrorDocks = new();
-
     /// <summary>
     /// Opens a mirror dock on every non-primary monitor when the setting is on,
     /// closes stale ones (setting off, monitor unplugged), and refreshes the

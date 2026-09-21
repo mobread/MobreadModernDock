@@ -39,6 +39,52 @@ public class JsonDockRepositoryTest
     }
 
     [Fact]
+    public void SavesAndLoadsSeparatorItems()
+    {
+        string configPath = Path.Combine(_tempDir, "config.json");
+        var repository = new JsonDockRepository(configPath);
+
+        var model = new DockModel();
+        model.AddItem(new DockProgramItemModel("Notepad", @"C:\Windows\notepad.exe"));
+        model.AddItem(new DockSeparatorItemModel());
+        model.AddItem(new DockFolderItemModel("Projects", @"C:\Projects"));
+
+        repository.Save(model);
+        DockModel loadedModel = repository.Load();
+
+        Assert.Equal(3, loadedModel.Items.Count);
+        // Order must survive the round trip: a divider is only meaningful in place.
+        var separator = Assert.IsType<DockSeparatorItemModel>(loadedModel.Items[1]);
+        Assert.Equal(DockItemType.SEPARATOR, separator.Type);
+        Assert.IsType<DockProgramItemModel>(loadedModel.Items[0]);
+        Assert.IsType<DockFolderItemModel>(loadedModel.Items[2]);
+
+        // The discriminator is what keeps older/newer configs interoperable.
+        string json = File.ReadAllText(configPath);
+        Assert.Contains("\"@type\": \"separatorItem\"", json);
+        CleanupTempDir();
+    }
+
+    [Fact]
+    public void SupportsSeveralSeparators()
+    {
+        string configPath = Path.Combine(_tempDir, "config.json");
+        var repository = new JsonDockRepository(configPath);
+
+        // Unlike programs, separators are meant to be repeatable.
+        var model = new DockModel();
+        model.AddItem(new DockSeparatorItemModel());
+        model.AddItem(new DockProgramItemModel("Notepad", @"C:\Windows\notepad.exe"));
+        model.AddItem(new DockSeparatorItemModel());
+
+        repository.Save(model);
+        DockModel loadedModel = repository.Load();
+
+        Assert.Equal(2, loadedModel.Items.OfType<DockSeparatorItemModel>().Count());
+        CleanupTempDir();
+    }
+
+    [Fact]
     public void SavesAndLoadsSelectedLanguage()
     {
         string configPath = Path.Combine(_tempDir, "config.json");

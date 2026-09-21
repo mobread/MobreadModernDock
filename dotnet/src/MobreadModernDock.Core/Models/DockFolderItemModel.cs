@@ -11,6 +11,10 @@ public class DockFolderItemModel : DockItem
     public string Label { get; set; } = "";
     public string Path { get; set; } = "";
 
+    [JsonPropertyName("customIcon")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CustomIcon { get; set; }
+
     [JsonIgnore]
     public string FolderPath => Path;
 

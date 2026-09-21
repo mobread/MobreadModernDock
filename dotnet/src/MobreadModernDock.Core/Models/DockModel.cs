@@ -129,6 +129,21 @@ public class DockModel
     [JsonPropertyName("edgeSnapping")]
     public bool EdgeSnapping { get; set; } = true;
 
+    /// <summary>
+    /// Backdrop material drawn behind the dock and widgets: "none" (flat
+    /// alpha, the classic look), "blur" (gaussian) or "acrylic" (Fluent
+    /// acrylic with tint + noise).
+    /// </summary>
+    [JsonPropertyName("blurMode")]
+    public string BlurMode { get; set; } = "none";
+
+    /// <summary>
+    /// Follow the Windows app light/dark setting: switches the dock colour
+    /// between a dark and a light preset whenever the system theme changes.
+    /// </summary>
+    [JsonPropertyName("followSystemTheme")]
+    public bool FollowSystemTheme { get; set; }
+
     /// <summary>Gap in px kept between a snapped dock/widget and the screen edge. 0 = flush.</summary>
     [JsonPropertyName("edgeSnapMargin")]
     public int EdgeSnapMargin { get; set; } = 8;
@@ -232,5 +247,51 @@ public class DockModel
     {
         DockPositionX = positionX;
         DockPositionY = positionY;
+    }
+
+    /// <summary>
+    /// Copies every persisted field from <paramref name="other"/> into this
+    /// instance. Used by config import: the whole app holds one DockModel
+    /// reference (services, view models), so the imported config has to be
+    /// merged in place rather than swapped for a new object.
+    /// </summary>
+    public void CopyFrom(DockModel other)
+    {
+        Items = other.Items;
+        IconsSize = other.IconsSize;
+        SpacingBetweenIcons = other.SpacingBetweenIcons;
+        DockTransparency = other.DockTransparency;
+        DockBorderRounding = other.DockBorderRounding;
+        DockColorRGB = other.DockColorRGB;
+        DockPositionX = other.DockPositionX;
+        DockPositionY = other.DockPositionY;
+        PositioningMode = other.PositioningMode;
+        VerticalAnchor = other.VerticalAnchor;
+        HorizontalAnchor = other.HorizontalAnchor;
+        TopSpacing = other.TopSpacing;
+        LeftSpacing = other.LeftSpacing;
+        RightSpacing = other.RightSpacing;
+        BottomSpacing = other.BottomSpacing;
+        Language = other.Language;
+        ShowUnpinnedRunningApps = other.ShowUnpinnedRunningApps;
+        VerticalDock = other.VerticalDock;
+        TintIcons = other.TintIcons;
+        TintColorRGB = other.TintColorRGB;
+        AlwaysOnTop = other.AlwaysOnTop;
+        DockRows = other.DockRows;
+        HideTaskbar = other.HideTaskbar;
+        HideInFullscreen = other.HideInFullscreen;
+        AttentionBounce = other.AttentionBounce;
+        MirrorOnAllMonitors = other.MirrorOnAllMonitors;
+        AutoHide = other.AutoHide;
+        FolderStacks = other.FolderStacks;
+        EdgeSnapping = other.EdgeSnapping;
+        EdgeSnapMargin = other.EdgeSnapMargin;
+        BlurMode = other.BlurMode;
+        FollowSystemTheme = other.FollowSystemTheme;
+        GlobalOpacity = other.GlobalOpacity;
+        Presets = other.Presets;
+        Widgets = other.Widgets;
+        KeepSettingsLast();
     }
 }
