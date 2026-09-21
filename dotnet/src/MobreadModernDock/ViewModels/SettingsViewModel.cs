@@ -290,6 +290,16 @@ public partial class SettingsViewModel : ViewModelBase
     public string GlobalOpacityTitle => T("settings.dockCustomization.opacity.title");
     public string GlobalOpacityHelper => T("settings.dockCustomization.opacity.helper");
     public string WidgetOpacityTitle => T("settings.widgets.opacity.title");
+    public string WidgetLayerTitle => T("settings.widgets.layer.title");
+    public string WidgetLayerFollowGlobal => T("settings.widgets.layer.followGlobal");
+    public string WidgetLayerTop => T("settings.widgets.layer.top");
+    public string WidgetLayerDesktop => T("settings.widgets.layer.desktop");
+    public string WidgetAutoHideText => T("settings.widgets.autoHide");
+    public string WidgetAutoHideHelper => T("settings.widgets.autoHide.helper");
+    public string EdgeSnapMarginTitle => T("settings.general.edgeSnapMargin");
+    private int _edgeSnapMargin = 8;
+    public int EdgeSnapMargin { get => _edgeSnapMargin; set => SetProperty(ref _edgeSnapMargin, value); }
+    public string EdgeSnapMarginLabel => string.Format(T("settings.general.edgeSnapMargin.value"), EdgeSnapMargin);
     public string WidgetOpacityFollowGlobal => T("settings.widgets.opacity.followGlobal");
     public string WidgetOpacityCustom => T("settings.widgets.opacity.custom");
     public string RoundingTitle => T("settings.dockCustomization.rounding.title");
@@ -465,6 +475,7 @@ public partial class SettingsViewModel : ViewModelBase
         AutoHide = app.GetAutoHide();
         FolderStacks = app.GetFolderStacks();
         EdgeSnapping = app.GetEdgeSnapping();
+        EdgeSnapMargin = app.GetEdgeSnapMargin();
         ReloadPresets();
         _isInitialized = true;
     }
@@ -498,6 +509,7 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(AutoHide): _appServices.AppearanceService.SetAutoHide(AutoHide); _dockRefreshAction(); break;
             case nameof(FolderStacks): _appServices.AppearanceService.SetFolderStacks(FolderStacks); break;
             case nameof(EdgeSnapping): _appServices.AppearanceService.SetEdgeSnapping(EdgeSnapping); break;
+            case nameof(EdgeSnapMargin): _appServices.AppearanceService.SetEdgeSnapMargin(EdgeSnapMargin); OnPropertyChanged(nameof(EdgeSnapMarginLabel)); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
             case nameof(VerticalAnchor): OnVerticalAnchorChanged(); break;
             case nameof(HorizontalAnchor): OnHorizontalAnchorChanged(); break;

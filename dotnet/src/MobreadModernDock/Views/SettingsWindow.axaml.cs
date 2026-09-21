@@ -326,8 +326,50 @@ public partial class SettingsWindow : Window
         // (default) or pick a per-widget value.
         var panel = new StackPanel { Spacing = 16 };
         panel.Children.Add(BuildWidgetOpacitySection(def));
+        panel.Children.Add(BuildWidgetLayerSection(def));
+        panel.Children.Add(BuildWidgetAutoHideSection(def));
         if (typePanel != null) panel.Children.Add(typePanel);
         WidgetSettingsHost.Content = panel;
+    }
+
+    /// <summary>Per-widget always-on-top: follow the global toggle, or force above / desktop layer.</summary>
+    private Control BuildWidgetLayerSection(Core.Models.WidgetDefinition def)
+    {
+        var vm = Vm;
+        var widgets = _appServices!.WidgetService;
+        string mode = def.GetSetting(Core.Application.CommonWidgetSettings.LayerMode, Core.Application.CommonWidgetSettings.LayerModeGlobal);
+        string group = "layer-" + def.Id;
+        var follow = new RadioButton { Content = vm.WidgetLayerFollowGlobal, IsChecked = mode == Core.Application.CommonWidgetSettings.LayerModeGlobal, Foreground = Avalonia.Media.Brushes.White, GroupName = group };
+        var top = new RadioButton { Content = vm.WidgetLayerTop, IsChecked = mode == Core.Application.CommonWidgetSettings.LayerModeTop, Foreground = Avalonia.Media.Brushes.White, GroupName = group };
+        var desktop = new RadioButton { Content = vm.WidgetLayerDesktop, IsChecked = mode == Core.Application.CommonWidgetSettings.LayerModeDesktop, Foreground = Avalonia.Media.Brushes.White, GroupName = group };
+        void Set(RadioButton rb, string value) => rb.IsCheckedChanged += (_, _) =>
+        {
+            if (rb.IsChecked == true) widgets.UpdateSetting(def.Id, Core.Application.CommonWidgetSettings.LayerMode, value);
+        };
+        Set(follow, Core.Application.CommonWidgetSettings.LayerModeGlobal);
+        Set(top, Core.Application.CommonWidgetSettings.LayerModeTop);
+        Set(desktop, Core.Application.CommonWidgetSettings.LayerModeDesktop);
+
+        var section = new StackPanel { Spacing = 4 };
+        section.Children.Add(new TextBlock { Text = vm.WidgetLayerTitle, FontWeight = Avalonia.Media.FontWeight.SemiBold, Foreground = new Avalonia.Media.SolidColorBrush(Color.Parse("#CCCCCC")) });
+        section.Children.Add(new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 16, Children = { follow, top, desktop } });
+        return section;
+    }
+
+    /// <summary>Per-widget auto-hide. Only takes effect while the widget sits on a screen edge.</summary>
+    private Control BuildWidgetAutoHideSection(Core.Models.WidgetDefinition def)
+    {
+        var vm = Vm;
+        var widgets = _appServices!.WidgetService;
+        var cb = new CheckBox
+        {
+            Content = vm.WidgetAutoHideText,
+            IsChecked = def.GetSettingBool(Core.Application.CommonWidgetSettings.AutoHide, false),
+            Foreground = Avalonia.Media.Brushes.LightGray,
+        };
+        cb.IsCheckedChanged += (_, _) => widgets.UpdateSetting(def.Id, Core.Application.CommonWidgetSettings.AutoHide, (cb.IsChecked == true).ToString());
+        var helper = new TextBlock { Text = vm.WidgetAutoHideHelper, FontSize = 11, Foreground = new Avalonia.Media.SolidColorBrush(Color.Parse("#888888")), TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+        return new StackPanel { Spacing = 4, Children = { cb, helper } };
     }
 
     private Control BuildWidgetOpacitySection(Core.Models.WidgetDefinition def)

@@ -103,6 +103,14 @@ public class DockAppearanceService
 
     public bool GetEdgeSnapping() => GetDock().EdgeSnapping;
 
+    public int GetEdgeSnapMargin() => Math.Clamp(GetDock().EdgeSnapMargin, 0, 64);
+
+    public void SetEdgeSnapMargin(int px)
+    {
+        GetDock().EdgeSnapMargin = Math.Clamp(px, 0, 64);
+        _dockService.SaveChanges();
+    }
+
     public void SetEdgeSnapping(bool value)
     {
         GetDock().EdgeSnapping = value;

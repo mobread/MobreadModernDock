@@ -62,4 +62,14 @@ public class EdgeSnapperTest
         var r = new PixelRect(EdgeSnapper.Threshold + 1, 500, 400, 100);
         Assert.Equal(EdgeSnapper.Threshold + 1, EdgeSnapper.Snap(r, Work).X);
     }
+
+    [Fact]
+    public void CustomMargin_IsUsedForRestingGap()
+    {
+        var r = new PixelRect(5, 5, 400, 100);
+        Assert.Equal(new PixelPoint(0, 0), EdgeSnapper.Snap(r, Work, 0));
+        Assert.Equal(new PixelPoint(20, 20), EdgeSnapper.Snap(r, Work, 20));
+        var right = new PixelRect(2560 - 400 - 3, 1400 - 100 - 3, 400, 100);
+        Assert.Equal(new PixelPoint(2560 - 400 - 32, 1400 - 100 - 32), EdgeSnapper.Snap(right, Work, 32));
+    }
 }
