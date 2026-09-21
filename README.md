@@ -67,7 +67,8 @@ Free-floating panels that follow the dock's colour and corner rounding. Each rem
 
 ### Launching
 
-- **Import Taskbar Pins** — one button in Settings pulls in everything pinned to your Windows taskbar.
+- **Ready on first launch** — a fresh install seeds the dock with your Windows taskbar pins, a divider, This PC and the Recycle Bin, so it is usable before you open Settings. Nothing is imported on later launches; your config is yours.
+- **Import Taskbar Pins** — one button in Settings pulls in everything pinned to your Windows taskbar (skipping anything already on the dock).
 - **Folder stacks** — clicking a folder opens a macOS-style icon grid anchored to the dock instead of launching Explorer. Drill into subfolders in place; right-click reveals the item in Explorer.
 - **`.lnk` shortcut support** — "Add Program" accepts shortcuts, including multi-select. Target, arguments, working directory and icon are read from the shortcut, and the two shortcut shapes that break most dock apps (MSI advertised shortcuts like WSL, shell-object shortcuts like File Explorer) are handled.
 - **Live window previews** — hover a running app to see its open windows, click one to bring it forward. Positioned correctly on multi-monitor layouts.
@@ -93,6 +94,18 @@ The dock and widgets are placed with true screen coordinates, so they land on th
 ## Also included (from Cedro Modern Dock)
 
 Live window previews · running-app indicators · iOS-style icon tint with 12 presets or a custom colour · vertical dock · dock transparency and rounding · auto-start with Windows · 21 languages · in-place upgrades that keep your settings.
+
+<br>
+
+## How To Exit / Uninstall
+
+**Exit** — right-click the settings gear on the dock and choose **Quit Mobread Dock**. That is the only exit path, and it restores the Windows taskbar if you had it hidden.
+
+**Uninstall (installer)** — quit first, then remove *Mobread Modern Dock* from **Settings › Apps › Installed apps** (or Add/Remove Programs). Your settings stay in `%APPDATA%\MobreadModernDock`; delete that folder to remove them too.
+
+**Uninstall (portable)** — quit, then delete the folder. Settings live beside the exe, so nothing is left behind.
+
+> Force-killed the app with the taskbar hidden? The taskbar is restored automatically the next time the dock starts.
 
 <br>
 

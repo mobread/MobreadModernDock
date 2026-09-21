@@ -22,6 +22,7 @@ public sealed class JsonDockRepository : IDockRepository
 
     private readonly string _configFilePath;
     private readonly JsonSerializerOptions _serializerOptions;
+    private readonly Func<IEnumerable<DockItem>>? _firstRunSeed;
 
     /// <summary>
     /// True when Load() had to create a fresh default config because none
@@ -29,12 +30,36 @@ public sealed class JsonDockRepository : IDockRepository
     /// </summary>
     public bool WasDefaultCreated { get; private set; }
 
-    public JsonDockRepository() : this(GetDefaultConfigPath()) { }
+    public JsonDockRepository() : this(GetDefaultConfigPath(), SeedFromTaskbarPins) { }
 
-    public JsonDockRepository(string configFilePath)
+    /// <param name="firstRunSeed">
+    /// Items a brand-new config starts with, over and above the Settings gear.
+    /// Null means gear-only — which is what tests want, since the real seed
+    /// reads the machine's taskbar pins through COM.
+    /// </param>
+    public JsonDockRepository(string configFilePath, Func<IEnumerable<DockItem>>? firstRunSeed = null)
     {
         _configFilePath = configFilePath;
         _serializerOptions = CreateSerializerOptions();
+        _firstRunSeed = firstRunSeed;
+    }
+
+    /// <summary>
+    /// The real first-run seed: the user's taskbar pins plus a couple of
+    /// Windows modules. Failure is not fatal — a gear-only dock is still a
+    /// working dock, so any shell error degrades to the old behaviour.
+    /// </summary>
+    private static IEnumerable<DockItem> SeedFromTaskbarPins()
+    {
+        try
+        {
+            return Core.Application.FirstRunDefaults.Compose(Native.TaskbarPinImporter.Enumerate());
+        }
+        catch (Exception e)
+        {
+            System.Diagnostics.Debug.WriteLine($"First-run seed failed: {e.Message}");
+            return Array.Empty<DockItem>();
+        }
     }
 
     public void Save(DockModel model)
@@ -86,9 +111,33 @@ public sealed class JsonDockRepository : IDockRepository
     {
         WasDefaultCreated = true;
         var model = new DockModel();
-        model.LoadDefaultItems();
+        model.LoadDefaultItems(_firstRunSeed?.Invoke());
+        CacheSeedIcons(model);
         Save(model);
         return model;
+    }
+
+    /// <summary>
+    /// Extracts icons for the seeded programs up front. Without this the very
+    /// first frame of the dock — the one that decides whether the app looks
+    /// working — draws placeholder squares until each icon is resolved.
+    /// </summary>
+    private static void CacheSeedIcons(DockModel model)
+    {
+        foreach (var item in model.Items)
+        {
+            try
+            {
+                if (item is DockProgramItemModel program)
+                    Native.WindowsIconExtractor.ExtractAndCacheIcon(program.ExecutablePath);
+                else if (item is DockFolderItemModel folder)
+                    Native.WindowsIconExtractor.ExtractAndCacheFolderIcon(folder.FolderPath);
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Seed icon cache failed: {e.Message}");
+            }
+        }
     }
 
     private static JsonSerializerOptions CreateSerializerOptions()

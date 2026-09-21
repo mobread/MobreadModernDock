@@ -963,48 +963,26 @@ public partial class SettingsViewModel : ViewModelBase
     /// Squirrel-aware resolver as before.
     /// </summary>
     private static DockProgramItemModel? BuildProgramItem(string path)
-    {
-        if (Infrastructure.Windows.Native.ShellLinkResolver.IsShortcut(path))
-        {
-            var link = Infrastructure.Windows.Native.ShellLinkResolver.Resolve(path);
-            if (link == null || string.IsNullOrWhiteSpace(link.TargetPath)) return null;
-            if (!link.TargetPath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-                || !System.IO.File.Exists(link.TargetPath))
-                return null;
-            var sel = ProgramSelectionResolver.Resolve(link.TargetPath);
-            string label = System.IO.Path.GetFileNameWithoutExtension(path);
-            return new DockProgramItemModel(label, sel.ExecutablePath, link.Arguments);
-        }
-
-        var resolved = ProgramSelectionResolver.Resolve(path);
-        return new DockProgramItemModel(resolved.Label, resolved.ExecutablePath);
-    }
+        => Infrastructure.Windows.Native.ProgramItemFactory.Create(path);
 
     /// <summary>
-    /// #14 Import the taskbar's pinned shortcuts. Windows keeps them as .lnk files in
-    /// %APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar.
+    /// #14 Import the taskbar's pinned shortcuts (see
+    /// <see cref="Infrastructure.Windows.Native.TaskbarPinImporter"/>).
     /// Shortcuts that resolve to an exe already on the dock are skipped.
     /// Returns the number of items added.
     /// </summary>
     public int ImportFromTaskbar()
     {
-        string dir = System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Microsoft", "Internet Explorer", "Quick Launch", "User Pinned", "TaskBar");
-        if (!System.IO.Directory.Exists(dir)) return 0;
-
         var existing = new HashSet<string>(
             _appServices.DockService.GetItems().OfType<DockProgramItemModel>().Select(p => p.ExecutablePath),
             StringComparer.OrdinalIgnoreCase);
 
         int added = 0;
-        foreach (var lnk in System.IO.Directory.EnumerateFiles(dir, "*.lnk").OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+        foreach (var item in Infrastructure.Windows.Native.TaskbarPinImporter.Enumerate())
         {
-            var item = BuildProgramItem(lnk);
-            if (item == null || existing.Contains(item.ExecutablePath)) continue;
+            if (!existing.Add(item.ExecutablePath)) continue;
             _appServices.IconGateway.CacheProgramIcon(item.ExecutablePath);
             _appServices.DockService.AddItem(item);
-            existing.Add(item.ExecutablePath);
             added++;
         }
         if (added > 0)

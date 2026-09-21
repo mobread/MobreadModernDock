@@ -133,6 +133,28 @@ public class JsonDockRepositoryTest
     }
 
     [Fact]
+    public void FirstRunPersistsTheSeededItemsAheadOfTheGear()
+    {
+        // The seed is injected: the production one reads the machine's taskbar
+        // pins through COM, which a test must not depend on.
+        string configPath = Path.Combine(_tempDir, "config.json");
+        var repository = new JsonDockRepository(configPath, () => FirstRunDefaults.Compose(new[]
+        {
+            new DockProgramItemModel("Notepad", @"C:\Windows\notepad.exe"),
+        }));
+
+        repository.Load();
+
+        // Read back through a plain repository: what matters is what landed on disk.
+        var reloaded = new JsonDockRepository(configPath).Load();
+        Assert.Equal("Notepad", reloaded.Items.OfType<DockProgramItemModel>().Single().Label);
+        Assert.Contains(reloaded.Items, i => i is DockSeparatorItemModel);
+        Assert.Equal(2, reloaded.Items.OfType<DockWindowsModuleItemModel>().Count());
+        Assert.IsType<DockSettingsItemModel>(reloaded.Items[^1]);
+        CleanupTempDir();
+    }
+
+    [Fact]
     public void LoadsExistingJavaConfigJsonWithoutDataLoss()
     {
         // Uses the real config.json from the original Java project root to prove
