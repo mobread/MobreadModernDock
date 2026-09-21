@@ -150,11 +150,10 @@ public partial class MainWindow : Window
         // Static anchors must use the finalized window size, which SizeToContent
         // only produces after the first layout pass. Re-apply once layout settles
         // and whenever the dock content resizes the window.
+        SizeChanged += OnDockSizeChanged;
         if (IsMirror || _appServices?.PositioningService.IsDynamicPositioning() == false)
-        {
-            SizeChanged += OnDockSizeChanged;
             Dispatcher.UIThread.Post(() => ApplyDockPosition(), DispatcherPriority.Loaded);
-        }
+        Dispatcher.UIThread.Post(RefreshTooltipPlacement, DispatcherPriority.Loaded);
     }
 
     /// <summary>
@@ -222,6 +221,7 @@ public partial class MainWindow : Window
             _dockBehavior.MoveToScreen(x, y);
         else
             Position = new PixelPoint(x, y);
+        RefreshTooltipPlacement();
     }
 
     private (int X, int Y) GetScreenPosition() =>
@@ -229,6 +229,7 @@ public partial class MainWindow : Window
 
     private void OnDockSizeChanged(object? sender, SizeChangedEventArgs e)
     {
+        RefreshTooltipPlacement();
         if (IsMirror || _appServices?.PositioningService.IsDynamicPositioning() == false)
             ApplyDockPosition();
     }
@@ -767,6 +768,7 @@ public partial class MainWindow : Window
     /// </summary>
     private void OnDockPositionChanged(object? sender, PixelPointEventArgs e)
     {
+        RefreshTooltipPlacement();
         if (_appServices == null || IsMirror) return;
         if (!_appServices.PositioningService.IsDynamicPositioning()) return;
         _positionPersistTimer.Stop();
@@ -832,6 +834,19 @@ public partial class MainWindow : Window
 
     /// <summary>Mirror docks: recompute the anchored position (primary moved or layout changed).</summary>
     public void ReapplyPosition() => ApplyDockPosition(force: true);
+
+    /// <summary>Tooltips open on the side of the dock facing the screen centre so they never cover the icon.</summary>
+    private void RefreshTooltipPlacement()
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+        try
+        {
+            var rect = ScreenGeometry.WindowScreenRect(this);
+            var work = ScreenGeometry.WorkAreaAt(new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2));
+            vm.UpdateTooltipPlacement(rect.X, rect.Y, rect.Width, rect.Height, work.X, work.Y, work.Right, work.Bottom);
+        }
+        catch { }
+    }
 
     /// <summary>Fullscreen auto-hide: show/hide the native window without changing layering.</summary>
     public void SetNativeVisible(bool visible) => _dockBehavior?.SetNativeVisible(visible);

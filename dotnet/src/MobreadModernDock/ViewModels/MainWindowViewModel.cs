@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Media;
 using MobreadModernDock.Core.Application;
 using MobreadModernDock.Core.Models;
@@ -67,6 +68,29 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Layout direction of the dock items (horizontal by default, vertical when enabled).</summary>
     public Avalonia.Layout.Orientation DockOrientation
         => IsVerticalDock ? Avalonia.Layout.Orientation.Vertical : Avalonia.Layout.Orientation.Horizontal;
+
+    /// <summary>
+    /// Where item tooltips open, so they never cover the icon: on the side
+    /// of the dock that faces the screen centre. Recomputed from the dock's
+    /// screen position by the window (see <see cref="UpdateTooltipPlacement"/>).
+    /// </summary>
+    private PlacementMode _tooltipPlacement = PlacementMode.Top;
+    public PlacementMode TooltipPlacement { get => _tooltipPlacement; private set => SetProperty(ref _tooltipPlacement, value); }
+
+    /// <summary>Pick the tooltip side from the dock's rect vs. its screen's work area.</summary>
+    public void UpdateTooltipPlacement(int dockX, int dockY, int dockW, int dockH, int workL, int workT, int workR, int workB)
+    {
+        if (IsVerticalDock)
+        {
+            int dLeft = dockX - workL, dRight = workR - (dockX + dockW);
+            TooltipPlacement = dLeft <= dRight ? PlacementMode.Right : PlacementMode.Left;
+        }
+        else
+        {
+            int dTop = dockY - workT, dBottom = workB - (dockY + dockH);
+            TooltipPlacement = dTop <= dBottom ? PlacementMode.Bottom : PlacementMode.Top;
+        }
+    }
 
     /// <summary>Separator is only shown between pinned items and displayed unpinned running apps.</summary>
     public bool ShowHorizontalSeparator => HasRunningApps && !IsVerticalDock;
