@@ -1065,7 +1065,37 @@ public partial class MainWindow : Window
             menu.Items.Add(unpin);
         }
 
+        // The gear carries the way out. Quitting was previously only reachable
+        // from the tray icon, which users did not find — the launch thread had
+        // someone convinced the app could not be closed at all.
+        if (vm.Item is DockSettingsItemModel)
+        {
+            menu.Items.Add(new Separator());
+            var quit = new MenuItem { Header = loc.Text("dock.context.quit") };
+            quit.Click += (_, _) => ConfirmAndQuit();
+            menu.Items.Add(quit);
+        }
+
         menu.Open(button);
+    }
+
+    /// <summary>
+    /// Asks before quitting, then goes through the one shutdown path that also
+    /// restores the Windows taskbar — leaving it hidden with the dock gone
+    /// would look like the desktop had broken.
+    /// </summary>
+    private void ConfirmAndQuit()
+    {
+        if (_appServices == null) return;
+        var loc = _appServices.LocalizationService;
+        var answer = System.Windows.Forms.MessageBox.Show(
+            loc.Text("dialog.quit.message"),
+            loc.Text("dialog.quit.title"),
+            System.Windows.Forms.MessageBoxButtons.YesNo,
+            System.Windows.Forms.MessageBoxIcon.Question,
+            System.Windows.Forms.MessageBoxDefaultButton.Button1);
+        if (answer == System.Windows.Forms.DialogResult.Yes)
+            App.RequestShutdown();
     }
 
     /// <summary>
