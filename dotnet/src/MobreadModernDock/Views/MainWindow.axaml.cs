@@ -1602,42 +1602,69 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Applies the configured backdrop (none / blur / acrylic) to the native
-    /// window and clips it to the dock bar so the blur follows the rounded
-    /// corners instead of filling the whole window rectangle (which includes
-    /// the transparent bounce headroom).
+    /// Applies the configured backdrop (none / blur / acrylic) and clips the
+    /// native window to the dock bar so the blur follows the rounded corners
+    /// instead of filling the whole window rectangle (which includes the
+    /// transparent bounce headroom).
     ///
-    /// The tint is the dock colour at the dock's own transparency, so the
+    /// The backdrop is driven through Avalonia's <see cref="Window.TransparencyLevelHint"/>,
+    /// *not* the legacy <c>SetWindowCompositionAttribute</c> accent policy.
+    /// Avalonia creates this window with <c>WS_EX_NOREDIRECTIONBITMAP</c> and
+    /// renders it through DirectComposition, and the accent policy paints into
+    /// a window's redirection surface — which this window does not have. The
+    /// accent call therefore *succeeds and draws nothing*: measured with
+    /// Desktop Duplication, pixels behind the bar were byte-identical with the
+    /// accent on and off. Avalonia's own WinUI-Composition backdrop is the only
+    /// one that composites here.
+    ///
+    /// The tint stays the dock colour at the dock's own transparency, so the
     /// existing colour and transparency sliders keep working — the blur only
     /// replaces what shows *through* that tint.
     /// </summary>
     private void ApplyBackdrop()
     {
         if (_appServices == null) return;
-        IntPtr hwnd = this.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (hwnd == IntPtr.Zero) return;
 
         var appearance = _appServices.AppearanceService;
         string mode = appearance.GetBlurMode();
 
+        // Ordered preference: Avalonia walks the list and takes the first level
+        // the platform can honour. Note that the Win32 backend does NOT
+        // implement WindowTransparencyLevel.Blur — asking for it alone silently
+        // degrades to Transparent (measured: ActualTransparencyLevel reported
+        // "Transparent", and the background showed through sharp, unblurred).
+        // AcrylicBlur is the only level that actually blurs here, so it backs
+        // up the plain-blur mode too. Transparent is the tail fallback in every
+        // case so the window never drops back to an opaque themed background.
+        TransparencyLevelHint = mode switch
+        {
+            WindowBlur.ModeAcrylic => new[]
+            {
+                WindowTransparencyLevel.AcrylicBlur,
+                WindowTransparencyLevel.Blur,
+                WindowTransparencyLevel.Transparent,
+            },
+            WindowBlur.ModeBlur => new[]
+            {
+                WindowTransparencyLevel.Blur,
+                WindowTransparencyLevel.AcrylicBlur,
+                WindowTransparencyLevel.Transparent,
+            },
+            _ => new[] { WindowTransparencyLevel.Transparent },
+        };
+
+        // The Border always paints the dock colour at the user's transparency.
+        // Unlike the old acrylic accent (which tinted natively and would have
+        // doubled up), Avalonia's backdrop applies no colour of its own, so the
+        // bar's brush stays in charge in every mode.
+        if (DataContext is MainWindowViewModel vm)
+            vm.SuppressBarBackground = false;
+
         if (!WindowBlur.IsEnabled(mode))
         {
-            WindowBlur.Apply(hwnd, WindowBlur.ModeNone, 0, 0, 0, 0);
-            WindowBlur.ClearRegion(hwnd);
-            // The Border paints the background again once the backdrop is off.
-            if (DataContext is MainWindowViewModel novm) novm.SuppressBarBackground = false;
+            WindowBlur.ClearRegion(this.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero);
             return;
         }
-
-        var (r, g, b) = ParseRgb(appearance.GetDockColorRGB());
-        double tint = appearance.GetDockTransparencyPercentage() / 100.0;
-        WindowBlur.Apply(hwnd, mode, r, g, b, tint);
-
-        // Plain blur draws no tint of its own, so the Border keeps painting the
-        // dock colour over it. Acrylic already applies the tint natively —
-        // letting the Border paint it again would double the opacity.
-        if (DataContext is MainWindowViewModel vm)
-            vm.SuppressBarBackground = mode == WindowBlur.ModeAcrylic;
 
         UpdateBackdropRegion();
     }
@@ -1661,15 +1688,6 @@ public partial class MainWindow : Window
             DockBar.Bounds.Width, DockBar.Bounds.Height,
             _appServices.AppearanceService.GetDockBorderRounding(),
             RenderScaling);
-    }
-
-    private static (byte R, byte G, byte B) ParseRgb(string rgb)
-    {
-        var parts = rgb.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        byte r = parts.Length > 0 && byte.TryParse(parts[0], out var rv) ? rv : (byte)0;
-        byte g = parts.Length > 1 && byte.TryParse(parts[1], out var gv) ? gv : (byte)0;
-        byte b = parts.Length > 2 && byte.TryParse(parts[2], out var bv) ? bv : (byte)0;
-        return (r, g, b);
     }
 
     protected override void OnClosed(EventArgs e)

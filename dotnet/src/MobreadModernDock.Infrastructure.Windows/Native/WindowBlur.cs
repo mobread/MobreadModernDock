@@ -4,115 +4,37 @@ using System;
 using System.Runtime.InteropServices;
 
 /// <summary>
-/// Blur / acrylic backdrop behind a borderless window, via the undocumented
-/// <c>SetWindowCompositionAttribute</c> accent policy (the same mechanism the
-/// Win10/11 taskbar and start menu use).
+/// Window-region helper for the dock's backdrop, plus the vocabulary of
+/// backdrop mode names persisted in config.
 ///
-/// Two visual modes are offered:
-/// <list type="bullet">
-/// <item><b>Blur</b> (ACCENT_ENABLE_BLURBEHIND): a plain gaussian blur of
-/// whatever is behind the window. Cheap and smooth while dragging.</item>
-/// <item><b>Acrylic</b> (ACCENT_ENABLE_ACRYLICBLURBEHIND): the Fluent acrylic
-/// material — blur plus a tint and noise layer. Richer, but DWM re-renders it
-/// on every move, which makes dragging noticeably heavier.</item>
-/// </list>
+/// <para><b>Why there is no accent-policy call here any more.</b> The blur used
+/// to be applied with the undocumented <c>SetWindowCompositionAttribute</c>
+/// accent policy (the mechanism the Win10/11 taskbar uses). That cannot work
+/// for this app: Avalonia creates its windows with <c>WS_EX_NOREDIRECTIONBITMAP</c>
+/// and composes them through DirectComposition, while the accent policy paints
+/// into a window's <i>redirection surface</i>. With no redirection surface the
+/// call returns success and draws nothing — verified on Win11 25H2 (26200) by
+/// capturing the composed frame with Desktop Duplication against a
+/// saturated-colour backdrop: the pixels behind the bar were identical with the
+/// accent enabled and disabled, and none of the accent states (3 blur, 4
+/// acrylic, 5 host-backdrop) or flag combinations changed that.</para>
 ///
-/// The accent tint is supplied as a premultiplied-looking ABGR value; the
-/// window's own content is still drawn on top, so the dock keeps painting its
-/// rounded <c>Border</c> and only leaves the background to the backdrop.
+/// <para>Note that GDI capture (BitBlt / PIL ImageGrab) cannot be used to judge
+/// this either way — it excludes DWM backdrop compositing and shows black. Use
+/// Desktop Duplication.</para>
+///
+/// <para>The backdrop is therefore driven by Avalonia's own WinUI-Composition
+/// implementation via <c>Window.TransparencyLevelHint</c> (see
+/// <c>MainWindow.ApplyBackdrop</c>). The window region below is still required:
+/// the backdrop fills the whole <i>window</i>, so without a region it shows as
+/// a square slab covering the rounded corners and the transparent bounce
+/// headroom.</para>
 /// </summary>
 public static class WindowBlur
 {
     public const string ModeNone = "none";
     public const string ModeBlur = "blur";
     public const string ModeAcrylic = "acrylic";
-
-    private enum AccentState
-    {
-        Disabled = 0,
-        EnableBlurBehind = 3,
-        EnableAcrylicBlurBehind = 4,
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct AccentPolicy
-    {
-        public int AccentState;
-        public int AccentFlags;
-        public uint GradientColor;
-        public int AnimationId;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct WindowCompositionAttributeData
-    {
-        public int Attribute;
-        public IntPtr Data;
-        public int SizeOfData;
-    }
-
-    private const int WCA_ACCENT_POLICY = 19;
-
-    [DllImport("user32.dll")]
-    private static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
-
-    /// <summary>
-    /// Applies (or removes) the backdrop. <paramref name="tintOpacity"/> is
-    /// 0..1 and only affects the acrylic tint — the plain blur mode ignores the
-    /// tint entirely so the dock's own background colour stays in charge.
-    /// </summary>
-    public static bool Apply(IntPtr hwnd, string mode, byte r, byte g, byte b, double tintOpacity)
-    {
-        if (hwnd == IntPtr.Zero) return false;
-
-        AccentState state = mode switch
-        {
-            ModeBlur => AccentState.EnableBlurBehind,
-            ModeAcrylic => AccentState.EnableAcrylicBlurBehind,
-            _ => AccentState.Disabled,
-        };
-
-        // ACCENT_ENABLE_ACRYLICBLURBEHIND with a fully transparent gradient
-        // colour renders nothing at all, so the acrylic tint gets at least a
-        // faint alpha. The plain blur mode is driven purely by the window's
-        // own painted background.
-        byte alpha = state == AccentState.EnableAcrylicBlurBehind
-            ? (byte)Math.Clamp(tintOpacity * 255.0, 16, 255)
-            : (byte)0;
-        uint gradient = ((uint)alpha << 24) | ((uint)b << 16) | ((uint)g << 8) | r;
-
-        var policy = new AccentPolicy
-        {
-            AccentState = (int)state,
-            // 2 = draw the accent on every edge. Without it the backdrop is
-            // inset by the (nonexistent) border of a decorationless window.
-            AccentFlags = 2,
-            GradientColor = gradient,
-            AnimationId = 0,
-        };
-
-        int size = Marshal.SizeOf<AccentPolicy>();
-        IntPtr ptr = Marshal.AllocHGlobal(size);
-        try
-        {
-            Marshal.StructureToPtr(policy, ptr, false);
-            var data = new WindowCompositionAttributeData
-            {
-                Attribute = WCA_ACCENT_POLICY,
-                Data = ptr,
-                SizeOfData = size,
-            };
-            return SetWindowCompositionAttribute(hwnd, ref data) != 0;
-        }
-        catch (EntryPointNotFoundException)
-        {
-            return false; // pre-Win10: no accent policy at all
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(ptr);
-        }
-    }
 
     /// <summary>True when the supplied mode asks for any backdrop at all.</summary>
     public static bool IsEnabled(string? mode) => mode is ModeBlur or ModeAcrylic;

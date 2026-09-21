@@ -138,14 +138,13 @@ public partial class WidgetWindow : Window
         byte g = parts.Length > 1 && byte.TryParse(parts[1], out var gv) ? gv : (byte)0;
         byte b = parts.Length > 2 && byte.TryParse(parts[2], out var bv) ? bv : (byte)0;
 
-        // Acrylic tints the window natively; painting the same colour again on
-        // the Border would double it up (see MainWindow.ApplyBackdrop).
+        // Avalonia's backdrop adds no colour of its own, so the chrome always
+        // paints the dock colour at the user's transparency (see
+        // MainWindow.ApplyBackdrop for why the accent policy is not used).
         string blurMode = appearance.GetBlurMode();
-        Chrome.Background = blurMode == WindowBlur.ModeAcrylic
-            ? Brushes.Transparent
-            : new SolidColorBrush(Color.FromArgb(alpha, r, g, b));
+        Chrome.Background = new SolidColorBrush(Color.FromArgb(alpha, r, g, b));
 
-        ApplyBackdrop(blurMode, r, g, b, transparency);
+        ApplyBackdrop(blurMode);
 
         if (_definition != null)
             Chrome.Opacity = CommonWidgetSettings.EffectiveOpacity(_definition, appearance.GetGlobalOpacityPercentage());
@@ -155,16 +154,31 @@ public partial class WidgetWindow : Window
     /// Mirrors the dock's backdrop setting onto this widget window and clips
     /// it to the chrome's rounded rect. Widgets have no bounce headroom, but
     /// the region is still needed so the blur doesn't square off the corners.
+    /// Driven through TransparencyLevelHint — see MainWindow.ApplyBackdrop for
+    /// why the accent policy cannot work on an Avalonia window.
     /// </summary>
-    private void ApplyBackdrop(string mode, byte r, byte g, byte b, double tint)
+    private void ApplyBackdrop(string mode)
     {
-        IntPtr hwnd = this.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (hwnd == IntPtr.Zero) return;
+        TransparencyLevelHint = mode switch
+        {
+            WindowBlur.ModeAcrylic => new[]
+            {
+                WindowTransparencyLevel.AcrylicBlur,
+                WindowTransparencyLevel.Blur,
+                WindowTransparencyLevel.Transparent,
+            },
+            WindowBlur.ModeBlur => new[]
+            {
+                WindowTransparencyLevel.Blur,
+                WindowTransparencyLevel.AcrylicBlur,
+                WindowTransparencyLevel.Transparent,
+            },
+            _ => new[] { WindowTransparencyLevel.Transparent },
+        };
 
-        WindowBlur.Apply(hwnd, mode, r, g, b, tint);
         if (!WindowBlur.IsEnabled(mode))
         {
-            WindowBlur.ClearRegion(hwnd);
+            WindowBlur.ClearRegion(this.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero);
             return;
         }
         UpdateBackdropRegion();
