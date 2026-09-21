@@ -49,15 +49,8 @@
           <Shortcut Id="S_StartMenu" Directory="AppMenuDir" Name="Mobread Modern Dock" />
         </File>
       </Component>
-      <Component Id="CMP_LibSkia" Guid="*">
-        <File Id="FILE_LibSkia" Source="publish\libSkiaSharp.dll" KeyPath="yes" />
-      </Component>
-      <Component Id="CMP_LibHarfBuzz" Guid="*">
-        <File Id="FILE_LibHarfBuzz" Source="publish\libHarfBuzzSharp.dll" KeyPath="yes" />
-      </Component>
-      <Component Id="CMP_LibGLES" Guid="*">
-        <File Id="FILE_LibGLES" Source="publish\av_libglesv2.dll" KeyPath="yes" />
-      </Component>
+      <!-- Native Skia/HarfBuzz/ANGLE DLLs are bundled inside the single-file exe
+           (IncludeNativeLibrariesForSelfExtract in build.ps1), so nothing else ships. -->
       <Component Id="CMP_AppMenuCleanup" Guid="*">
         <RemoveFolder Id="R_AppMenu" Directory="AppMenuDir" On="uninstall" />
         <RegistryValue Root="HKCU" Key="Software\MobreadModernDock" Name="installed"

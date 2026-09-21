@@ -110,12 +110,12 @@ public sealed class JsonDockRepository : IDockRepository
 
     private static string GetDefaultConfigPath()
     {
-        string? appDataPath = Environment.GetEnvironmentVariable("APPDATA");
-        if (string.IsNullOrEmpty(appDataPath))
-            appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-        string configDir = Path.Combine(appDataPath, AppDataFolder);
-        MigrateLegacyAppData(appDataPath, configDir);
+        string configDir = Adapters.AppDataLocator.Root;
+        if (!Adapters.AppDataLocator.IsPortable)
+        {
+            string? appDataPath = Path.GetDirectoryName(configDir);
+            if (!string.IsNullOrEmpty(appDataPath)) MigrateLegacyAppData(appDataPath, configDir);
+        }
         if (!Directory.Exists(configDir))
             Directory.CreateDirectory(configDir);
 

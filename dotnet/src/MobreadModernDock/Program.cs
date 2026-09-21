@@ -43,6 +43,12 @@ sealed class Program
             return;
         }
 
+        // #17 At login the Run-key launches us in parallel with explorer. The
+        // dock reparents itself under Progman and hides Shell_TrayWnd; if
+        // neither exists yet those steps silently fail and the dock ends up
+        // as an ordinary top-level window. Wait (bounded) for the shell.
+        Infrastructure.Windows.Native.ShellReadiness.WaitForShell(TimeSpan.FromSeconds(30));
+
         try
         {
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
@@ -66,8 +72,7 @@ internal static class CrashLogger
 {
     private static readonly object Sync = new();
     private static readonly string Path =
-        System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "MobreadModernDock", "crash-log.txt");
+        System.IO.Path.Combine(MobreadModernDock.Infrastructure.Windows.Adapters.AppDataLocator.Root, "crash-log.txt");
 
     public static void Hook()
     {

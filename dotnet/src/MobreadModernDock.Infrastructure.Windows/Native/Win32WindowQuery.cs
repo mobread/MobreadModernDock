@@ -131,6 +131,9 @@ public static class Win32WindowQuery
         return result;
     }
 
+    /// <summary>Process image path for a window handle (normalized), or null.</summary>
+    public static string? GetProcessPathPublic(IntPtr hWnd) => GetProcessPath(hWnd);
+
     private static string? GetProcessPath(IntPtr hWnd)
     {
         User32.GetWindowThreadProcessId(hWnd, out uint pid);

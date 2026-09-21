@@ -193,6 +193,88 @@ public partial class SettingsViewModel : ViewModelBase
     public string MoveDownText => T("settings.icons.moveDown");
     public string AddProgramText => T("settings.icons.addProgram");
     public string AddFolderText => T("settings.icons.addFolder");
+    public string ImportTaskbarText => T("settings.icons.importTaskbar");
+
+    // --- #11 presets ---
+    public string PresetsTitle => T("settings.dockCustomization.presets.title");
+    public string PresetsHelper => T("settings.dockCustomization.presets.helper");
+    public string PresetApplyText => T("settings.dockCustomization.presets.apply");
+    public string PresetDeleteText => T("settings.dockCustomization.presets.delete");
+    public string PresetSaveText => T("settings.dockCustomization.presets.save");
+    public string PresetNameHint => T("settings.dockCustomization.presets.nameHint");
+
+    public System.Collections.ObjectModel.ObservableCollection<string> PresetNames { get; } = new();
+    private List<AppearancePreset> _presetList = new();
+    private int _builtInCount;
+
+    private int _selectedPresetIndex = -1;
+    public int SelectedPresetIndex
+    {
+        get => _selectedPresetIndex;
+        set { if (SetProperty(ref _selectedPresetIndex, value)) { OnPropertyChanged(nameof(CanApplyPreset)); OnPropertyChanged(nameof(CanDeletePreset)); } }
+    }
+    public bool CanApplyPreset => SelectedPresetIndex >= 0 && SelectedPresetIndex < _presetList.Count;
+    public bool CanDeletePreset => SelectedPresetIndex >= _builtInCount && SelectedPresetIndex < _presetList.Count;
+
+    private string _newPresetName = "";
+    public string NewPresetName
+    {
+        get => _newPresetName;
+        set { if (SetProperty(ref _newPresetName, value)) OnPropertyChanged(nameof(CanSavePreset)); }
+    }
+    public bool CanSavePreset => !string.IsNullOrWhiteSpace(NewPresetName);
+
+    private void ReloadPresets()
+    {
+        var builtIns = AppearancePreset.BuiltIns();
+        _builtInCount = builtIns.Count;
+        _presetList = builtIns.Concat(_appServices.AppearanceService.GetUserPresets()).ToList();
+        int keep = SelectedPresetIndex;
+        PresetNames.Clear();
+        foreach (var p in _presetList) PresetNames.Add(p.Name);
+        SelectedPresetIndex = keep >= 0 && keep < _presetList.Count ? keep : -1;
+        OnPropertyChanged(nameof(CanApplyPreset)); OnPropertyChanged(nameof(CanDeletePreset));
+    }
+
+    public void ApplySelectedPreset()
+    {
+        if (!CanApplyPreset) return;
+        _appServices.AppearanceService.ApplyPreset(_presetList[SelectedPresetIndex]);
+        // Re-read every appearance field so the sliders/pickers reflect the preset,
+        // without the change handlers writing back one by one.
+        _isInitialized = false;
+        var app = _appServices.AppearanceService;
+        IconSize = app.GetIconsSize();
+        IconSpacing = app.GetSpacingBetweenIcons();
+        DockRows = app.GetDockRows();
+        Transparency = app.GetDockTransparencyPercentage();
+        GlobalOpacity = app.GetGlobalOpacityPercentage();
+        BorderRounding = app.GetDockBorderRounding();
+        DockColor = ParseRgbColor(app.GetDockColorRGB());
+        TintIcons = app.GetTintIcons();
+        TintColor = ParseRgbColor(app.GetTintColorRGB());
+        IsVerticalDock = app.GetVerticalDock();
+        _isInitialized = true;
+        _dockRefreshAction();
+    }
+
+    public void SaveCurrentAsPreset()
+    {
+        if (!CanSavePreset) return;
+        string name = NewPresetName.Trim();
+        _appServices.AppearanceService.SavePreset(name);
+        NewPresetName = "";
+        ReloadPresets();
+        SelectedPresetIndex = _presetList.FindIndex(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public void DeleteSelectedPreset()
+    {
+        if (!CanDeletePreset) return;
+        _appServices.AppearanceService.DeletePreset(_presetList[SelectedPresetIndex].Name);
+        SelectedPresetIndex = -1;
+        ReloadPresets();
+    }
     public string AddModuleText => T("settings.icons.addWindowsModule");
     public string RemoveText => T("settings.icons.removeSelected");
     public string IconSizeTitle => T("settings.iconsCustomization.size.title");
@@ -228,7 +310,54 @@ public partial class SettingsViewModel : ViewModelBase
     public string BottomSpacingLabel => T("settings.positioning.spacing.down");
     public string DynamicPosTitle => T("settings.positioning.dynamic.title");
     public string DynamicPosHelper => T("settings.positioning.dynamic.helper");
-    public string VersionText => T("settings.general.version");
+    public string VersionText => string.Format(T("settings.general.version"), CurrentVersion.ToString(3));
+
+    // --- #16 update check ---
+    public static Version CurrentVersion
+    {
+        get
+        {
+            var asm = System.Reflection.Assembly.GetEntryAssembly();
+            var info = asm?.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            return (info != null ? UpdateChecker.ParseVersion(info) : null) ?? asm?.GetName().Version ?? new Version(0, 0, 0);
+        }
+    }
+    public string CheckUpdatesText => T("settings.general.checkUpdates");
+    public string DownloadUpdateText => T("settings.general.downloadUpdate");
+    private bool _isCheckingUpdates;
+    public bool IsCheckingUpdates { get => _isCheckingUpdates; set => SetProperty(ref _isCheckingUpdates, value); }
+    private bool _updateAvailable;
+    public bool UpdateAvailable { get => _updateAvailable; set => SetProperty(ref _updateAvailable, value); }
+    private string _updateStatusText = "";
+    public string UpdateStatusText { get => _updateStatusText; set => SetProperty(ref _updateStatusText, value); }
+    private string? _updateUrl;
+
+    public async Task CheckForUpdatesAsync()
+    {
+        IsCheckingUpdates = true;
+        UpdateAvailable = false;
+        UpdateStatusText = T("settings.general.updateChecking");
+        try
+        {
+            var r = await UpdateChecker.CheckAsync(CurrentVersion);
+            if (r == null) UpdateStatusText = T("settings.general.updateUnavailable");
+            else if (r.UpdateAvailable)
+            {
+                _updateUrl = r.DownloadUrl ?? r.ReleaseUrl ?? UpdateChecker.ReleasesPage;
+                UpdateAvailable = true;
+                UpdateStatusText = string.Format(T("settings.general.updateFound"), r.Latest!.ToString(3));
+            }
+            else UpdateStatusText = T("settings.general.updateNone");
+        }
+        finally { IsCheckingUpdates = false; }
+    }
+
+    public void OpenUpdateDownload()
+    {
+        string url = _updateUrl ?? UpdateChecker.ReleasesPage;
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch { }
+    }
     public string RepoText => T("settings.general.repository");
     public string ContactText => T("settings.general.contact");
     public string OpenSourceText => T("settings.general.openSource");
@@ -239,6 +368,8 @@ public partial class SettingsViewModel : ViewModelBase
     public string AlwaysOnTopText => T("settings.general.alwaysOnTop");
     public string HideTaskbarText => T("settings.general.hideTaskbar");
     public string HideInFullscreenText => T("settings.general.hideInFullscreen");
+    public string AttentionBounceText => T("settings.general.attentionBounce");
+    public string MirrorMonitorsText => T("settings.general.mirrorMonitors");
     public string AutoHideText => T("settings.general.autoHide");
     public string FolderStacksText => T("settings.general.folderStacks");
     public string EdgeSnappingText => T("settings.general.edgeSnapping");
@@ -269,6 +400,10 @@ public partial class SettingsViewModel : ViewModelBase
 
     private bool _hideInFullscreen = true;
     public bool HideInFullscreen { get => _hideInFullscreen; set => SetProperty(ref _hideInFullscreen, value); }
+    private bool _attentionBounce;
+    public bool AttentionBounce { get => _attentionBounce; set => SetProperty(ref _attentionBounce, value); }
+    private bool _mirrorMonitors;
+    public bool MirrorMonitors { get => _mirrorMonitors; set => SetProperty(ref _mirrorMonitors, value); }
 
     private bool _hideTaskbar;
     public bool HideTaskbar { get => _hideTaskbar; set => SetProperty(ref _hideTaskbar, value); }
@@ -325,9 +460,12 @@ public partial class SettingsViewModel : ViewModelBase
         AlwaysOnTop = app.GetAlwaysOnTop();
         HideTaskbar = app.GetHideTaskbar();
         HideInFullscreen = app.GetHideInFullscreen();
+        AttentionBounce = app.GetAttentionBounce();
+        MirrorMonitors = _appServices.PositioningService.GetMirrorOnAllMonitors();
         AutoHide = app.GetAutoHide();
         FolderStacks = app.GetFolderStacks();
         EdgeSnapping = app.GetEdgeSnapping();
+        ReloadPresets();
         _isInitialized = true;
     }
 
@@ -355,6 +493,8 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(AlwaysOnTop): OnAlwaysOnTopChanged(); break;
             case nameof(HideTaskbar): OnHideTaskbarChanged(); break;
             case nameof(HideInFullscreen): _appServices.AppearanceService.SetHideInFullscreen(HideInFullscreen); break;
+            case nameof(AttentionBounce): _appServices.AppearanceService.SetAttentionBounce(AttentionBounce); break;
+            case nameof(MirrorMonitors): _appServices.PositioningService.SetMirrorOnAllMonitors(MirrorMonitors); App.SyncMirrorDocks(); break;
             case nameof(AutoHide): _appServices.AppearanceService.SetAutoHide(AutoHide); _dockRefreshAction(); break;
             case nameof(FolderStacks): _appServices.AppearanceService.SetFolderStacks(FolderStacks); break;
             case nameof(EdgeSnapping): _appServices.AppearanceService.SetEdgeSnapping(EdgeSnapping); break;
@@ -484,6 +624,41 @@ public partial class SettingsViewModel : ViewModelBase
 
         var resolved = ProgramSelectionResolver.Resolve(path);
         return new DockProgramItemModel(resolved.Label, resolved.ExecutablePath);
+    }
+
+    /// <summary>
+    /// #14 Import the taskbar's pinned shortcuts. Windows keeps them as .lnk files in
+    /// %APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar.
+    /// Shortcuts that resolve to an exe already on the dock are skipped.
+    /// Returns the number of items added.
+    /// </summary>
+    public int ImportFromTaskbar()
+    {
+        string dir = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Microsoft", "Internet Explorer", "Quick Launch", "User Pinned", "TaskBar");
+        if (!System.IO.Directory.Exists(dir)) return 0;
+
+        var existing = new HashSet<string>(
+            _appServices.DockService.GetItems().OfType<DockProgramItemModel>().Select(p => p.ExecutablePath),
+            StringComparer.OrdinalIgnoreCase);
+
+        int added = 0;
+        foreach (var lnk in System.IO.Directory.EnumerateFiles(dir, "*.lnk").OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+        {
+            var item = BuildProgramItem(lnk);
+            if (item == null || existing.Contains(item.ExecutablePath)) continue;
+            _appServices.IconGateway.CacheProgramIcon(item.ExecutablePath);
+            _appServices.DockService.AddItem(item);
+            existing.Add(item.ExecutablePath);
+            added++;
+        }
+        if (added > 0)
+        {
+            RefreshItemLabels();
+            _dockRefreshAction();
+        }
+        return added;
     }
 
     public async Task AddFolderAsync(Window window)

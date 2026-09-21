@@ -47,6 +47,12 @@ public class Win32WindowQueryGateway : IWindowQueryGateway
         return fg == windowInfo.Handle || User32.GetAncestor(fg, GA_ROOTOWNER) == windowInfo.Handle;
     }
 
+    public string? ForegroundExecutablePath()
+    {
+        IntPtr fg = User32.GetForegroundWindow();
+        return fg == IntPtr.Zero ? null : Win32WindowQuery.GetProcessPathPublic(fg);
+    }
+
     public bool IsMinimized(WindowInfo windowInfo) =>
         windowInfo.Handle != IntPtr.Zero && User32.IsIconic(windowInfo.Handle);
 

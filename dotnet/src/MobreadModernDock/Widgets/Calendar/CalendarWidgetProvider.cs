@@ -70,7 +70,9 @@ public sealed class CalendarWidgetProvider : IWidgetProvider
             [!ItemsControl.ItemsSourceProperty] = new Avalonia.Data.Binding(nameof(CalendarWidgetViewModel.Cells)),
             ItemsPanel = new Avalonia.Controls.Templates.FuncTemplate<Panel?>(() => new UniformGrid
             {
-                [!UniformGrid.ColumnsProperty] = new Avalonia.Data.Binding(nameof(CalendarWidgetViewModel.Columns)),
+                // The panel template has no DataContext; bind to the VM explicitly.
+                [!UniformGrid.ColumnsProperty] = new Avalonia.Data.Binding(nameof(CalendarWidgetViewModel.Columns)) { Source = vm },
+                [!UniformGrid.RowsProperty] = new Avalonia.Data.Binding(nameof(CalendarWidgetViewModel.Rows)) { Source = vm },
             }),
             ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<CalendarCell>((cell, _) => new Border
             {
@@ -146,6 +148,8 @@ public sealed class CalendarWidgetViewModel : WidgetViewModelBase
     public string Title { get => _title; set => SetProperty(ref _title, value); }
     private int _columns = 7;
     public int Columns { get => _columns; set => SetProperty(ref _columns, value); }
+    /// <summary>Header row + 6 week rows, always — so the widget never resizes month to month.</summary>
+    public int Rows => 7;
     private double _fontSize = 12;
     public double FontSize { get => _fontSize; set { SetProperty(ref _fontSize, value); OnPropertyChanged(nameof(SmallFontSize)); OnPropertyChanged(nameof(HeaderFontSize)); OnPropertyChanged(nameof(CellSize)); } }
     public double SmallFontSize => Math.Max(8, FontSize - 2);
@@ -207,7 +211,10 @@ public sealed class CalendarWidgetViewModel : WidgetViewModelBase
         for (int row = 0; row < 6; row++)
         {
             if (_weekNumbers)
-                Cells.Add(new CalendarCell { Text = ISOWeek.GetWeekOfYear(cursor).ToString(), IsWeekNumber = true });
+                // ISO weeks are Monday-based; a Sunday-first row's Sunday belongs to
+                // the previous week. Number the row by its Thursday, which is always
+                // inside the ISO week the row mostly shows.
+                Cells.Add(new CalendarCell { Text = ISOWeek.GetWeekOfYear(cursor.AddDays(((int)DayOfWeek.Thursday - (int)cursor.DayOfWeek + 7) % 7)).ToString(), IsWeekNumber = true });
             for (int col = 0; col < 7; col++)
             {
                 Cells.Add(new CalendarCell

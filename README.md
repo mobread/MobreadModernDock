@@ -43,6 +43,9 @@ Free-floating panels that follow the dock's colour and corner rounding. Each rem
 
 ### Dock layout & behaviour
 
+- **Dock on every monitor** — one checkbox mirrors the dock onto each display. Mirrors follow the primary's items, look and position (relative to their own screen).
+- **Appearance presets** — save the current look under a name and switch with one click. Four built-ins to start from (Classic dark, Glass, Compact, Midnight blue).
+- **Attention bounce** — when an app flashes its taskbar button for attention, its dock icon hops until you click it or the app comes to the front.
 - **Multi-row dock** — 1 to 4 rows (or columns when the dock is vertical).
 - **Auto-hide** — the dock slides off the nearest screen edge after a short grace period, leaving a 3 px sliver; touch it with the pointer to bring it back. Won't hide while you're hovering a preview or dragging an icon.
 - **Fullscreen auto-hide** — dock and widgets get out of the way while a fullscreen app is running. Borderless-window games count; a merely maximized window doesn't.
@@ -52,6 +55,7 @@ Free-floating panels that follow the dock's colour and corner rounding. Each rem
 
 ### Launching
 
+- **Import Taskbar Pins** — one button in Settings pulls in everything pinned to your Windows taskbar.
 - **Folder stacks** — clicking a folder opens a macOS-style icon grid anchored to the dock instead of launching Explorer. Drill into subfolders in place; right-click reveals the item in Explorer.
 - **`.lnk` shortcut support** — "Add Program" accepts shortcuts, including multi-select. Target, arguments, working directory and icon are read from the shortcut, and the two shortcut shapes that break most dock apps (MSI advertised shortcuts like WSL, shell-object shortcuts like File Explorer) are handled.
 - **Live window previews** — hover a running app to see its open windows, click one to bring it forward. Positioned correctly on multi-monitor layouts.
@@ -65,6 +69,12 @@ Free-floating panels that follow the dock's colour and corner rounding. Each rem
 ### Multi-monitor
 
 The dock and widgets are placed with true screen coordinates, so they land on the right display even when the primary monitor isn't at the top-left of the layout. Positions no longer drift between launches on those setups.
+
+### Under the hood
+
+- **Portable mode** — drop a file named `portable.marker` next to `MobreadModernDock.exe` and all settings, icon cache and logs stay in that folder instead of `%APPDATA%`. Good for a USB stick or a synced folder.
+- **Update check** — Settings › General › *Check for updates* looks at GitHub Releases and links the download.
+- **Login-safe startup** — waits for the Windows shell to be ready before attaching to the desktop, so an auto-started dock never races Explorer.
 
 <br>
 
@@ -137,11 +147,14 @@ dotnet test tests/MobreadModernDock.Tests -c Release
 
 ### Build the installer
 
-Requires the [WiX Toolset v4](https://wixtoolset.org/) CLI (`dotnet tool install --global wix`).
+Requires the [WiX Toolset **v6**](https://wixtoolset.org/) CLI — v7 requires a paid maintenance-fee EULA, so pin v6:
 
 ```powershell
+dotnet tool install --global wix --version 6.0.2
+wix extension add -g WixToolset.UI.wixext/6.0.2
+wix extension add -g WixToolset.Util.wixext/6.0.2
 cd dotnet\installer
-.\build.ps1 -Version 1.3.0
+.\build.ps1          # version comes from <Version> in MobreadModernDock.csproj
 ```
 
 <br>

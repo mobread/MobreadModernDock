@@ -127,6 +127,38 @@ public class DockAppearanceService
 
     public bool GetHideInFullscreen() => GetDock().HideInFullscreen;
 
+    public bool GetAttentionBounce() => GetDock().AttentionBounce;
+
+    // --- #11 presets ---
+
+    public IReadOnlyList<AppearancePreset> GetUserPresets() => GetDock().Presets;
+
+    public void SavePreset(string name)
+    {
+        var dock = GetDock();
+        dock.Presets.RemoveAll(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+        dock.Presets.Add(AppearancePreset.Capture(name, dock));
+        _dockService.SaveChanges();
+    }
+
+    public void DeletePreset(string name)
+    {
+        GetDock().Presets.RemoveAll(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+        _dockService.SaveChanges();
+    }
+
+    public void ApplyPreset(AppearancePreset preset)
+    {
+        preset.ApplyTo(GetDock());
+        _dockService.SaveChanges();
+    }
+
+    public void SetAttentionBounce(bool value)
+    {
+        GetDock().AttentionBounce = value;
+        _dockService.SaveChanges();
+    }
+
     public void SetHideInFullscreen(bool value)
     {
         GetDock().HideInFullscreen = value;

@@ -32,6 +32,8 @@ public class WindowPreviewService
 
     public bool IsMinimized(WindowInfo windowInfo) => _windowQueryGateway.IsMinimized(windowInfo);
 
+    public string? ForegroundExecutablePath() => _windowQueryGateway.ForegroundExecutablePath();
+
     /// <summary>
     /// Taskbar-style click on a running app:
     /// no windows -> launch (caller handles), one window -> toggle

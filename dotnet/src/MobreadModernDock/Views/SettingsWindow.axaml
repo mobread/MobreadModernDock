@@ -166,6 +166,7 @@
                             <TextBlock Text="{Binding ActionsHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
                             <Button Content="{Binding AddProgramText}" Click="OnAddProgram" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
                             <Button Content="{Binding AddFolderText}" Click="OnAddFolder" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
+                            <Button Content="{Binding ImportTaskbarText}" Click="OnImportTaskbar" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
                             <Button Content="{Binding AddModuleText}" Click="OnAddModule" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
                             <Button Content="{Binding RemoveText}" Click="OnRemove" IsEnabled="{Binding CanRemove}" Background="#D33" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
                             <Button Content="{Binding MoveUpText}" Click="OnMoveUp" IsEnabled="{Binding CanMoveUp}" Background="#444" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
@@ -229,6 +230,20 @@
                 <!-- Tab 3: Dock Customization -->
                 <TabItem Header="{Binding TabDockCustomization}">
                     <StackPanel Orientation="Vertical" Spacing="16" Margin="16,12">
+                        <!-- #11 Presets -->
+                        <StackPanel Orientation="Vertical" Spacing="4">
+                            <TextBlock Text="{Binding PresetsTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
+                            <TextBlock Text="{Binding PresetsHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                                <ComboBox x:Name="PresetCombo" Width="220" ItemsSource="{Binding PresetNames}" SelectedIndex="{Binding SelectedPresetIndex}"/>
+                                <Button Content="{Binding PresetApplyText}" Click="OnApplyPreset" IsEnabled="{Binding CanApplyPreset}" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6"/>
+                                <Button Content="{Binding PresetDeleteText}" Click="OnDeletePreset" IsEnabled="{Binding CanDeletePreset}" Background="#D33" Foreground="White" BorderBrush="Transparent" Padding="12,6"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+                                <TextBox Width="220" Watermark="{Binding PresetNameHint}" Text="{Binding NewPresetName}"/>
+                                <Button Content="{Binding PresetSaveText}" Click="OnSavePreset" IsEnabled="{Binding CanSavePreset}" Background="#444" Foreground="White" BorderBrush="Transparent" Padding="12,6"/>
+                            </StackPanel>
+                        </StackPanel>
                         <StackPanel Orientation="Vertical" Spacing="4">
                             <TextBlock Text="{Binding TransparencyTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
                             <TextBlock Text="{Binding TransparencyHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
@@ -343,6 +358,10 @@
                                   IsChecked="{Binding HideTaskbar}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
                         <CheckBox Content="{Binding HideInFullscreenText}"
                                   IsChecked="{Binding HideInFullscreen}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
+                        <CheckBox Content="{Binding AttentionBounceText}"
+                                  IsChecked="{Binding AttentionBounce}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
+                        <CheckBox Content="{Binding MirrorMonitorsText}"
+                                  IsChecked="{Binding MirrorMonitors}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
                         <CheckBox Content="{Binding AutoHideText}"
                                   IsChecked="{Binding AutoHide}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
                         <CheckBox Content="{Binding FolderStacksText}"
@@ -353,6 +372,14 @@
                                 Background="#007ACC" Foreground="White" BorderBrush="Transparent"
                                 Padding="16,8" HorizontalAlignment="Left" Margin="0,8,0,0"/>
                         <TextBlock Text="{Binding VersionText}" Foreground="#CCCCCC"/>
+                        <!-- #16 update check -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="{Binding CheckUpdatesText}" Click="OnCheckUpdates" IsEnabled="{Binding !IsCheckingUpdates}"
+                                    Background="#444" Foreground="White" BorderBrush="Transparent" Padding="12,6"/>
+                            <Button Content="{Binding DownloadUpdateText}" Click="OnDownloadUpdate" IsVisible="{Binding UpdateAvailable}"
+                                    Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6"/>
+                            <TextBlock Text="{Binding UpdateStatusText}" Foreground="#CCCCCC" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <TextBlock Text="{Binding RepoText}" Foreground="#CCCCCC"/>
                         <TextBlock Text="{Binding ContactText}" Foreground="#CCCCCC"/>
                     </StackPanel>
