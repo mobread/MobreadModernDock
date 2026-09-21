@@ -9,12 +9,17 @@ Built on [Cedro Modern Dock](https://github.com/Cedro-Software/cedro-modern-dock
 <br>
 
 > ## How To Install
-> Download **[MobreadModernDock-1.0.0-x64.msi](https://github.com/mobread/MobreadModernDock/releases/latest)** and run it. Windows 10/11 64-bit; no .NET install needed (the runtime is bundled).
+> **Installer** — download **[MobreadModernDock-1.0.0-x64.msi](https://github.com/mobread/MobreadModernDock/releases/latest)** and run it. Adds Start-menu and desktop shortcuts, and uninstalls from Add/Remove Programs.
 >
-> The installer is not code-signed, so SmartScreen will show *"Windows protected your PC"* — click **More info → Run anyway**. Verify the download if you prefer:
+> **Portable** — download **[MobreadModernDock-1.0.0-x64-portable.zip](https://github.com/mobread/MobreadModernDock/releases/latest)**, unzip anywhere and run it. No install, no admin; settings live beside the exe, so the folder travels with you and deleting it leaves nothing behind.
+>
+> Either way: Windows 10/11 64-bit, no .NET install needed (the runtime is bundled).
+>
+> Neither download is code-signed, so SmartScreen will show *"Windows protected your PC"* — click **More info → Run anyway**. Verify a download if you prefer:
 > ```powershell
 > Get-FileHash MobreadModernDock-1.0.0-x64.msi -Algorithm SHA256
-> # 8DC666B82BC153DF75ED792CFDC80ED630311D6ACDE7C60427603236CB1751EC
+> # MSI  8DC666B82BC153DF75ED792CFDC80ED630311D6ACDE7C60427603236CB1751EC
+> # ZIP  8439C217D3FC8E30E5259D94C54EEB7D05B0B18FE30426A3B0BFE3ACB1DC1D43
 > ```
 > Prefer to build it yourself? See [How To Contribute](#how-to-contribute) below.
 >

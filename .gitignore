@@ -35,3 +35,9 @@ DOCUMENTATION.md
 
 # Session handoff notes — local working state, not part of the project
 HANDOFF.md
+
+# Installer build artifacts (published per release, never committed)
+dotnet/installer/publish/
+dotnet/installer/portable-staging/
+dotnet/installer/*.msi
+dotnet/installer/*.wixpdb
