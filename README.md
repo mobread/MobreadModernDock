@@ -9,21 +9,21 @@ Built on [Cedro Modern Dock](https://github.com/Cedro-Software/cedro-modern-dock
 <br>
 
 > ## How To Install
-> **Installer** — download **[MobreadModernDock-1.0.0-x64.msi](https://github.com/mobread/MobreadModernDock/releases/latest)** and run it. Adds Start-menu and desktop shortcuts, and uninstalls from Add/Remove Programs.
+> **Installer** — download **[MobreadModernDock-1.0.1-x64.msi](https://github.com/mobread/MobreadModernDock/releases/latest)** and run it. Adds Start-menu and desktop shortcuts, and uninstalls from Add/Remove Programs.
 >
-> **Portable** — download **[MobreadModernDock-1.0.0-x64-portable.zip](https://github.com/mobread/MobreadModernDock/releases/latest)**, unzip anywhere and run it. No install, no admin; settings live beside the exe, so the folder travels with you and deleting it leaves nothing behind.
+> **Portable** — download **[MobreadModernDock-1.0.1-x64-portable.zip](https://github.com/mobread/MobreadModernDock/releases/latest)**, unzip anywhere and run it. No install, no admin; settings live beside the exe, so the folder travels with you and deleting it leaves nothing behind.
 >
 > Either way: Windows 10/11 64-bit, no .NET install needed (the runtime is bundled).
 >
 > Neither download is code-signed, so SmartScreen will show *"Windows protected your PC"* — click **More info → Run anyway**. Verify a download if you prefer:
 > ```powershell
-> Get-FileHash MobreadModernDock-1.0.0-x64.msi -Algorithm SHA256
-> # MSI  8DC666B82BC153DF75ED792CFDC80ED630311D6ACDE7C60427603236CB1751EC
-> # ZIP  8439C217D3FC8E30E5259D94C54EEB7D05B0B18FE30426A3B0BFE3ACB1DC1D43
+> Get-FileHash MobreadModernDock-1.0.1-x64.msi -Algorithm SHA256
+> # MSI  6AAEC5F37767592557EE1B21943145CCCA496E0CA722BFFB0DC679C2895FD8F3
+> # ZIP  DCD90CF79E6D74603A2CB814671BD8F31810BEFC3C827C42941D78AD084A168D
 > ```
 > Prefer to build it yourself? See [How To Contribute](#how-to-contribute) below.
 >
-> Upgrading from **Cedro Modern Dock**? Your shortcuts and settings are picked up automatically on first launch.
+> On the very first launch the dock seeds itself from your Windows taskbar pins, so it is usable straight away. Upgrading from **Cedro Modern Dock**? Your shortcuts and settings are picked up automatically instead.
 
 <br>
 
