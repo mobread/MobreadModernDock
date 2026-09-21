@@ -32,3 +32,6 @@ Thumbs.db
 # Docs / superpowers
 docs/superpowers/
 DOCUMENTATION.md
+
+# Session handoff notes — local working state, not part of the project
+HANDOFF.md
