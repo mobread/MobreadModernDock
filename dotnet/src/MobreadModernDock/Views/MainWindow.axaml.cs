@@ -1233,12 +1233,61 @@ public partial class MainWindow : Window
         if (vm.Item is DockSettingsItemModel)
         {
             menu.Items.Add(new Separator());
+
+            // Centring only means anything for a freely-dragged dock. In
+            // STATIC mode the anchors already place it and the entry would do
+            // nothing visible, so it is hidden there rather than shown inert.
+            if (_appServices.PositioningService.IsDynamicPositioning())
+            {
+                var center = new MenuItem { Header = loc.Text("dock.context.centerDock") };
+                // Routed through App so a mirror's menu centres the primary
+                // (mirrors derive their position from it) rather than trying
+                // to persist its own off-screen coordinates.
+                center.Click += (_, _) => App.CenterPrimaryDock();
+                menu.Items.Add(center);
+            }
+
             var quit = new MenuItem { Header = loc.Text("dock.context.quit") };
             quit.Click += (_, _) => ConfirmAndQuit();
             menu.Items.Add(quit);
         }
 
         OpenDismissableMenu(menu, button);
+    }
+
+    /// <summary>
+    /// Centres the dock along the screen edge it sits on and persists it, so
+    /// a dock nudged off-centre by a drag can be put back without aiming.
+    ///
+    /// <b>Primary dock only</b> — the menu entry on a mirror routes here via
+    /// <see cref="App.CenterPrimaryDock"/>. A mirror has no position of its
+    /// own: it derives one from the primary's saved position expressed as a
+    /// fraction of the primary's screen. Centring a mirror directly would
+    /// persist that mirror's screen coordinates (negative, on a monitor left
+    /// of the primary) as the *primary's* position, and the next mirror
+    /// refresh would clamp the resulting fraction to 0 and slam every mirror
+    /// against its left edge.
+    /// </summary>
+    public void CenterDock()
+    {
+        if (_appServices == null || IsMirror) return;
+
+        var rect = ScreenGeometry.WindowScreenRect(this);
+        var work = ScreenGeometry.WorkAreaAt(
+            new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2));
+        var bounds = new ScreenBounds(work.X, work.Y, work.Width, work.Height);
+
+        var (x, y) = DockPositioningService.CenterAlongEdge(
+            bounds, rect.X, rect.Y, rect.Width, rect.Height,
+            _appServices.AppearanceService.GetVerticalDock());
+
+        SetScreenPosition((int)x, (int)y);
+        _appServices.DockService.SetDockPosition((int)x, (int)y);
+        App.RepositionMirrorDocks();
+        ApplyEdgeReservation();
+        // Auto-hide caches where the dock rests; without this the next hide
+        // would slide back to the old off-centre spot.
+        _autoHide?.OnLayoutChanged();
     }
 
     /// <summary>
