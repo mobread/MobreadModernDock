@@ -9,7 +9,14 @@ Built on [Cedro Modern Dock](https://github.com/Cedro-Software/cedro-modern-dock
 <br>
 
 > ## How To Install
-> There's no packaged release yet — build from source (see [How To Contribute](#how-to-contribute) below). An MSI installer will be published once the feature batch is done.
+> Download **[MobreadModernDock-1.0.0-x64.msi](https://github.com/mobread/MobreadModernDock/releases/latest)** and run it. Windows 10/11 64-bit; no .NET install needed (the runtime is bundled).
+>
+> The installer is not code-signed, so SmartScreen will show *"Windows protected your PC"* — click **More info → Run anyway**. Verify the download if you prefer:
+> ```powershell
+> Get-FileHash MobreadModernDock-1.0.0-x64.msi -Algorithm SHA256
+> # 8DC666B82BC153DF75ED792CFDC80ED630311D6ACDE7C60427603236CB1751EC
+> ```
+> Prefer to build it yourself? See [How To Contribute](#how-to-contribute) below.
 >
 > Upgrading from **Cedro Modern Dock**? Your shortcuts and settings are picked up automatically on first launch.
 
