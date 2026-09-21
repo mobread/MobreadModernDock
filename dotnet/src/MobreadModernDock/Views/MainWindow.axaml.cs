@@ -1034,7 +1034,7 @@ public partial class MainWindow : Window
             addAfterSep.Click += (_, _) => mainVm.AddSeparatorAfter(vm);
             menu.Items.Add(addAfterSep);
 
-            menu.Open(button);
+            OpenDismissableMenu(menu, button);
             return;
         }
 
@@ -1076,7 +1076,7 @@ public partial class MainWindow : Window
             menu.Items.Add(quit);
         }
 
-        menu.Open(button);
+        OpenDismissableMenu(menu, button);
     }
 
     /// <summary>
@@ -1124,6 +1124,72 @@ public partial class MainWindow : Window
         mainVm.SetCustomIcon(item, files[0].Path.LocalPath);
     }
 
+    /// <summary>
+    /// Opens a dock context menu and arranges for it to be dismissed when the
+    /// user clicks anywhere outside it.
+    ///
+    /// The dock window is WS_EX_NOACTIVATE, so it is never activated and never
+    /// deactivated — the usual light-dismiss never fires and the menu would sit
+    /// there after a click on the desktop or another app. A low-level mouse
+    /// hook supplies the clicks the window cannot see; the hook only lives
+    /// while a menu is open.
+    /// </summary>
+    private void OpenDismissableMenu(ContextMenu menu, Control anchor)
+    {
+        DisposeMenuDismisser();
+
+        menu.Closed += (_, _) => DisposeMenuDismisser();
+        menu.Open(anchor);
+
+        // Arm after the popup exists, so its bounds can be hit-tested.
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!menu.IsOpen) return;
+            _openMenu = menu;
+            var hook = new GlobalMouseHook((x, y) =>
+                Dispatcher.UIThread.Post(() => OnGlobalClick(x, y)));
+            if (hook.IsInstalled) _menuDismissHook = hook;
+            else hook.Dispose(); // no hook: the menu still closes on selection
+        }, DispatcherPriority.Background);
+    }
+
+    private GlobalMouseHook? _menuDismissHook;
+    private ContextMenu? _openMenu;
+
+    /// <summary>
+    /// Closes the open context menu unless the click landed inside it. The
+    /// popup is its own top-level window, so its screen rect comes from the
+    /// PopupRoot rather than from the anchor control.
+    /// </summary>
+    private void OnGlobalClick(int screenX, int screenY)
+    {
+        if (_openMenu is not { IsOpen: true } menu)
+        {
+            DisposeMenuDismisser();
+            return;
+        }
+
+        if (menu.GetVisualRoot() is Visual root)
+        {
+            var topLeft = root.PointToScreen(new Point(0, 0));
+            var size = root.Bounds.Size;
+            var rect = new PixelRect(topLeft,
+                new PixelSize((int)Math.Ceiling(size.Width), (int)Math.Ceiling(size.Height)));
+            // Inside the menu: let Avalonia handle the selection itself.
+            if (rect.Contains(new PixelPoint(screenX, screenY))) return;
+        }
+
+        menu.Close();
+        DisposeMenuDismisser();
+    }
+
+    private void DisposeMenuDismisser()
+    {
+        _menuDismissHook?.Dispose();
+        _menuDismissHook = null;
+        _openMenu = null;
+    }
+
     private void OnRunningAppContextRequested(object? sender, ContextRequestedEventArgs e)
     {
         if (sender is not Button button || _appServices == null) return;
@@ -1137,7 +1203,7 @@ public partial class MainWindow : Window
         var pin = new MenuItem { Header = loc.Text("dock.context.pin") };
         pin.Click += (_, _) => mainVm.PinRunningApp(vm);
         menu.Items.Add(pin);
-        menu.Open(button);
+        OpenDismissableMenu(menu, button);
     }
 
     /// <summary>
@@ -1314,6 +1380,7 @@ public partial class MainWindow : Window
         PositionChanged -= OnDockPositionChanged;
         _positionPersistTimer.Stop();
         _previewShowDelay.Stop();
+        DisposeMenuDismisser();
         HidePreview();
         if (DataContext is MainWindowViewModel vm)
             vm.Shutdown();
