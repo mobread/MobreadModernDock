@@ -145,14 +145,6 @@ public class DockModel
     public bool EdgeSnapping { get; set; } = true;
 
     /// <summary>
-    /// Backdrop material drawn behind the dock and widgets: "none" (flat
-    /// alpha, the classic look), "blur" (gaussian) or "acrylic" (Fluent
-    /// acrylic with tint + noise).
-    /// </summary>
-    [JsonPropertyName("blurMode")]
-    public string BlurMode { get; set; } = "none";
-
-    /// <summary>
     /// macOS-style hover magnification: icons near the pointer grow and push
     /// their neighbours aside. Only applies to a single-line dock (see
     /// <see cref="DockRows"/>); wrapped rows would collide.
@@ -351,7 +343,6 @@ public class DockModel
         FolderStacks = other.FolderStacks;
         EdgeSnapping = other.EdgeSnapping;
         EdgeSnapMargin = other.EdgeSnapMargin;
-        BlurMode = other.BlurMode;
         MagnifyIcons = other.MagnifyIcons;
         MagnifyScale = other.MagnifyScale;
         CheckUpdatesOnStartup = other.CheckUpdatesOnStartup;

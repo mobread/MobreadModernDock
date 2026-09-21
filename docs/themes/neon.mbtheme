@@ -6,11 +6,10 @@
   "spacingBetweenIcons": 10,
   "dockPadding": 6,
   "dockBorderRounding": 30,
-  "dockTransparency": 0.5,
+  "dockTransparency": 0.65,
   "globalOpacity": 1.0,
   "dockColorRGB": "26, 6, 48, ",
   "tintIcons": false,
-  "blurMode": "acrylic",
   "magnifyIcons": true,
   "magnifyScale": 2.1
 }

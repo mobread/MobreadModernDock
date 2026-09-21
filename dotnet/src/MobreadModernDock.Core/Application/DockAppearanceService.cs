@@ -235,25 +235,6 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
-    // --- Backdrop blur / acrylic ---
-
-    public const string BlurNone = "none";
-    public const string BlurBlur = "blur";
-    public const string BlurAcrylic = "acrylic";
-
-    /// <summary>Backdrop material behind the dock: none / blur / acrylic.</summary>
-    public string GetBlurMode()
-    {
-        string mode = GetDock().BlurMode;
-        return mode is BlurBlur or BlurAcrylic ? mode : BlurNone;
-    }
-
-    public void SetBlurMode(string value)
-    {
-        GetDock().BlurMode = value is BlurBlur or BlurAcrylic ? value : BlurNone;
-        _dockService.SaveChanges();
-    }
-
     // --- macOS-style hover magnification ---
 
     /// <summary>

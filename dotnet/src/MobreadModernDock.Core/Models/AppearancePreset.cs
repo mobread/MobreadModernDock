@@ -43,13 +43,6 @@ public sealed class AppearancePreset
     // --- Added in 1.0.3. A theme omitting these keeps the defaults, so files
     //     written before they existed still load unchanged.
 
-    /// <summary>
-    /// Backdrop material ("none" / "blur" / "acrylic"). Without this the
-    /// built-in "Glass" preset set a pale colour but left the blur off — the
-    /// one preset named after an effect did not switch that effect on.
-    /// </summary>
-    [JsonPropertyName("blurMode")] public string BlurMode { get; set; } = "none";
-
     /// <summary>Padding inside the dock bar, px. Drives the bar's overall thickness.</summary>
     [JsonPropertyName("dockPadding")] public int DockPadding { get; set; } = 10;
 
@@ -70,7 +63,6 @@ public sealed class AppearancePreset
         TintIcons = d.TintIcons,
         TintColorRGB = d.TintColorRGB,
         VerticalDock = d.VerticalDock,
-        BlurMode = d.BlurMode,
         DockPadding = d.DockPadding,
         MagnifyIcons = d.MagnifyIcons,
         MagnifyScale = d.MagnifyScale,
@@ -88,7 +80,6 @@ public sealed class AppearancePreset
         d.TintIcons = TintIcons;
         d.TintColorRGB = TintColorRGB;
         d.VerticalDock = VerticalDock;
-        d.BlurMode = BlurMode;
         d.DockPadding = DockPadding;
         d.MagnifyIcons = MagnifyIcons;
         d.MagnifyScale = MagnifyScale;
@@ -114,7 +105,6 @@ public sealed class AppearancePreset
         DockBorderRounding = Math.Clamp(DockBorderRounding, 0, 60);
         DockPadding = Math.Clamp(DockPadding, 0, 40);
         MagnifyScale = Math.Clamp(MagnifyScale, 1.0, 2.5);
-        BlurMode = BlurMode is "blur" or "acrylic" ? BlurMode : "none";
         DockColorRGB = SanitizeRgb(DockColorRGB, "0, 0, 0, ");
         TintColorRGB = SanitizeRgb(TintColorRGB, "0, 80, 140");
     }
@@ -137,10 +127,11 @@ public sealed class AppearancePreset
     public static List<AppearancePreset> BuiltIns() => new()
     {
         new() { Name = "Classic dark", IconsSize = 40, SpacingBetweenIcons = 4, DockTransparency = 0.3, DockBorderRounding = 16, DockColorRGB = "0, 0, 0, " },
-        // Named after an effect, so it has to switch that effect on.
-        new() { Name = "Glass", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.75, DockBorderRounding = 22, DockColorRGB = "255, 255, 255, ", BlurMode = "acrylic" },
+        // No backdrop effect exists any more, so "Glass" leans on a pale,
+        // mostly-transparent bar for the same impression.
+        new() { Name = "Glass", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.45, DockBorderRounding = 22, DockColorRGB = "255, 255, 255, " },
         new() { Name = "Compact", IconsSize = 28, SpacingBetweenIcons = 0, DockTransparency = 0.2, DockBorderRounding = 8, DockColorRGB = "20, 20, 20, ", DockPadding = 5 },
         new() { Name = "Midnight blue", IconsSize = 40, SpacingBetweenIcons = 4, DockTransparency = 0.35, DockBorderRounding = 14, DockColorRGB = "10, 25, 60, ", TintIcons = true, TintColorRGB = "80, 140, 220" },
-        new() { Name = "macOS", IconsSize = 44, SpacingBetweenIcons = 6, DockTransparency = 0.6, DockBorderRounding = 24, DockColorRGB = "40, 40, 45, ", BlurMode = "acrylic", DockPadding = 8, MagnifyIcons = true, MagnifyScale = 1.8 },
+        new() { Name = "macOS", IconsSize = 44, SpacingBetweenIcons = 6, DockTransparency = 0.6, DockBorderRounding = 24, DockColorRGB = "40, 40, 45, ", DockPadding = 8, MagnifyIcons = true, MagnifyScale = 1.8 },
     };
 }

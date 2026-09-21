@@ -40,7 +40,7 @@
          the window edge; ClipToBounds is off for the same reason. -->
     <Border x:Name="DockBar"
             Opacity="{Binding WindowOpacity}"
-            Background="{Binding EffectiveDockBackground}"
+            Background="{Binding DockBackground}"
             CornerRadius="{Binding DockCornerRadius}"
             Padding="{Binding DockPadding}"
             Margin="0,12,0,0"

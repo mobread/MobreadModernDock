@@ -20,7 +20,6 @@ public class ThemeFileTest
         DockTransparency = 0.6,
         DockBorderRounding = 24,
         DockColorRGB = "40, 40, 45, ",
-        BlurMode = "acrylic",
         DockPadding = 8,
         MagnifyIcons = true,
         MagnifyScale = 1.8,
@@ -40,7 +39,6 @@ public class ThemeFileTest
         Assert.Equal(original.DockTransparency, parsed.DockTransparency, 6);
         Assert.Equal(original.DockBorderRounding, parsed.DockBorderRounding);
         Assert.Equal(original.DockColorRGB, parsed.DockColorRGB);
-        Assert.Equal(original.BlurMode, parsed.BlurMode);
         Assert.Equal(original.DockPadding, parsed.DockPadding);
         Assert.Equal(original.MagnifyIcons, parsed.MagnifyIcons);
         Assert.Equal(original.MagnifyScale, parsed.MagnifyScale, 6);
@@ -99,7 +97,6 @@ public class ThemeFileTest
         Assert.Equal(1, parsed!.DockRows);
         Assert.Equal(1.0, parsed.GlobalOpacity, 6);
         Assert.Equal(10, parsed.DockPadding);
-        Assert.Equal("none", parsed.BlurMode);
     }
 
     [Fact]
@@ -134,12 +131,20 @@ public class ThemeFileTest
         Assert.Equal("0, 80, 140", p.TintColorRGB);
     }
 
+    /// <summary>
+    /// The backdrop feature was removed, but themes shared before that still
+    /// carry a "blurMode" key. They must keep loading (and be recognised as
+    /// themes at all), with the obsolete key simply ignored.
+    /// </summary>
     [Fact]
-    public void AnUnknownBlurModeBecomesNone()
+    public void AThemeCarryingTheObsoleteBlurModeStillLoads()
     {
-        var p = ThemeFile.TryParse("""{"iconsSize":40,"blurMode":"rainbow"}""");
+        var p = ThemeFile.TryParse("""{"iconsSize":40,"blurMode":"acrylic"}""");
         Assert.NotNull(p);
-        Assert.Equal("none", p!.BlurMode);
+        Assert.Equal(40, p!.IconsSize);
+
+        // ...even when it is the only key that marks the file as a theme.
+        Assert.NotNull(ThemeFile.TryParse("""{"blurMode":"blur"}"""));
     }
 
     [Fact]
@@ -186,24 +191,7 @@ public class ThemeFileTest
         Assert.True(dock.HideTaskbar);
         // ...and the appearance did change.
         Assert.Equal(44, dock.IconsSize);
-        Assert.Equal("acrylic", dock.BlurMode);
         Assert.Equal(8, dock.DockPadding);
-    }
-
-    /// <summary>
-    /// Regression: "Glass" is named after an effect, so it must switch that
-    /// effect on. Before blurMode was part of the preset it only set a pale
-    /// colour, and the preset appeared to do nothing.
-    /// </summary>
-    [Fact]
-    public void TheGlassBuiltInActuallyEnablesTheGlassEffect()
-    {
-        var glass = AppearancePreset.BuiltIns().Single(p => p.Name == "Glass");
-        Assert.Equal("acrylic", glass.BlurMode);
-
-        var dock = new DockModel();
-        glass.ApplyTo(dock);
-        Assert.Equal("acrylic", dock.BlurMode);
     }
 
     [Fact]
@@ -211,7 +199,7 @@ public class ThemeFileTest
     {
         var dock = new DockModel
         {
-            IconsSize = 52, DockPadding = 3, BlurMode = "blur",
+            IconsSize = 52, DockPadding = 3,
             MagnifyIcons = true, MagnifyScale = 2.1, DockRows = 2,
         };
 
@@ -224,7 +212,6 @@ public class ThemeFileTest
 
         Assert.Equal(52, fresh.IconsSize);
         Assert.Equal(3, fresh.DockPadding);
-        Assert.Equal("blur", fresh.BlurMode);
         Assert.True(fresh.MagnifyIcons);
         Assert.Equal(2.1, fresh.MagnifyScale, 6);
         Assert.Equal(2, fresh.DockRows);

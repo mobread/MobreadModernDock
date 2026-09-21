@@ -150,7 +150,7 @@ public partial class MainWindow : Window
         {
             vm.OpenSettingsAction = () => OpenSettings(vm);
             vm.RepositionAction = () => ApplyDockPosition();
-            vm.LayerRefreshAction = () => { ApplyAlwaysOnTop(); ApplyAutoHideSetting(); ApplyBackdrop(); SyncPinnedPanel(); ApplyEdgeReservation(); };
+            vm.LayerRefreshAction = () => { ApplyAlwaysOnTop(); ApplyAutoHideSetting(); SyncPinnedPanel(); ApplyEdgeReservation(); };
             vm.ShowFolderStackAction = ShowFolderStack;
             vm.PreviewDismissAction = HidePreview;
             vm.Initialize();
@@ -260,8 +260,6 @@ public partial class MainWindow : Window
     private void OnDockSizeChanged(object? sender, SizeChangedEventArgs e)
     {
         RefreshTooltipPlacement();
-        // SizeToContent means the bar's rect changed — re-clip the backdrop.
-        UpdateBackdropRegion();
         if (IsMirror || _appServices?.PositioningService.IsDynamicPositioning() == false)
             ApplyDockPosition();
         // A taller/wider bar must reserve a correspondingly bigger strip.
@@ -1599,95 +1597,6 @@ public partial class MainWindow : Window
 
         _reservation ??= new AppBarReservation();
         _reservation.Apply(edge, strip);
-    }
-
-    /// <summary>
-    /// Applies the configured backdrop (none / blur / acrylic) and clips the
-    /// native window to the dock bar so the blur follows the rounded corners
-    /// instead of filling the whole window rectangle (which includes the
-    /// transparent bounce headroom).
-    ///
-    /// The backdrop is driven through Avalonia's <see cref="Window.TransparencyLevelHint"/>,
-    /// *not* the legacy <c>SetWindowCompositionAttribute</c> accent policy.
-    /// Avalonia creates this window with <c>WS_EX_NOREDIRECTIONBITMAP</c> and
-    /// renders it through DirectComposition, and the accent policy paints into
-    /// a window's redirection surface — which this window does not have. The
-    /// accent call therefore *succeeds and draws nothing*: measured with
-    /// Desktop Duplication, pixels behind the bar were byte-identical with the
-    /// accent on and off. Avalonia's own WinUI-Composition backdrop is the only
-    /// one that composites here.
-    ///
-    /// The tint stays the dock colour at the dock's own transparency, so the
-    /// existing colour and transparency sliders keep working — the blur only
-    /// replaces what shows *through* that tint.
-    /// </summary>
-    private void ApplyBackdrop()
-    {
-        if (_appServices == null) return;
-
-        var appearance = _appServices.AppearanceService;
-        string mode = appearance.GetBlurMode();
-
-        // Ordered preference: Avalonia walks the list and takes the first level
-        // the platform can honour. Note that the Win32 backend does NOT
-        // implement WindowTransparencyLevel.Blur — asking for it alone silently
-        // degrades to Transparent (measured: ActualTransparencyLevel reported
-        // "Transparent", and the background showed through sharp, unblurred).
-        // AcrylicBlur is the only level that actually blurs here, so it backs
-        // up the plain-blur mode too. Transparent is the tail fallback in every
-        // case so the window never drops back to an opaque themed background.
-        TransparencyLevelHint = mode switch
-        {
-            WindowBlur.ModeAcrylic => new[]
-            {
-                WindowTransparencyLevel.AcrylicBlur,
-                WindowTransparencyLevel.Blur,
-                WindowTransparencyLevel.Transparent,
-            },
-            WindowBlur.ModeBlur => new[]
-            {
-                WindowTransparencyLevel.Blur,
-                WindowTransparencyLevel.AcrylicBlur,
-                WindowTransparencyLevel.Transparent,
-            },
-            _ => new[] { WindowTransparencyLevel.Transparent },
-        };
-
-        // The Border always paints the dock colour at the user's transparency.
-        // Unlike the old acrylic accent (which tinted natively and would have
-        // doubled up), Avalonia's backdrop applies no colour of its own, so the
-        // bar's brush stays in charge in every mode.
-        if (DataContext is MainWindowViewModel vm)
-            vm.SuppressBarBackground = false;
-
-        if (!WindowBlur.IsEnabled(mode))
-        {
-            WindowBlur.ClearRegion(this.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero);
-            return;
-        }
-
-        UpdateBackdropRegion();
-    }
-
-    /// <summary>
-    /// Re-clips the native window to the dock bar's current rectangle. Called
-    /// after every layout change, since SizeToContent means the bar's size
-    /// changes whenever items are added or the icon size changes.
-    /// </summary>
-    private void UpdateBackdropRegion()
-    {
-        if (_appServices == null) return;
-        IntPtr hwnd = this.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (hwnd == IntPtr.Zero) return;
-        if (!WindowBlur.IsEnabled(_appServices.AppearanceService.GetBlurMode())) return;
-        if (DockBar.Bounds.Width <= 0 || DockBar.Bounds.Height <= 0) return;
-
-        // The bar's offset inside the window (the bounce headroom margin).
-        var origin = DockBar.TranslatePoint(new Point(0, 0), this) ?? new Point(0, 0);
-        WindowBlur.SetRoundedRegion(hwnd, origin.X, origin.Y,
-            DockBar.Bounds.Width, DockBar.Bounds.Height,
-            _appServices.AppearanceService.GetDockBorderRounding(),
-            RenderScaling);
     }
 
     protected override void OnClosed(EventArgs e)

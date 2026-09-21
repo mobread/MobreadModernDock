@@ -315,20 +315,6 @@
 
                                 <Border Height="1" Background="#333333" Margin="0,4"/>
 
-                                <!-- Backdrop material. The radios bind to the
-                                     three IsBlur* flags rather than a shared
-                                     enum, so only the newly-checked one writes
-                                     back (see SettingsViewModel.BlurMode). -->
-                                <TextBlock Classes="label" Text="{Binding BlurTitle}"/>
-                                <TextBlock Classes="helper" Text="{Binding BlurHelper}"/>
-                                <StackPanel Orientation="Horizontal" Spacing="16">
-                                    <RadioButton GroupName="blurMode" Content="{Binding BlurNoneText}" IsChecked="{Binding IsBlurNone}"/>
-                                    <RadioButton GroupName="blurMode" Content="{Binding BlurBlurText}" IsChecked="{Binding IsBlurBlur}"/>
-                                    <RadioButton GroupName="blurMode" Content="{Binding BlurAcrylicText}" IsChecked="{Binding IsBlurAcrylic}"/>
-                                </StackPanel>
-
-                                <Border Height="1" Background="#333333" Margin="0,4"/>
-
                                 <TextBlock Classes="label" Text="{Binding BgColorTitle}"/>
                                 <TextBlock Classes="helper" Text="{Binding BgColorHelper}"/>
                                 <!-- Sits with the colour picker because it

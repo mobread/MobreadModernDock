@@ -147,45 +147,6 @@ public partial class SettingsViewModel : ViewModelBase
 
     public bool IsStaticMode { get => _isStaticMode; set => SetProperty(ref _isStaticMode, value); }
 
-    // --- Backdrop blur / acrylic ---
-
-    private string _blurMode = DockAppearanceService.BlurNone;
-    /// <summary>Selected backdrop material ("none" / "blur" / "acrylic").</summary>
-    public string BlurMode
-    {
-        get => _blurMode;
-        set
-        {
-            if (!SetProperty(ref _blurMode, value)) return;
-            OnPropertyChanged(nameof(IsBlurNone));
-            OnPropertyChanged(nameof(IsBlurBlur));
-            OnPropertyChanged(nameof(IsBlurAcrylic));
-        }
-    }
-
-    // Radio buttons bind two-way to these; only the "checked" transition writes.
-    public bool IsBlurNone
-    {
-        get => BlurMode == DockAppearanceService.BlurNone;
-        set { if (value) BlurMode = DockAppearanceService.BlurNone; }
-    }
-    public bool IsBlurBlur
-    {
-        get => BlurMode == DockAppearanceService.BlurBlur;
-        set { if (value) BlurMode = DockAppearanceService.BlurBlur; }
-    }
-    public bool IsBlurAcrylic
-    {
-        get => BlurMode == DockAppearanceService.BlurAcrylic;
-        set { if (value) BlurMode = DockAppearanceService.BlurAcrylic; }
-    }
-
-    public string BlurTitle => T("settings.dockCustomization.blur.title");
-    public string BlurHelper => T("settings.dockCustomization.blur.helper");
-    public string BlurNoneText => T("settings.dockCustomization.blur.none");
-    public string BlurBlurText => T("settings.dockCustomization.blur.blur");
-    public string BlurAcrylicText => T("settings.dockCustomization.blur.acrylic");
-
     private bool _followSystemTheme;
     /// <summary>Swap the dock colour with the Windows light/dark app theme.</summary>
     public bool FollowSystemTheme { get => _followSystemTheme; set => SetProperty(ref _followSystemTheme, value); }
@@ -405,14 +366,11 @@ public partial class SettingsViewModel : ViewModelBase
         TintIcons = app.GetTintIcons();
         TintColor = ParseRgbColor(app.GetTintColorRGB());
         IsVerticalDock = app.GetVerticalDock();
-        // Added with the theme format — a preset now carries the backdrop and
-        // magnification too, so those controls must follow it as well.
-        BlurMode = app.GetBlurMode();
+        // Added with the theme format — a preset now carries magnification
+        // too, so those controls must follow it as well.
         MagnifyIcons = app.GetMagnifyIconsSetting();
         MagnifyScale = app.GetMagnifyScalePercentage();
         _isInitialized = true;
-        // _dockRefreshAction reaches LayerRefreshAction, which re-applies the
-        // native backdrop — so a preset that changes blurMode takes effect.
         _dockRefreshAction();
     }
 
@@ -872,7 +830,6 @@ public partial class SettingsViewModel : ViewModelBase
         FolderStacks = app.GetFolderStacks();
         EdgeSnapping = app.GetEdgeSnapping();
         EdgeSnapMargin = app.GetEdgeSnapMargin();
-        BlurMode = app.GetBlurMode();
         MagnifyIcons = app.GetMagnifyIconsSetting();
         MagnifyScale = app.GetMagnifyScalePercentage();
         PreviewDelay = app.GetPreviewDelayMs();
@@ -916,7 +873,6 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(FolderStacks): _appServices.AppearanceService.SetFolderStacks(FolderStacks); break;
             case nameof(EdgeSnapping): _appServices.AppearanceService.SetEdgeSnapping(EdgeSnapping); break;
             case nameof(EdgeSnapMargin): _appServices.AppearanceService.SetEdgeSnapMargin(EdgeSnapMargin); OnPropertyChanged(nameof(EdgeSnapMarginLabel)); break;
-            case nameof(BlurMode): _appServices.AppearanceService.SetBlurMode(BlurMode); _dockRefreshAction(); break;
             case nameof(MagnifyIcons): _appServices.AppearanceService.SetMagnifyIcons(MagnifyIcons); _dockRefreshAction(); break;
             case nameof(MagnifyScale): _appServices.AppearanceService.SetMagnifyScalePercentage(MagnifyScale); _dockRefreshAction(); break;
             case nameof(PreviewDelay): _appServices.AppearanceService.SetPreviewDelayMs(PreviewDelay); _dockRefreshAction(); break;

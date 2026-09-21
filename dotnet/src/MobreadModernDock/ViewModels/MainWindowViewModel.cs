@@ -165,28 +165,12 @@ public partial class MainWindowViewModel : ViewModelBase
     public IBrush DockBackground
     {
         get => _dockBackground;
-        set { if (SetProperty(ref _dockBackground, value)) OnPropertyChanged(nameof(EffectiveDockBackground)); }
+        set => SetProperty(ref _dockBackground, value);
     }
 
     private double _windowOpacity = 1.0;
     /// <summary>Whole-dock opacity (icons + background), from the global opacity setting.</summary>
     public double WindowOpacity { get => _windowOpacity; set => SetProperty(ref _windowOpacity, value); }
-
-    private bool _suppressBarBackground;
-    /// <summary>
-    /// Set while an acrylic backdrop is active: the DWM already tints the
-    /// window, so the bar's own background brush is switched to transparent to
-    /// avoid stacking two layers of the same colour.
-    /// </summary>
-    public bool SuppressBarBackground
-    {
-        get => _suppressBarBackground;
-        set { if (SetProperty(ref _suppressBarBackground, value)) OnPropertyChanged(nameof(EffectiveDockBackground)); }
-    }
-
-    /// <summary>The brush actually painted behind the dock items.</summary>
-    public IBrush EffectiveDockBackground =>
-        SuppressBarBackground ? Brushes.Transparent : DockBackground;
 
     public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
 

@@ -22,7 +22,7 @@ Drop the file on your dock to try one.
 
 | Theme | Looks like |
 |---|---|
-| [`midnight.mbtheme`](midnight.mbtheme) | Deep blue, heavily rounded, soft acrylic |
+| [`midnight.mbtheme`](midnight.mbtheme) | Deep blue, heavily rounded, softly translucent |
 | [`paper.mbtheme`](paper.mbtheme) | Light and flat, for light-mode desktops |
 | [`slim.mbtheme`](slim.mbtheme) | Minimal height — small icons, no padding, square |
 | [`neon.mbtheme`](neon.mbtheme) | Dark violet with a strong magnification bounce |
@@ -50,7 +50,6 @@ is exactly why the format is not a binary archive.
   "tintIcons": false,
   "tintColorRGB": "0, 80, 140",
   "verticalDock": false,
-  "blurMode": "acrylic",       // "none" | "blur" | "acrylic"
   "magnifyIcons": true,
   "magnifyScale": 1.8          // 1.0-2.5
 }
@@ -66,9 +65,9 @@ reset.
 
 ### Notes
 
-- `blurMode` is a DWM effect drawn behind the window, so it competes with a
-  very opaque `dockTransparency`. Pair `"acrylic"` with a value around
-  `0.5`–`0.7` to actually see it.
+- `blurMode` was removed (the backdrop effect it drove no longer exists).
+  Older themes may still carry it; the key is ignored, and such files still
+  load. Use `dockTransparency` for a see-through bar.
 - `magnifyIcons` only applies to a single-row dock (`dockRows: 1`).
 - Widgets follow the dock's colour, transparency and rounding, but not the
   other fields.

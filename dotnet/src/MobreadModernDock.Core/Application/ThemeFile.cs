@@ -89,6 +89,9 @@ public static class ThemeFile
     private static readonly string[] Markers =
     {
         "dockColorRGB", "iconsSize", "dockTransparency", "dockBorderRounding",
+        // "blurMode" no longer maps to a setting (the backdrop feature was
+        // removed), but themes in the wild still carry it — keep recognising
+        // it so those files are still identified as themes.
         "spacingBetweenIcons", "blurMode", "dockPadding", "tintColorRGB",
         "globalOpacity", "dockRows", "magnifyIcons", "magnifyScale",
     };
