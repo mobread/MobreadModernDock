@@ -127,7 +127,7 @@ public partial class MainWindow : Window
         {
             vm.OpenSettingsAction = () => OpenSettings(vm);
             vm.RepositionAction = () => ApplyDockPosition();
-            vm.LayerRefreshAction = () => { ApplyAlwaysOnTop(); ApplyAutoHideSetting(); };
+            vm.LayerRefreshAction = () => { ApplyAlwaysOnTop(); ApplyAutoHideSetting(); ApplyBackdrop(); };
             vm.ShowFolderStackAction = ShowFolderStack;
             vm.PreviewDismissAction = HidePreview;
             vm.Initialize();
@@ -230,6 +230,8 @@ public partial class MainWindow : Window
     private void OnDockSizeChanged(object? sender, SizeChangedEventArgs e)
     {
         RefreshTooltipPlacement();
+        // SizeToContent means the bar's rect changed — re-clip the backdrop.
+        UpdateBackdropRegion();
         if (IsMirror || _appServices?.PositioningService.IsDynamicPositioning() == false)
             ApplyDockPosition();
     }
@@ -597,6 +599,11 @@ public partial class MainWindow : Window
 
     private void OnPinnedDragOver(object? sender, DragEventArgs e)
     {
+        // An Explorer drag (files) is handled by the dock-level handler, which
+        // decides between "pin here" and "open with this app". Let it bubble.
+        if (!_reorderInProgress && e.DataTransfer.Contains(DataFormat.File))
+            return;
+
         if (!_reorderInProgress || !e.DataTransfer.Contains(DataFormat.Text))
         {
             e.DragEffects = DragDropEffects.None;
@@ -611,6 +618,10 @@ public partial class MainWindow : Window
 
     private void OnPinnedDrop(object? sender, DragEventArgs e)
     {
+        // File drops belong to the dock-level handler (pin / open-with).
+        if (!_reorderInProgress && e.DataTransfer.Contains(DataFormat.File))
+            return;
+
         HideDropIndicator();
         if (!_reorderInProgress) return;
         string? sourceText = e.DataTransfer.TryGetText();
@@ -620,6 +631,118 @@ public partial class MainWindow : Window
         (DataContext as MainWindowViewModel)?.MoveItem(fromIndex, gapIndex);
         e.DragEffects = DragDropEffects.Move;
         e.Handled = true;
+    }
+
+    // --- Explorer drag-and-drop: pin files, or open them with a pinned app ---
+
+    /// <summary>
+    /// The program icon a file drag is currently hovering over, if any. When
+    /// set, dropping opens the files with that program; otherwise the files
+    /// are pinned at the indicated gap.
+    /// </summary>
+    private Button? _fileDropTarget;
+
+    private void OnDockDragOver(object? sender, DragEventArgs e)
+    {
+        // Internal icon reorder has its own handler on the items control.
+        if (_reorderInProgress) return;
+        if (!e.DataTransfer.Contains(DataFormat.File))
+        {
+            e.DragEffects = DragDropEffects.None;
+            return;
+        }
+        e.Handled = true;
+
+        // Over a pinned *program* icon → "open with"; anywhere else → pin.
+        var overButton = FileDropButtonAt(e);
+        SetFileDropTarget(overButton);
+
+        if (overButton != null)
+        {
+            e.DragEffects = DragDropEffects.Copy;
+            HideDropIndicator();
+        }
+        else
+        {
+            e.DragEffects = DragDropEffects.Link; // shows the "pin here" cursor
+            ShowDropIndicatorAt(e.GetPosition(PinnedItems));
+        }
+    }
+
+    private void OnDockDragLeave(object? sender, DragEventArgs e)
+    {
+        HideDropIndicator();
+        SetFileDropTarget(null);
+    }
+
+    private void OnDockDrop(object? sender, DragEventArgs e)
+    {
+        if (_reorderInProgress) return;
+        HideDropIndicator();
+        var target = _fileDropTarget;
+        SetFileDropTarget(null);
+
+        if (!e.DataTransfer.Contains(DataFormat.File)) return;
+        if (DataContext is not MainWindowViewModel vm) return;
+        e.Handled = true;
+
+        var paths = ExtractFilePaths(e);
+        if (paths.Count == 0) return;
+
+        if (target?.DataContext is DockItemViewModel itemVm && vm.OpenFilesWith(itemVm, paths))
+        {
+            e.DragEffects = DragDropEffects.Copy;
+            return;
+        }
+
+        var (gapIndex, _) = ResolvePinnedDropGap(e.GetPosition(PinnedItems));
+        vm.PinDroppedPaths(paths, gapIndex);
+        e.DragEffects = DragDropEffects.Link;
+    }
+
+    /// <summary>Local paths carried by an Explorer drag, files and folders alike.</summary>
+    private static List<string> ExtractFilePaths(DragEventArgs e)
+    {
+        var paths = new List<string>();
+        foreach (var item in e.DataTransfer.Items)
+        {
+            var storage = item.TryGetFile();
+            // IStorageItem.Path is a URI; local drops always carry a file://
+            // one, so LocalPath is the real Windows path.
+            if (storage?.Path is { IsAbsoluteUri: true } uri && uri.IsFile)
+                paths.Add(uri.LocalPath);
+        }
+        return paths;
+    }
+
+    /// <summary>
+    /// The pinned *program* button under the pointer, or null. Only program
+    /// items accept "open with" drops — folders, modules and the gear don't.
+    /// </summary>
+    private Button? FileDropButtonAt(DragEventArgs e)
+    {
+        var pos = e.GetPosition(PinnedItems);
+        foreach (var cell in RealizedCells())
+        {
+            if (!cell.Bounds.Contains(pos)) continue;
+            if (PinnedItems.ContainerFromIndex(cell.Index) is not Control container) return null;
+            var button = container as Button ?? container.GetVisualDescendants().OfType<Button>().FirstOrDefault();
+            if (button?.DataContext is DockItemViewModel { Item: DockProgramItemModel })
+                return button;
+            return null;
+        }
+        return null;
+    }
+
+    /// <summary>Highlights the icon that would receive an "open with" drop.</summary>
+    private void SetFileDropTarget(Button? button)
+    {
+        if (ReferenceEquals(_fileDropTarget, button)) return;
+        if (_fileDropTarget != null)
+            _fileDropTarget.RenderTransform = null;
+        _fileDropTarget = button;
+        if (_fileDropTarget != null)
+            _fileDropTarget.RenderTransform = Avalonia.Media.Transformation.TransformOperations.Parse("scale(1.3)");
     }
 
     private int IndexOfPinnedButton(Button button)
@@ -731,17 +854,81 @@ public partial class MainWindow : Window
         if (button.DataContext is not DockItemViewModel vm) return;
         if (DataContext is not MainWindowViewModel mainVm) return;
         e.Handled = true;
-        // Only program items are unpinnable from the dock; the Settings item
-        // and Windows modules keep no menu (Settings manages those).
-        if (vm.Item is not DockProgramItemModel) return;
 
         HidePreview();
         var loc = _appServices.LocalizationService;
         var menu = new ContextMenu();
-        var unpin = new MenuItem { Header = loc.Text("dock.context.unpin") };
-        unpin.Click += (_, _) => mainVm.UnpinItem(vm);
-        menu.Items.Add(unpin);
+
+        if (vm.Item is DockSeparatorItemModel)
+        {
+            // A divider has no icon and nothing to launch; its only action is
+            // to go away. Adding another one from here is still useful.
+            var removeSep = new MenuItem { Header = loc.Text("dock.context.removeSeparator") };
+            removeSep.Click += (_, _) => mainVm.RemoveSeparator(vm);
+            menu.Items.Add(removeSep);
+
+            var addAfterSep = new MenuItem { Header = loc.Text("dock.context.addSeparator") };
+            addAfterSep.Click += (_, _) => mainVm.AddSeparatorAfter(vm);
+            menu.Items.Add(addAfterSep);
+
+            menu.Open(button);
+            return;
+        }
+
+        // Any real item can carry a custom icon.
+        var changeIcon = new MenuItem { Header = loc.Text("dock.context.changeIcon") };
+        changeIcon.Click += async (_, _) => await PickCustomIconAsync(mainVm, vm);
+        menu.Items.Add(changeIcon);
+
+        if (vm.Item.CustomIcon != null)
+        {
+            var resetIcon = new MenuItem { Header = loc.Text("dock.context.resetIcon") };
+            resetIcon.Click += (_, _) => mainVm.SetCustomIcon(vm, null);
+            menu.Items.Add(resetIcon);
+        }
+
+        // Insert a divider right after this icon.
+        var addSeparator = new MenuItem { Header = loc.Text("dock.context.addSeparator") };
+        addSeparator.Click += (_, _) => mainVm.AddSeparatorAfter(vm);
+        menu.Items.Add(addSeparator);
+
+        // Only program items are unpinnable from the dock; the Settings item
+        // and Windows modules are managed from the Settings window.
+        if (vm.Item is DockProgramItemModel)
+        {
+            menu.Items.Add(new Separator());
+            var unpin = new MenuItem { Header = loc.Text("dock.context.unpin") };
+            unpin.Click += (_, _) => mainVm.UnpinItem(vm);
+            menu.Items.Add(unpin);
+        }
+
         menu.Open(button);
+    }
+
+    /// <summary>
+    /// Asks for an icon file and applies it to the item. The dock window is
+    /// WS_EX_NOACTIVATE, so the picker is opened from the Settings window when
+    /// one is available and falls back to this window otherwise.
+    /// </summary>
+    private async Task PickCustomIconAsync(MainWindowViewModel mainVm, DockItemViewModel item)
+    {
+        if (_appServices == null) return;
+        var loc = _appServices.LocalizationService;
+        var files = await StorageProvider.OpenFilePickerAsync(
+            new Avalonia.Platform.Storage.FilePickerOpenOptions
+            {
+                Title = loc.Text("dialog.iconChooser.title"),
+                AllowMultiple = false,
+                FileTypeFilter = new[]
+                {
+                    new Avalonia.Platform.Storage.FilePickerFileType(loc.Text("dialog.iconChooser.filter"))
+                    {
+                        Patterns = new[] { "*.png", "*.ico", "*.exe", "*.dll", "*.jpg", "*.jpeg", "*.bmp" }
+                    },
+                }
+            });
+        if (files.Count == 0) return;
+        mainVm.SetCustomIcon(item, files[0].Path.LocalPath);
     }
 
     private void OnRunningAppContextRequested(object? sender, ContextRequestedEventArgs e)
@@ -856,6 +1043,77 @@ public partial class MainWindow : Window
     {
         if (_appServices == null || _dockBehavior == null) return;
         _dockBehavior.SetAlwaysOnTop(_appServices.AppearanceService.GetAlwaysOnTop());
+    }
+
+    /// <summary>
+    /// Applies the configured backdrop (none / blur / acrylic) to the native
+    /// window and clips it to the dock bar so the blur follows the rounded
+    /// corners instead of filling the whole window rectangle (which includes
+    /// the transparent bounce headroom).
+    ///
+    /// The tint is the dock colour at the dock's own transparency, so the
+    /// existing colour and transparency sliders keep working — the blur only
+    /// replaces what shows *through* that tint.
+    /// </summary>
+    private void ApplyBackdrop()
+    {
+        if (_appServices == null) return;
+        IntPtr hwnd = this.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        if (hwnd == IntPtr.Zero) return;
+
+        var appearance = _appServices.AppearanceService;
+        string mode = appearance.GetBlurMode();
+
+        if (!WindowBlur.IsEnabled(mode))
+        {
+            WindowBlur.Apply(hwnd, WindowBlur.ModeNone, 0, 0, 0, 0);
+            WindowBlur.ClearRegion(hwnd);
+            // The Border paints the background again once the backdrop is off.
+            if (DataContext is MainWindowViewModel novm) novm.SuppressBarBackground = false;
+            return;
+        }
+
+        var (r, g, b) = ParseRgb(appearance.GetDockColorRGB());
+        double tint = appearance.GetDockTransparencyPercentage() / 100.0;
+        WindowBlur.Apply(hwnd, mode, r, g, b, tint);
+
+        // Plain blur draws no tint of its own, so the Border keeps painting the
+        // dock colour over it. Acrylic already applies the tint natively —
+        // letting the Border paint it again would double the opacity.
+        if (DataContext is MainWindowViewModel vm)
+            vm.SuppressBarBackground = mode == WindowBlur.ModeAcrylic;
+
+        UpdateBackdropRegion();
+    }
+
+    /// <summary>
+    /// Re-clips the native window to the dock bar's current rectangle. Called
+    /// after every layout change, since SizeToContent means the bar's size
+    /// changes whenever items are added or the icon size changes.
+    /// </summary>
+    private void UpdateBackdropRegion()
+    {
+        if (_appServices == null) return;
+        IntPtr hwnd = this.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        if (hwnd == IntPtr.Zero) return;
+        if (!WindowBlur.IsEnabled(_appServices.AppearanceService.GetBlurMode())) return;
+        if (DockBar.Bounds.Width <= 0 || DockBar.Bounds.Height <= 0) return;
+
+        // The bar's offset inside the window (the bounce headroom margin).
+        var origin = DockBar.TranslatePoint(new Point(0, 0), this) ?? new Point(0, 0);
+        WindowBlur.SetRoundedRegion(hwnd, origin.X, origin.Y,
+            DockBar.Bounds.Width, DockBar.Bounds.Height,
+            _appServices.AppearanceService.GetDockBorderRounding(),
+            RenderScaling);
+    }
+
+    private static (byte R, byte G, byte B) ParseRgb(string rgb)
+    {
+        var parts = rgb.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        byte r = parts.Length > 0 && byte.TryParse(parts[0], out var rv) ? rv : (byte)0;
+        byte g = parts.Length > 1 && byte.TryParse(parts[1], out var gv) ? gv : (byte)0;
+        byte b = parts.Length > 2 && byte.TryParse(parts[2], out var bv) ? bv : (byte)0;
+        return (r, g, b);
     }
 
     protected override void OnClosed(EventArgs e)
