@@ -475,13 +475,56 @@ public partial class SettingsViewModel : ViewModelBase
     }
     public string CheckUpdatesText => T("settings.general.checkUpdates");
     public string DownloadUpdateText => T("settings.general.downloadUpdate");
+    public string InstallUpdateText => T("settings.general.installUpdate");
+    public string CheckUpdatesOnStartupText => T("settings.general.checkUpdatesOnStartup");
+
+    private bool _checkUpdatesOnStartup = true;
+    /// <summary>Look for a newer release shortly after launch, at most once a day.</summary>
+    public bool CheckUpdatesOnStartup { get => _checkUpdatesOnStartup; set => SetProperty(ref _checkUpdatesOnStartup, value); }
+
     private bool _isCheckingUpdates;
     public bool IsCheckingUpdates { get => _isCheckingUpdates; set => SetProperty(ref _isCheckingUpdates, value); }
     private bool _updateAvailable;
-    public bool UpdateAvailable { get => _updateAvailable; set => SetProperty(ref _updateAvailable, value); }
+    public bool UpdateAvailable
+    {
+        get => _updateAvailable;
+        set { if (SetProperty(ref _updateAvailable, value)) OnPropertyChanged(nameof(CanInstallUpdate)); }
+    }
     private string _updateStatusText = "";
     public string UpdateStatusText { get => _updateStatusText; set => SetProperty(ref _updateStatusText, value); }
     private string? _updateUrl;
+
+    // --- In-app update install ---
+
+    private UpdateChecker.Result? _updateResult;
+
+    private bool _isInstallingUpdate;
+    /// <summary>True while the MSI is downloading; hides the buttons and shows progress.</summary>
+    public bool IsInstallingUpdate
+    {
+        get => _isInstallingUpdate;
+        set { if (SetProperty(ref _isInstallingUpdate, value)) OnPropertyChanged(nameof(CanInstallUpdate)); }
+    }
+
+    private double _updateProgress;
+    /// <summary>Download progress, 0..100, for the progress bar.</summary>
+    public double UpdateProgress
+    {
+        get => _updateProgress;
+        set { if (SetProperty(ref _updateProgress, value)) OnPropertyChanged(nameof(UpdateProgressText)); }
+    }
+
+    public string UpdateProgressText => $"{(int)UpdateProgress}%";
+
+    /// <summary>
+    /// The one-click install is offered only for installed copies: a portable
+    /// build has no MSI to upgrade and cannot overwrite its own running exe,
+    /// so those users get the download link instead.
+    /// </summary>
+    public bool CanInstallUpdate =>
+        UpdateAvailable && !IsInstallingUpdate
+        && !Infrastructure.Windows.Adapters.AppDataLocator.IsPortable
+        && _updateResult?.DownloadUrl != null;
 
     public async Task CheckForUpdatesAsync()
     {
@@ -491,6 +534,7 @@ public partial class SettingsViewModel : ViewModelBase
         try
         {
             var r = await UpdateChecker.CheckAsync(CurrentVersion);
+            _updateResult = r;
             if (r == null) UpdateStatusText = T("settings.general.updateUnavailable");
             else if (r.UpdateAvailable)
             {
@@ -501,6 +545,77 @@ public partial class SettingsViewModel : ViewModelBase
             else UpdateStatusText = T("settings.general.updateNone");
         }
         finally { IsCheckingUpdates = false; }
+    }
+
+    /// <summary>
+    /// Downloads the release MSI, verifies it against the SHA-256 published in
+    /// the release notes, and hands it to Windows Installer — then asks the app
+    /// to exit, because msiexec cannot replace files this process holds open.
+    ///
+    /// Confirmation is deliberate: the app is unsigned, so silently fetching
+    /// and running an executable is precisely the behaviour that earns an
+    /// antivirus report.
+    /// </summary>
+    public async Task InstallUpdateAsync()
+    {
+        if (_updateResult?.DownloadUrl is not { } url) return;
+        if (!ConfirmInstall()) return;
+
+        IsInstallingUpdate = true;
+        UpdateProgress = 0;
+        UpdateStatusText = T("settings.general.updateDownloading");
+
+        try
+        {
+            string assetName = System.IO.Path.GetFileName(new Uri(url).LocalPath);
+            string? sha = _updateResult.FindSha256(assetName);
+
+            var progress = new Progress<double>(p => UpdateProgress = p * 100);
+            var result = await Infrastructure.Windows.Adapters.UpdateInstaller.DownloadAsync(
+                url, sha, _updateResult.DownloadSize, progress);
+
+            if (!result.Ok || result.FilePath is null)
+            {
+                UpdateStatusText = T(result.Error == "checksum"
+                    ? "settings.general.updateChecksumFailed"
+                    : "settings.general.updateDownloadFailed");
+                return;
+            }
+
+            UpdateStatusText = T("settings.general.updateLaunching");
+            if (!Infrastructure.Windows.Adapters.UpdateInstaller.LaunchInstaller(result.FilePath))
+            {
+                UpdateStatusText = T("settings.general.updateDownloadFailed");
+                return;
+            }
+
+            // Give msiexec a moment to take hold, then quit so it can replace
+            // the files. RequestShutdown also restores the taskbar.
+            await Task.Delay(1200);
+            App.RequestShutdown();
+        }
+        finally
+        {
+            IsInstallingUpdate = false;
+        }
+    }
+
+    /// <summary>
+    /// Asks before downloading and running the installer. Uses the WinForms
+    /// MessageBox the dock already uses elsewhere — the Settings window is
+    /// owned by a WS_EX_NOACTIVATE dock, so an Avalonia dialog cannot take
+    /// focus reliably.
+    /// </summary>
+    private bool ConfirmInstall()
+    {
+        var version = _updateResult?.Latest?.ToString(3) ?? "";
+        return System.Windows.Forms.MessageBox.Show(
+            _appServices.LocalizationService.Text("dialog.updateInstall.message", version),
+            T("dialog.updateInstall.title"),
+            System.Windows.Forms.MessageBoxButtons.YesNo,
+            System.Windows.Forms.MessageBoxIcon.Question,
+            System.Windows.Forms.MessageBoxDefaultButton.Button1)
+            == System.Windows.Forms.DialogResult.Yes;
     }
 
     public void OpenUpdateDownload()
@@ -628,6 +743,7 @@ public partial class SettingsViewModel : ViewModelBase
         MagnifyIcons = app.GetMagnifyIconsSetting();
         MagnifyScale = app.GetMagnifyScalePercentage();
         PreviewDelay = app.GetPreviewDelayMs();
+        CheckUpdatesOnStartup = app.GetCheckUpdatesOnStartup();
         FollowSystemTheme = app.GetFollowSystemTheme();
         ReloadPresets();
         _isInitialized = true;
@@ -669,6 +785,7 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(MagnifyIcons): _appServices.AppearanceService.SetMagnifyIcons(MagnifyIcons); _dockRefreshAction(); break;
             case nameof(MagnifyScale): _appServices.AppearanceService.SetMagnifyScalePercentage(MagnifyScale); _dockRefreshAction(); break;
             case nameof(PreviewDelay): _appServices.AppearanceService.SetPreviewDelayMs(PreviewDelay); _dockRefreshAction(); break;
+            case nameof(CheckUpdatesOnStartup): _appServices.AppearanceService.SetCheckUpdatesOnStartup(CheckUpdatesOnStartup); break;
             case nameof(FollowSystemTheme): OnFollowSystemThemeChanged(); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
             case nameof(VerticalAnchor): OnVerticalAnchorChanged(); break;

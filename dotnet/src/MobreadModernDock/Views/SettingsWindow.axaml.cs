@@ -74,6 +74,7 @@ public partial class SettingsWindow : Window
     private void OnSavePreset(object? sender, RoutedEventArgs e) => Vm?.SaveCurrentAsPreset();
     private async void OnCheckUpdates(object? sender, RoutedEventArgs e) { if (Vm != null) await Vm.CheckForUpdatesAsync(); }
     private void OnDownloadUpdate(object? sender, RoutedEventArgs e) => Vm?.OpenUpdateDownload();
+    private async void OnInstallUpdate(object? sender, RoutedEventArgs e) { if (Vm != null) await Vm.InstallUpdateAsync(); }
     private void OnKofi(object? sender, RoutedEventArgs e) => Vm?.OpenKofi();
     private async void OnExportConfig(object? sender, RoutedEventArgs e) { if (Vm != null) await Vm.ExportConfigAsync(this); }
     private async void OnImportConfig(object? sender, RoutedEventArgs e) { if (Vm != null) await Vm.ImportConfigAsync(this); }

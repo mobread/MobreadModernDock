@@ -150,6 +150,22 @@ public class DockModel
     public double MagnifyScale { get; set; } = 1.6;
 
     /// <summary>
+    /// Check GitHub for a newer release shortly after startup (at most once a
+    /// day). Only sets a flag in Settings — nothing is downloaded or installed
+    /// without the user asking.
+    /// </summary>
+    [JsonPropertyName("checkUpdatesOnStartup")]
+    public bool CheckUpdatesOnStartup { get; set; } = true;
+
+    /// <summary>
+    /// When the last automatic check ran, so a restart doesn't re-check.
+    /// Round-trips as an ISO-8601 string; null means never.
+    /// </summary>
+    [JsonPropertyName("lastUpdateCheckUtc")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTime? LastUpdateCheckUtc { get; set; }
+
+    /// <summary>
     /// How long the pointer must rest on an icon before its window preview
     /// (and tooltip) appears, in milliseconds. 0 = immediate. A delay keeps a
     /// sweep across the dock from firing a preview per icon, which is most
@@ -311,6 +327,8 @@ public class DockModel
         BlurMode = other.BlurMode;
         MagnifyIcons = other.MagnifyIcons;
         MagnifyScale = other.MagnifyScale;
+        CheckUpdatesOnStartup = other.CheckUpdatesOnStartup;
+        LastUpdateCheckUtc = other.LastUpdateCheckUtc;
         PreviewDelayMs = other.PreviewDelayMs;
         FollowSystemTheme = other.FollowSystemTheme;
         GlobalOpacity = other.GlobalOpacity;
