@@ -133,25 +133,7 @@ public sealed class AppBarReservation : IDisposable
         abd.rc = ToRect(strip);
 
         SHAppBarMessage(ABM_QUERYPOS, ref abd);
-
-        // QUERYPOS only adjusts the axis it owns; restore the full span on the
-        // other axis so a partial answer cannot shrink the bar's length.
-        var full = ToRect(strip);
-        if (edge is ScreenEdge.Left or ScreenEdge.Right)
-        {
-            abd.rc.Top = full.Top;
-            abd.rc.Bottom = full.Bottom;
-            // Keep the requested thickness anchored to the edge.
-            if (edge == ScreenEdge.Left) abd.rc.Right = abd.rc.Left + (full.Right - full.Left);
-            else abd.rc.Left = abd.rc.Right - (full.Right - full.Left);
-        }
-        else
-        {
-            abd.rc.Left = full.Left;
-            abd.rc.Right = full.Right;
-            if (edge == ScreenEdge.Top) abd.rc.Bottom = abd.rc.Top + (full.Bottom - full.Top);
-            else abd.rc.Top = abd.rc.Bottom - (full.Bottom - full.Top);
-        }
+        AnchorToEdge(ref abd.rc, edge, ToRect(strip));
 
         SHAppBarMessage(ABM_SETPOS, ref abd);
 
@@ -165,9 +147,40 @@ public sealed class AppBarReservation : IDisposable
     }
 
     /// <summary>
+    /// QUERYPOS only adjusts the axis it owns; restore the full span on the
+    /// other axis so a partial answer cannot shrink the bar's length, and keep
+    /// the requested thickness anchored to the edge.
+    /// </summary>
+    private static void AnchorToEdge(ref RECT rc, ScreenEdge edge, RECT full)
+    {
+        if (edge is ScreenEdge.Left or ScreenEdge.Right)
+        {
+            rc.Top = full.Top;
+            rc.Bottom = full.Bottom;
+            if (edge == ScreenEdge.Left) rc.Right = rc.Left + (full.Right - full.Left);
+            else rc.Left = rc.Right - (full.Right - full.Left);
+        }
+        else
+        {
+            rc.Left = full.Left;
+            rc.Right = full.Right;
+            if (edge == ScreenEdge.Top) rc.Bottom = rc.Top + (full.Bottom - full.Top);
+            else rc.Top = rc.Bottom - (full.Bottom - full.Top);
+        }
+    }
+
+    /// <summary>
     /// The shell asks every appbar to re-assert its position when the taskbar
     /// moves, auto-hide flips or the display layout changes. Without this the
     /// reservation is silently dropped and windows maximize over the dock.
+    ///
+    /// Re-asserting is <b>not</b> unconditional: every <c>ABM_SETPOS</c> makes
+    /// the shell re-lay out all its appbars, which briefly shows the
+    /// secondary-monitor taskbar, and it also raises <c>ABN_POSCHANGED</c> on
+    /// every other appbar sharing that edge - with two docks (primary +
+    /// mirror) that is a ping-pong of SETPOS calls per resize, each one a
+    /// taskbar flash. So: ask the shell (QUERYPOS) where it would put us now
+    /// and only SETPOS when that differs from what we already hold.
     /// </summary>
     private void OnPosChanged()
     {
@@ -175,9 +188,26 @@ public sealed class AppBarReservation : IDisposable
         {
             if (!_registered || _reentrant || _edge == ScreenEdge.None || _strip is null) return;
             _reentrant = true;
-            try { _strip = SetPos(_edge, _strip.Value); }
+            try
+            {
+                var proposed = QueryPos(_edge, _strip.Value);
+                if (!DockReservation.Differs(_strip, proposed)) return;
+                _strip = SetPos(_edge, _strip.Value);
+            }
             finally { _reentrant = false; }
         }
+    }
+
+    /// <summary>ABM_QUERYPOS alone: where the shell would place this strip right now.</summary>
+    private ScreenBounds QueryPos(ScreenEdge edge, ScreenBounds strip)
+    {
+        var abd = NewData();
+        abd.uEdge = ToNativeEdge(edge);
+        abd.rc = ToRect(strip);
+        SHAppBarMessage(ABM_QUERYPOS, ref abd);
+        AnchorToEdge(ref abd.rc, edge, ToRect(strip));
+        return new ScreenBounds(abd.rc.Left, abd.rc.Top,
+            abd.rc.Right - abd.rc.Left, abd.rc.Bottom - abd.rc.Top);
     }
 
     private void EnsureWindow()

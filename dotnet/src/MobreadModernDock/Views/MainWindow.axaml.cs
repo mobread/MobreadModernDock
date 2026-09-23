@@ -1879,6 +1879,21 @@ public partial class MainWindow : Window
     public void ApplyEdgeReservation()
     {
         if (_appServices == null) return;
+        // Coalesce: a settings change runs several layout passes (bar size,
+        // then headroom), each raising SizeChanged. Every ABM_SETPOS makes the
+        // shell re-lay out its appbars and briefly show the secondary-monitor
+        // taskbar, so the strip is updated once, after the burst settles.
+        _reservationDebounce ??= new DispatcherTimer(TimeSpan.FromMilliseconds(60), DispatcherPriority.Background,
+            (_, _) => { _reservationDebounce!.Stop(); ApplyEdgeReservationNow(); });
+        _reservationDebounce.Stop();
+        _reservationDebounce.Start();
+    }
+
+    private DispatcherTimer? _reservationDebounce;
+
+    private void ApplyEdgeReservationNow()
+    {
+        if (_appServices == null) return;
 
         bool wanted = _appServices.AppearanceService.GetReserveScreenEdge()
                       && !_appServices.AppearanceService.GetAutoHide();
@@ -1918,6 +1933,8 @@ public partial class MainWindow : Window
             vm.Shutdown();
         _autoHide?.Dispose();
         _autoHide = null;
+        _reservationDebounce?.Stop();
+        _reservationDebounce = null;
         // Releasing the appbar restores the work area. Must happen before the
         // process ends: a stale reservation leaves the user's screen shrunk
         // with no UI left to undo it.

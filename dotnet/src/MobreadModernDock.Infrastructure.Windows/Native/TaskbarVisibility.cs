@@ -44,20 +44,72 @@ public static class TaskbarVisibility
     private static void HideAllTaskbarWindows()
     {
         foreach (var hwnd in FindTaskbars())
-            User32.ShowWindow(hwnd, Win32Constants.SW_HIDE);
+            HideOne(hwnd);
+    }
+
+    /// <summary>
+    /// SW_HIDE plus a fully transparent layered alpha. The shell re-shows the
+    /// taskbar for a frame or two on every appbar re-layout (see
+    /// <see cref="StartEnforcer"/>) and no re-hide, however fast, beats the
+    /// compositor to it; with alpha 0 those frames paint nothing. The
+    /// taskbar accepts layered attributes from another process, and the
+    /// shell does not reset them when it shows the window.
+    /// </summary>
+    private static void HideOne(IntPtr hwnd)
+    {
+        MakeTransparent(hwnd, true);
+        User32.ShowWindow(hwnd, Win32Constants.SW_HIDE);
+    }
+
+    private static void MakeTransparent(IntPtr hwnd, bool transparent)
+    {
+        var ex = User32.GetWindowLongPtr(hwnd, Win32Constants.GWL_EXSTYLE).ToInt64();
+        bool layered = (ex & Win32Constants.WS_EX_LAYERED) != 0;
+        if (transparent)
+        {
+            if (!layered)
+                User32.SetWindowLongPtr(hwnd, Win32Constants.GWL_EXSTYLE, new IntPtr(ex | Win32Constants.WS_EX_LAYERED));
+            User32.SetLayeredWindowAttributes(hwnd, 0, 0, Win32Constants.LWA_ALPHA);
+        }
+        else if (layered)
+        {
+            // Opaque again, then drop the style: the taskbar was not layered
+            // to begin with, and leaving it so changes how the shell paints it.
+            User32.SetLayeredWindowAttributes(hwnd, 0, 255, Win32Constants.LWA_ALPHA);
+            User32.SetWindowLongPtr(hwnd, Win32Constants.GWL_EXSTYLE, new IntPtr(ex & ~(long)Win32Constants.WS_EX_LAYERED));
+        }
     }
 
     private static Timer? _enforcer;
+    private static Thread? _hookThread;
+    private static uint _hookThreadId;
 
     /// <summary>
-    /// The shell re-creates the secondary-monitor taskbars (new HWNDs) when
-    /// the appbar state changes and on display-layout changes, so a single
-    /// SW_HIDE does not stick. A low-frequency enforcer re-hides any taskbar
-    /// window that reappears while the setting is on. Suspended while the
-    /// taskbar is temporarily shown for a tray-icon click.
+    /// The shell re-shows the taskbars whenever it re-lays out its appbars -
+    /// on every <c>ABM_SETPOS</c> from any appbar (ours included, on each dock
+    /// resize), on display changes, and it re-creates the secondary-monitor
+    /// taskbars (new HWNDs) after appbar state changes - so a single
+    /// <c>SW_HIDE</c> does not stick.
+    ///
+    /// Two layers keep them hidden. A <c>WinEvent</c> hook on
+    /// <c>EVENT_OBJECT_SHOW</c> re-hides a taskbar the moment the shell shows
+    /// it. The hook runs on its own thread with nothing but a message pump:
+    /// out-of-context WinEvents are delivered through the hooking thread's
+    /// queue, and on the UI thread they queued behind the very layout work
+    /// that caused the SETPOS, adding ~20 ms during which a frame of taskbar
+    /// was presented. The polling timer below is the fallback for anything
+    /// the hook misses (it was the only mechanism before, and its 750 ms
+    /// period was exactly the flicker users saw on the secondary monitor).
+    /// Both stand down while the taskbar is temporarily shown for a tray-icon
+    /// click.
     /// </summary>
     private static void StartEnforcer()
     {
+        if (_hookThread == null)
+        {
+            _hookThread = new Thread(HookThreadMain) { IsBackground = true, Name = "TaskbarHideHook" };
+            _hookThread.Start();
+        }
         _enforcer ??= new Timer(_ =>
         {
             lock (Sync)
@@ -65,15 +117,58 @@ public static class TaskbarVisibility
                 if (!_hidden || _temporarilyShown) return;
                 foreach (var hwnd in FindTaskbars())
                     if (User32.IsWindowVisible(hwnd))
-                        User32.ShowWindow(hwnd, Win32Constants.SW_HIDE);
+                        HideOne(hwnd);
             }
         }, null, 250, 750);
+    }
+
+    private static void HookThreadMain()
+    {
+        _hookThreadId = Kernel32.GetCurrentThreadId();
+        // Local so the delegate lives as long as the loop; the hook holds a raw pointer to it.
+        WinEventProc proc = OnWinEvent;
+        IntPtr hook = SetWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_SHOW, IntPtr.Zero,
+            proc, 0, 0, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
+        try
+        {
+            while (User32.GetMessage(out var msg, IntPtr.Zero, 0, 0) > 0)
+            {
+                User32.TranslateMessage(ref msg);
+                User32.DispatchMessage(ref msg);
+            }
+        }
+        finally
+        {
+            if (hook != IntPtr.Zero) UnhookWinEvent(hook);
+            GC.KeepAlive(proc);
+        }
+    }
+
+    private static void OnWinEvent(IntPtr hook, uint evt, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
+    {
+        if (idObject != OBJID_WINDOW || hwnd == IntPtr.Zero) return;
+        // Cheap class check first: this fires for every window shown on the desktop.
+        var cls = new StringBuilder(64);
+        User32.GetClassName(hwnd, cls, cls.Capacity);
+        string name = cls.ToString();
+        if (name != "Shell_TrayWnd" && name != "Shell_SecondaryTrayWnd") return;
+        lock (Sync)
+        {
+            if (!_hidden || _temporarilyShown) return;
+            // A re-created secondary taskbar is a new HWND with no alpha yet.
+            HideOne(hwnd);
+        }
     }
 
     private static void StopEnforcer()
     {
         _enforcer?.Dispose();
         _enforcer = null;
+        if (_hookThread != null)
+        {
+            User32.PostThreadMessage(_hookThreadId, WM_QUIT, IntPtr.Zero, IntPtr.Zero);
+            _hookThread = null;
+        }
     }
 
     public static void Restore()
@@ -84,7 +179,10 @@ public static class TaskbarVisibility
             _hidden = false;
             _temporarilyShown = false;
             foreach (var hwnd in FindTaskbars())
+            {
+                MakeTransparent(hwnd, false);
                 User32.ShowWindow(hwnd, Win32Constants.SW_SHOW);
+            }
             SetAppBarAutoHide(false);
         }
     }
@@ -101,9 +199,14 @@ public static class TaskbarVisibility
         lock (Sync)
         {
             if (!_hidden) return;
-            foreach (var hwnd in FindTaskbars())
-                User32.ShowWindow(hwnd, Win32Constants.SW_SHOWNOACTIVATE);
+            // Flag first: the SW_SHOW below raises EVENT_OBJECT_SHOW, and the
+            // hook must not undo it.
             _temporarilyShown = true;
+            foreach (var hwnd in FindTaskbars())
+            {
+                MakeTransparent(hwnd, false);
+                User32.ShowWindow(hwnd, Win32Constants.SW_SHOWNOACTIVATE);
+            }
         }
     }
 
@@ -116,19 +219,21 @@ public static class TaskbarVisibility
             _temporarilyShown = false;
             if (!_hidden) return;
             foreach (var hwnd in FindTaskbars())
-                User32.ShowWindow(hwnd, Win32Constants.SW_HIDE);
+                HideOne(hwnd);
         }
     }
 
     /// <summary>
-    /// Restores the taskbar if a previous run left it hidden. Cheap: it only
-    /// touches the shell when a taskbar window is actually invisible.
+    /// Restores the taskbar if a previous run left it hidden or transparent.
+    /// Cheap: it only touches the shell when a taskbar window is actually
+    /// invisible.
     /// </summary>
     public static void RestoreIfLeftHidden()
     {
         foreach (var hwnd in FindTaskbars())
         {
-            if (!User32.IsWindowVisible(hwnd))
+            bool layered = (User32.GetWindowLongPtr(hwnd, Win32Constants.GWL_EXSTYLE).ToInt64() & Win32Constants.WS_EX_LAYERED) != 0;
+            if (!User32.IsWindowVisible(hwnd) || layered)
             {
                 Restore();
                 return;
@@ -177,6 +282,21 @@ public static class TaskbarVisibility
     private const uint ABM_SETSTATE = 0x0000000A;
     private const int ABS_AUTOHIDE = 0x1;
     private const int ABS_ALWAYSONTOP = 0x2;
+
+    private const uint EVENT_OBJECT_SHOW = 0x8002;
+    private const int OBJID_WINDOW = 0;
+    private const uint WINEVENT_OUTOFCONTEXT = 0x0000;
+    private const uint WINEVENT_SKIPOWNPROCESS = 0x0002;
+    private const uint WM_QUIT = 0x0012;
+
+    private delegate void WinEventProc(IntPtr hook, uint evt, IntPtr hwnd, int idObject, int idChild, uint thread, uint time);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmod,
+        WinEventProc proc, uint idProcess, uint idThread, uint flags);
+
+    [DllImport("user32.dll")]
+    private static extern bool UnhookWinEvent(IntPtr hook);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct APPBARDATA

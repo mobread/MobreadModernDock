@@ -112,6 +112,18 @@ public struct RECT
     public int Bottom;
 }
 
+/// <summary>Native MSG structure for a message pump.</summary>
+[StructLayout(LayoutKind.Sequential)]
+public struct MSG
+{
+    public IntPtr hwnd;
+    public uint message;
+    public IntPtr wParam;
+    public IntPtr lParam;
+    public uint time;
+    public POINT pt;
+}
+
 /// <summary>Native PAINTSTRUCT used with BeginPaint/EndPaint.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct PAINTSTRUCT
@@ -258,6 +270,18 @@ public static class User32
 
     [DllImport("user32.dll")]
     public static extern short GetKeyState(int nVirtKey);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern int GetMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
+
+    [DllImport("user32.dll")]
+    public static extern bool TranslateMessage(ref MSG lpMsg);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr DispatchMessage(ref MSG lpMsg);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool PostThreadMessage(uint idThread, uint msg, IntPtr wParam, IntPtr lParam);
 
     public const int VK_MENU = 0x12;
 
