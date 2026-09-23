@@ -1563,6 +1563,24 @@ public partial class MainWindow : Window
                 _appServices.AppearanceService.SetLockDock(!_appServices.AppearanceService.GetLockDock());
             menu.Items.Add(lockItem);
 
+            // Same wiring as the Settings toggle: persist, re-apply on this
+            // window (via LayerRefreshAction), re-reserve the edge, and let
+            // the mirrors pick it up.
+            var autoHideItem = new MenuItem
+            {
+                Header = loc.Text("dock.context.autoHide"),
+                ToggleType = MenuItemToggleType.CheckBox,
+                IsChecked = _appServices.AppearanceService.GetAutoHide(),
+            };
+            autoHideItem.Click += (_, _) =>
+            {
+                _appServices.AppearanceService.SetAutoHide(!_appServices.AppearanceService.GetAutoHide());
+                App.PrimaryViewModel?.UpdateDockUI();
+                App.SyncMirrorDocks();
+                App.ApplyEdgeReservation();
+            };
+            menu.Items.Add(autoHideItem);
+
             // Centring only means anything for a freely-dragged dock. In
             // STATIC mode the anchors already place it and the entry would do
             // nothing visible, so it is hidden there rather than shown inert.
