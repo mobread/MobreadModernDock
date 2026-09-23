@@ -149,7 +149,8 @@ public class JsonDockRepositoryTest
         var reloaded = new JsonDockRepository(configPath).Load();
         Assert.Equal("Notepad", reloaded.Items.OfType<DockProgramItemModel>().Single().Label);
         Assert.Contains(reloaded.Items, i => i is DockSeparatorItemModel);
-        Assert.Equal(2, reloaded.Items.OfType<DockWindowsModuleItemModel>().Count());
+        Assert.Equal(3, reloaded.Items.OfType<DockWindowsModuleItemModel>().Count());
+        Assert.Equal("start", Assert.IsType<DockWindowsModuleItemModel>(reloaded.Items[0]).Module);
         Assert.IsType<DockSettingsItemModel>(reloaded.Items[^1]);
         CleanupTempDir();
     }

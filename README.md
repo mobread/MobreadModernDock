@@ -68,7 +68,7 @@ Free-floating panels that follow the dock's colour and corner rounding. Each rem
 
 ### Launching
 
-- **Ready on first launch** — a fresh install seeds the dock with your Windows taskbar pins, a divider, This PC and the Recycle Bin, so it is usable before you open Settings. Nothing is imported on later launches; your config is yours.
+- **Ready on first launch** — a fresh install seeds the dock with the Start menu on the far left, your Windows taskbar pins between dividers, then This PC and the Recycle Bin, so it is usable before you open Settings. Nothing is imported on later launches; your config is yours.
 - **Import Taskbar Pins** — one button in Settings pulls in everything pinned to your Windows taskbar (skipping anything already on the dock).
 - **Folder stacks** — clicking a folder opens a macOS-style icon grid anchored to the dock instead of launching Explorer. Drill into subfolders in place; right-click reveals the item in Explorer.
 - **`.lnk` shortcut support** — "Add Program" accepts shortcuts, including multi-select. Target, arguments, working directory and icon are read from the shortcut, and the two shortcut shapes that break most dock apps (MSI advertised shortcuts like WSL, shell-object shortcuts like File Explorer) are handled.

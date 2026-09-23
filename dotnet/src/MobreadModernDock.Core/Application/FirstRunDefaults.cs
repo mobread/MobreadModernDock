@@ -7,8 +7,9 @@ using MobreadModernDock.Core.Models;
 /// run produced a dock holding nothing but the Settings gear, which reads as
 /// "the app is broken" rather than "the app is empty".
 ///
-/// The seed is the user's own taskbar pins (so the dock looks familiar on the
-/// very first launch) followed by a divider and two Windows modules. The
+/// The seed is the Start menu furthest left (where the taskbar has it), then
+/// the user's own taskbar pins (so the dock looks familiar on the very first
+/// launch) between dividers, then two more Windows modules. The
 /// composition is a pure function of the candidate lists so it can be tested
 /// without touching the shell; <c>Infrastructure.Windows</c> supplies the
 /// real pins.
@@ -21,12 +22,19 @@ public static class FirstRunDefaults
     /// </summary>
     public const int MaxSeededPrograms = 8;
 
+    /// <summary>
+    /// Windows module that leads the dock, taskbar-style: the Start button
+    /// sits furthest left, before the user's programs.
+    /// </summary>
+    public const string LeadingModule = "start";
+
     /// <summary>Windows modules appended after the programs, in order.</summary>
     public static readonly string[] SeededModules = { "mypc", "trash" };
 
     /// <summary>
     /// Composes the default items, <b>excluding</b> the Settings gear —
-    /// <see cref="DockModel.LoadDefaultItems"/> appends that last.
+    /// <see cref="DockModel.LoadDefaultItems"/> appends that last. Layout:
+    /// Start | divider | programs | divider | My Computer, Recycle Bin.
     /// </summary>
     /// <param name="taskbarPins">Programs resolved from the taskbar's pins.</param>
     /// <param name="fallbackPrograms">
@@ -47,11 +55,16 @@ public static class FirstRunDefaults
             programs = Select(fallbackPrograms, excludeExecutableName);
 
         var items = new List<DockItem>();
-        items.AddRange(programs);
-        // A leading divider would look like a rendering glitch, so it only
-        // appears when there is something to divide from the modules.
+        items.Add(new DockWindowsModuleItemModel(DefaultModuleLabel(LeadingModule), LeadingModule));
+        // Dividers only where there is something to divide: with no programs
+        // the modules simply run together, as two adjacent dividers or a
+        // divider against the dock's edge would look like a rendering glitch.
         if (programs.Count > 0)
+        {
             items.Add(new DockSeparatorItemModel());
+            items.AddRange(programs);
+            items.Add(new DockSeparatorItemModel());
+        }
         foreach (var module in SeededModules)
             items.Add(new DockWindowsModuleItemModel(DefaultModuleLabel(module), module));
         return items;

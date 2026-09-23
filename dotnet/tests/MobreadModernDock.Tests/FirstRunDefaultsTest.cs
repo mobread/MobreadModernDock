@@ -12,7 +12,7 @@ public class FirstRunDefaultsTest
     private static DockProgramItemModel Program(string label, string exe) => new(label, exe);
 
     [Fact]
-    public void SeedsTaskbarPinsFollowedBySeparatorAndModules()
+    public void SeedsStartMenuThenTaskbarPinsBetweenDividersThenModules()
     {
         var items = FirstRunDefaults.Compose(new[]
         {
@@ -21,22 +21,34 @@ public class FirstRunDefaultsTest
         });
 
         Assert.Equal(2, items.OfType<DockProgramItemModel>().Count());
-        // Order matters: programs, one divider, then the Windows modules.
-        Assert.IsType<DockProgramItemModel>(items[0]);
-        Assert.IsType<DockProgramItemModel>(items[1]);
-        Assert.IsType<DockSeparatorItemModel>(items[2]);
-        Assert.Equal(new[] { "mypc", "trash" },
+        // Order matters: Start furthest left, a divider, programs, a divider,
+        // then the remaining Windows modules.
+        var start = Assert.IsType<DockWindowsModuleItemModel>(items[0]);
+        Assert.Equal("start", start.Module);
+        Assert.IsType<DockSeparatorItemModel>(items[1]);
+        Assert.IsType<DockProgramItemModel>(items[2]);
+        Assert.IsType<DockProgramItemModel>(items[3]);
+        Assert.IsType<DockSeparatorItemModel>(items[4]);
+        Assert.Equal(new[] { "start", "mypc", "trash" },
             items.OfType<DockWindowsModuleItemModel>().Select(m => m.Module));
     }
 
     [Fact]
-    public void OmitsTheDividerWhenThereAreNoPrograms()
+    public void StartMenuIsAlwaysTheFirstItem()
     {
-        // A leading divider against the dock's left edge looks like a glitch.
+        Assert.Equal("start", Assert.IsType<DockWindowsModuleItemModel>(FirstRunDefaults.Compose(null)[0]).Module);
+        Assert.Equal("start", Assert.IsType<DockWindowsModuleItemModel>(FirstRunDefaults.Compose(
+            new[] { Program("Notepad", @"C:\Windows\notepad.exe") })[0]).Module);
+    }
+
+    [Fact]
+    public void OmitsTheDividersWhenThereAreNoPrograms()
+    {
+        // Two adjacent dividers (or one against the edge) look like a glitch.
         var items = FirstRunDefaults.Compose(Array.Empty<DockProgramItemModel>());
 
         Assert.DoesNotContain(items, i => i is DockSeparatorItemModel);
-        Assert.Equal(2, items.Count);
+        Assert.Equal(3, items.Count);
     }
 
     [Fact]
@@ -93,7 +105,7 @@ public class FirstRunDefaultsTest
     {
         var items = FirstRunDefaults.Compose(null);
 
-        Assert.Equal(2, items.OfType<DockWindowsModuleItemModel>().Count());
+        Assert.Equal(3, items.OfType<DockWindowsModuleItemModel>().Count());
     }
 
     [Fact]
@@ -127,5 +139,8 @@ public class FirstRunDefaultsTest
         var recycleBin = items.OfType<DockWindowsModuleItemModel>().Single(m => m.Module == "trash");
         Assert.Equal("Recycle Bin", recycleBin.Label);
         Assert.EndsWith("trash.png", recycleBin.Path);
+        var start = items.OfType<DockWindowsModuleItemModel>().Single(m => m.Module == "start");
+        Assert.Equal("Start Menu", start.Label);
+        Assert.EndsWith("start_menu.png", start.Path);
     }
 }
