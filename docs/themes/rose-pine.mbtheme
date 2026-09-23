@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "Ros\u00e9 Pine",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 6,
+  "dockTransparency": 0.85,
+  "dockBorderRounding": 16,
+  "dockColorRGB": "25, 23, 36, ",
+  "tintIcons": true,
+  "tintColorRGB": "235, 188, 186",
+  "dockPadding": 8
+}

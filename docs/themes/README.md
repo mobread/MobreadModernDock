@@ -27,6 +27,34 @@ Drop the file on your dock to try one.
 | [`slim.mbtheme`](slim.mbtheme) | Minimal height — small icons, no padding, square |
 | [`neon.mbtheme`](neon.mbtheme) | Dark violet with a strong magnification bounce |
 
+### Looks from other desktops
+
+| Theme | Looks like |
+|---|---|
+| [`windows-11.mbtheme`](windows-11.mbtheme) | The stock Win11 taskbar — flat, square, near-opaque |
+| [`windows-7-aero.mbtheme`](windows-7-aero.mbtheme) | Pale blue glass, softly rounded |
+| [`kde-plasma.mbtheme`](kde-plasma.mbtheme) | Plasma's default panel: near-black, tight, barely rounded |
+| [`gnome-dash.mbtheme`](gnome-dash.mbtheme) | A dark rounded pill with big icons, like dash-to-dock |
+
+### Colour palettes
+
+These also tint the icons with the palette's accent, so the whole dock reads as one scheme.
+
+| Theme | Looks like |
+|---|---|
+| [`nord.mbtheme`](nord.mbtheme) | Polar night bar, frost-blue tinted icons |
+| [`dracula.mbtheme`](dracula.mbtheme) | Dracula background with purple-tinted icons |
+| [`catppuccin-mocha.mbtheme`](catppuccin-mocha.mbtheme) | Mocha base with mauve icons |
+| [`catppuccin-latte.mbtheme`](catppuccin-latte.mbtheme) | The light Catppuccin flavour, mauve icons |
+| [`gruvbox-dark.mbtheme`](gruvbox-dark.mbtheme) | Warm dark bar, yellow-tinted icons |
+| [`solarized-dark.mbtheme`](solarized-dark.mbtheme) | Base03 bar, cyan icons |
+| [`solarized-light.mbtheme`](solarized-light.mbtheme) | Base3 bar, blue icons — for light desktops |
+| [`tokyo-night.mbtheme`](tokyo-night.mbtheme) | Deep navy bar, blue icons |
+| [`one-dark.mbtheme`](one-dark.mbtheme) | Atom's One Dark, blue icons |
+| [`rose-pine.mbtheme`](rose-pine.mbtheme) | Rosé Pine base, rose-tinted icons |
+| [`monokai.mbtheme`](monokai.mbtheme) | Monokai bar, green icons |
+| [`everforest.mbtheme`](everforest.mbtheme) | Everforest bar, sage-green icons |
+
 **Contributions welcome.** Open a PR adding your `.mbtheme` here plus a row in
 this table. Because a theme is plain JSON, it is reviewable in the diff — which
 is exactly why the format is not a binary archive.

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "Everforest",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 6,
+  "dockTransparency": 0.85,
+  "dockBorderRounding": 14,
+  "dockColorRGB": "45, 53, 59, ",
+  "tintIcons": true,
+  "tintColorRGB": "167, 192, 128",
+  "dockPadding": 8
+}

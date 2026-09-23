@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "Monokai",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 6,
+  "dockTransparency": 0.85,
+  "dockBorderRounding": 10,
+  "dockColorRGB": "39, 40, 34, ",
+  "tintIcons": true,
+  "tintColorRGB": "166, 226, 46",
+  "dockPadding": 8
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "Catppuccin Mocha",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 6,
+  "dockTransparency": 0.85,
+  "dockBorderRounding": 16,
+  "dockColorRGB": "30, 30, 46, ",
+  "tintIcons": true,
+  "tintColorRGB": "203, 166, 247",
+  "dockPadding": 8
+}

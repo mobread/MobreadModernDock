@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "Windows 11",
+  "author": "mobread",
+  "iconsSize": 32,
+  "spacingBetweenIcons": 8,
+  "dockTransparency": 0.85,
+  "dockBorderRounding": 0,
+  "dockColorRGB": "32, 32, 32, ",
+  "dockPadding": 8
+}

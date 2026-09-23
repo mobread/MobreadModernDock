@@ -126,9 +126,18 @@ public sealed class AppearancePreset
         return value;
     }
 
-    /// <summary>Ships a few starting points so the feature isn't an empty list.</summary>
+    /// <summary>
+    /// Ships starting points so the feature isn't an empty list. Two groups:
+    /// looks people recognise from other desktops, and colour palettes that
+    /// desktop-theming communities already share (Nord, Dracula, Catppuccin,
+    /// Gruvbox, Solarized, Tokyo Night, One Dark, Rosé Pine). Palette presets
+    /// tint the icons with the palette's accent so the whole dock reads as
+    /// one colour scheme; icons keep their luminance so they stay
+    /// recognisable (see IconTinter).
+    /// </summary>
     public static List<AppearancePreset> BuiltIns() => new()
     {
+        // --- Looks ---
         new() { Name = "Classic dark", IconsSize = 40, SpacingBetweenIcons = 4, DockTransparency = 0.3, DockBorderRounding = 16, DockColorRGB = "0, 0, 0, " },
         // No backdrop effect exists any more, so "Glass" leans on a pale,
         // mostly-transparent bar for the same impression.
@@ -136,5 +145,27 @@ public sealed class AppearancePreset
         new() { Name = "Compact", IconsSize = 28, SpacingBetweenIcons = 0, DockTransparency = 0.2, DockBorderRounding = 8, DockColorRGB = "20, 20, 20, ", DockPadding = 5 },
         new() { Name = "Midnight blue", IconsSize = 40, SpacingBetweenIcons = 4, DockTransparency = 0.35, DockBorderRounding = 14, DockColorRGB = "10, 25, 60, ", TintIcons = true, TintColorRGB = "80, 140, 220" },
         new() { Name = "macOS", IconsSize = 44, SpacingBetweenIcons = 6, DockTransparency = 0.6, DockBorderRounding = 24, DockColorRGB = "40, 40, 45, ", DockPadding = 8, MagnifyIcons = true, MagnifyScale = 1.8 },
+        // The stock Windows 11 taskbar: flat, opaque-ish, full-height icons.
+        new() { Name = "Windows 11", IconsSize = 32, SpacingBetweenIcons = 8, DockTransparency = 0.85, DockBorderRounding = 0, DockColorRGB = "32, 32, 32, ", DockPadding = 8 },
+        // Aero: pale, see-through, softly rounded.
+        new() { Name = "Windows 7 Aero", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.4, DockBorderRounding = 10, DockColorRGB = "190, 215, 240, ", DockPadding = 8 },
+        // Plasma's default panel: near-black, slight translucency, tight.
+        new() { Name = "KDE Plasma", IconsSize = 36, SpacingBetweenIcons = 4, DockTransparency = 0.75, DockBorderRounding = 6, DockColorRGB = "27, 30, 32, ", DockPadding = 6 },
+        // GNOME dash-to-dock: a dark rounded pill with generous icons.
+        new() { Name = "GNOME dash", IconsSize = 48, SpacingBetweenIcons = 10, DockTransparency = 0.8, DockBorderRounding = 28, DockColorRGB = "36, 36, 36, ", DockPadding = 10 },
+
+        // --- Palettes (bar = palette background, tint = palette accent) ---
+        new() { Name = "Nord", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.85, DockBorderRounding = 14, DockColorRGB = "46, 52, 64, ", TintIcons = true, TintColorRGB = "136, 192, 208", DockPadding = 8 },
+        new() { Name = "Dracula", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.85, DockBorderRounding = 14, DockColorRGB = "40, 42, 54, ", TintIcons = true, TintColorRGB = "189, 147, 249", DockPadding = 8 },
+        new() { Name = "Catppuccin Mocha", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.85, DockBorderRounding = 16, DockColorRGB = "30, 30, 46, ", TintIcons = true, TintColorRGB = "203, 166, 247", DockPadding = 8 },
+        new() { Name = "Catppuccin Latte", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.9, DockBorderRounding = 16, DockColorRGB = "239, 241, 245, ", TintIcons = true, TintColorRGB = "136, 57, 239", DockPadding = 8 },
+        new() { Name = "Gruvbox Dark", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.85, DockBorderRounding = 8, DockColorRGB = "40, 40, 40, ", TintIcons = true, TintColorRGB = "250, 189, 47", DockPadding = 8 },
+        new() { Name = "Solarized Dark", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.85, DockBorderRounding = 10, DockColorRGB = "0, 43, 54, ", TintIcons = true, TintColorRGB = "42, 161, 152", DockPadding = 8 },
+        new() { Name = "Solarized Light", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.9, DockBorderRounding = 10, DockColorRGB = "253, 246, 227, ", TintIcons = true, TintColorRGB = "38, 139, 210", DockPadding = 8 },
+        new() { Name = "Tokyo Night", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.85, DockBorderRounding = 14, DockColorRGB = "26, 27, 38, ", TintIcons = true, TintColorRGB = "122, 162, 247", DockPadding = 8 },
+        new() { Name = "One Dark", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.85, DockBorderRounding = 12, DockColorRGB = "40, 44, 52, ", TintIcons = true, TintColorRGB = "97, 175, 239", DockPadding = 8 },
+        new() { Name = "Rosé Pine", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.85, DockBorderRounding = 16, DockColorRGB = "25, 23, 36, ", TintIcons = true, TintColorRGB = "235, 188, 186", DockPadding = 8 },
+        new() { Name = "Monokai", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.85, DockBorderRounding = 10, DockColorRGB = "39, 40, 34, ", TintIcons = true, TintColorRGB = "166, 226, 46", DockPadding = 8 },
+        new() { Name = "Everforest", IconsSize = 40, SpacingBetweenIcons = 6, DockTransparency = 0.85, DockBorderRounding = 14, DockColorRGB = "45, 53, 59, ", TintIcons = true, TintColorRGB = "167, 192, 128", DockPadding = 8 },
     };
 }

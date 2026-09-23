@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "Tokyo Night",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 6,
+  "dockTransparency": 0.85,
+  "dockBorderRounding": 14,
+  "dockColorRGB": "26, 27, 38, ",
+  "tintIcons": true,
+  "tintColorRGB": "122, 162, 247",
+  "dockPadding": 8
+}

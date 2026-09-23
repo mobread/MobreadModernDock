@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "Catppuccin Latte",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 6,
+  "dockTransparency": 0.9,
+  "dockBorderRounding": 16,
+  "dockColorRGB": "239, 241, 245, ",
+  "tintIcons": true,
+  "tintColorRGB": "136, 57, 239",
+  "dockPadding": 8
+}

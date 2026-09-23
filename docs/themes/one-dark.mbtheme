@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "One Dark",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 6,
+  "dockTransparency": 0.85,
+  "dockBorderRounding": 12,
+  "dockColorRGB": "40, 44, 52, ",
+  "tintIcons": true,
+  "tintColorRGB": "97, 175, 239",
+  "dockPadding": 8
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "GNOME dash",
+  "author": "mobread",
+  "iconsSize": 48,
+  "spacingBetweenIcons": 10,
+  "dockTransparency": 0.8,
+  "dockBorderRounding": 28,
+  "dockColorRGB": "36, 36, 36, ",
+  "dockPadding": 10
+}

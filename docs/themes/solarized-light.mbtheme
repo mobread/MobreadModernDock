@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "Solarized Light",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 6,
+  "dockTransparency": 0.9,
+  "dockBorderRounding": 10,
+  "dockColorRGB": "253, 246, 227, ",
+  "tintIcons": true,
+  "tintColorRGB": "38, 139, 210",
+  "dockPadding": 8
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "Nord",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 6,
+  "dockTransparency": 0.85,
+  "dockBorderRounding": 14,
+  "dockColorRGB": "46, 52, 64, ",
+  "tintIcons": true,
+  "tintColorRGB": "136, 192, 208",
+  "dockPadding": 8
+}

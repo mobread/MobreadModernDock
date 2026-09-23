@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "Gruvbox Dark",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 6,
+  "dockTransparency": 0.85,
+  "dockBorderRounding": 8,
+  "dockColorRGB": "40, 40, 40, ",
+  "tintIcons": true,
+  "tintColorRGB": "250, 189, 47",
+  "dockPadding": 8
+}

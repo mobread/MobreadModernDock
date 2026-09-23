@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "Dracula",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 6,
+  "dockTransparency": 0.85,
+  "dockBorderRounding": 14,
+  "dockColorRGB": "40, 42, 54, ",
+  "tintIcons": true,
+  "tintColorRGB": "189, 147, 249",
+  "dockPadding": 8
+}

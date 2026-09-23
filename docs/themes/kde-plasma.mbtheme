@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "KDE Plasma",
+  "author": "mobread",
+  "iconsSize": 36,
+  "spacingBetweenIcons": 4,
+  "dockTransparency": 0.75,
+  "dockBorderRounding": 6,
+  "dockColorRGB": "27, 30, 32, ",
+  "dockPadding": 6
+}

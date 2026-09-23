@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "Windows 7 Aero",
+  "author": "mobread",
+  "iconsSize": 40,
+  "spacingBetweenIcons": 6,
+  "dockTransparency": 0.4,
+  "dockBorderRounding": 10,
+  "dockColorRGB": "190, 215, 240, ",
+  "dockPadding": 8
+}
