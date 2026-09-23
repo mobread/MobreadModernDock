@@ -62,6 +62,19 @@ public class DockService
     }
 
     /// <summary>
+    /// Sets a separator's blank width (icon-size fraction, clamped) and whether
+    /// it still draws its hairline. No-op for non-separator items.
+    /// </summary>
+    public void SetSeparatorSpacing(int index, double spacing, bool hideLine)
+    {
+        if (index < 0 || index >= _dock.Items.Count) return;
+        if (_dock.Items[index] is not DockSeparatorItemModel separator) return;
+        separator.Spacing = DockSeparatorItemModel.SanitizeSpacing(spacing);
+        separator.HideLine = hideLine;
+        SaveChanges();
+    }
+
+    /// <summary>
     /// Inserts an item at a specific gap (0..Count). Used by drag-and-drop
     /// pinning, where the drop position decides the slot. The Settings gear is
     /// kept last regardless of the requested index.

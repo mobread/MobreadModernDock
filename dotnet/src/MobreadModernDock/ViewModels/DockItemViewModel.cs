@@ -75,8 +75,7 @@ public class DockItemViewModel : ViewModelBase
         set
         {
             if (!SetProperty(ref _isVerticalDock, value)) return;
-            OnPropertyChanged(nameof(SeparatorWidth));
-            OnPropertyChanged(nameof(SeparatorHeight));
+            NotifySeparatorSize();
         }
     }
 
@@ -92,6 +91,30 @@ public class DockItemViewModel : ViewModelBase
     public double SeparatorWidth => IsVerticalDock ? SeparatorLength : SeparatorThickness;
     public double SeparatorHeight => IsVerticalDock ? SeparatorThickness : SeparatorLength;
 
+    /// <summary>Blank space the separator reserves along the main axis, in px (0 for a plain hairline).</summary>
+    private double SeparatorSpacingPx =>
+        Item is DockSeparatorItemModel s ? Math.Round(DockSeparatorItemModel.SanitizeSpacing(s.Spacing) * IconSize) : 0;
+
+    /// <summary>
+    /// Size of the separator's cell: the hairline plus its blank spacing on
+    /// the main axis, the line length on the minor axis. The hairline is
+    /// centred inside it, so the gap is split evenly on both sides.
+    /// </summary>
+    public double SeparatorCellWidth => IsVerticalDock ? SeparatorLength : SeparatorThickness + SeparatorSpacingPx;
+    public double SeparatorCellHeight => IsVerticalDock ? SeparatorThickness + SeparatorSpacingPx : SeparatorLength;
+
+    /// <summary>False for an invisible spacer (separator with the line hidden).</summary>
+    public bool ShowSeparatorLine => Item is not DockSeparatorItemModel s || !s.HideLine;
+
+    private void NotifySeparatorSize()
+    {
+        OnPropertyChanged(nameof(SeparatorWidth));
+        OnPropertyChanged(nameof(SeparatorHeight));
+        OnPropertyChanged(nameof(SeparatorCellWidth));
+        OnPropertyChanged(nameof(SeparatorCellHeight));
+        OnPropertyChanged(nameof(ShowSeparatorLine));
+    }
+
     /// <summary>The icon render size in pixels (mirrors the dock's IconsSize setting).</summary>
     private int _iconSize = 48;
     public int IconSize
@@ -102,8 +125,7 @@ public class DockItemViewModel : ViewModelBase
         set
         {
             if (!SetProperty(ref _iconSize, value)) return;
-            OnPropertyChanged(nameof(SeparatorWidth));
-            OnPropertyChanged(nameof(SeparatorHeight));
+            NotifySeparatorSize();
         }
     }
 

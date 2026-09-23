@@ -66,6 +66,45 @@ public class JsonDockRepositoryTest
     }
 
     [Fact]
+    public void SeparatorSpacingRoundTripsAndDefaultsStayOffDisk()
+    {
+        string configPath = Path.Combine(_tempDir, "config.json");
+        var repository = new JsonDockRepository(configPath);
+
+        var model = new DockModel();
+        model.AddItem(new DockSeparatorItemModel());                                  // plain hairline
+        model.AddItem(new DockSeparatorItemModel { Spacing = 0.5 });                  // spacer with line
+        model.AddItem(new DockSeparatorItemModel { Spacing = 1.0, HideLine = true }); // invisible gap
+
+        repository.Save(model);
+        var loaded = repository.Load().Items.OfType<DockSeparatorItemModel>().ToList();
+
+        Assert.Equal(0, loaded[0].Spacing);
+        Assert.False(loaded[0].HideLine);
+        Assert.Equal(0.5, loaded[1].Spacing);
+        Assert.False(loaded[1].HideLine);
+        Assert.Equal(1.0, loaded[2].Spacing);
+        Assert.True(loaded[2].HideLine);
+
+        // A plain separator must serialize exactly as before the spacer feature,
+        // so configs written by this version still load in older builds.
+        string json = File.ReadAllText(configPath);
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(json, "\"spacing\"").Count);
+        Assert.Equal(1, System.Text.RegularExpressions.Regex.Matches(json, "\"hideLine\"").Count);
+        CleanupTempDir();
+    }
+
+    [Theory]
+    [InlineData(-1, 0)]
+    [InlineData(0.5, 0.5)]
+    [InlineData(7, 2)]
+    [InlineData(double.NaN, 0)]
+    public void SeparatorSpacingIsClamped(double input, double expected)
+    {
+        Assert.Equal(expected, DockSeparatorItemModel.SanitizeSpacing(input));
+    }
+
+    [Fact]
     public void SupportsSeveralSeparators()
     {
         string configPath = Path.Combine(_tempDir, "config.json");

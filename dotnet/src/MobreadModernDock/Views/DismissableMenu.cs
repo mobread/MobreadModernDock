@@ -1,6 +1,7 @@
 namespace MobreadModernDock.Views;
 
 using System;
+using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
@@ -42,9 +43,9 @@ public sealed class DismissableMenu : IDisposable
     }
 
     /// <summary>
-    /// Closes the open menu unless the click landed inside it. The popup is
-    /// its own top-level window, so its screen rect comes from the PopupRoot
-    /// rather than from the anchor control.
+    /// Closes the open menu unless the click landed inside it or inside one
+    /// of its open submenus. Each popup is its own top-level window, so the
+    /// screen rects come from the PopupRoots rather than from the anchor.
     /// </summary>
     private void OnGlobalClick(int screenX, int screenY)
     {
@@ -54,18 +55,49 @@ public sealed class DismissableMenu : IDisposable
             return;
         }
 
-        if (menu.GetVisualRoot() is Visual root)
+        var point = new PixelPoint(screenX, screenY);
+        if (menu.GetVisualRoot() is Visual root && ScreenRect(root).Contains(point))
+            return; // inside the menu: let Avalonia handle the selection itself
+
+        // Submenus open their own popups; a click on one of those must not be
+        // treated as a click outside (it would close the whole menu before
+        // the item's Click could fire).
+        foreach (var submenu in OpenSubmenus(menu))
         {
-            var topLeft = root.PointToScreen(new Point(0, 0));
-            var size = root.Bounds.Size;
-            var rect = new PixelRect(topLeft,
-                new PixelSize((int)Math.Ceiling(size.Width), (int)Math.Ceiling(size.Height)));
-            // Inside the menu: let Avalonia handle the selection itself.
-            if (rect.Contains(new PixelPoint(screenX, screenY))) return;
+            if (submenu.GetVisualRoot() is Visual subRoot && ScreenRect(subRoot).Contains(point))
+                return;
         }
 
         menu.Close();
         Dispose();
+    }
+
+    /// <summary>
+    /// A popup root's screen rectangle in physical pixels. <c>PointToScreen</c>
+    /// already returns physical coordinates, but <c>Bounds</c> is in DIPs and
+    /// must be scaled - at 125% an unscaled rect misses the right/bottom 20%
+    /// of the menu, so clicks there read as "outside" and dismiss it.
+    /// </summary>
+    private static PixelRect ScreenRect(Visual root)
+    {
+        var topLeft = root.PointToScreen(new Point(0, 0));
+        var size = root.Bounds.Size;
+        double scale = (root as TopLevel)?.RenderScaling ?? 1.0;
+        return new PixelRect(topLeft,
+            new PixelSize((int)Math.Ceiling(size.Width * scale), (int)Math.Ceiling(size.Height * scale)));
+    }
+
+    /// <summary>The presenters of every submenu currently open under the menu, at any depth.</summary>
+    private static IEnumerable<Control> OpenSubmenus(ItemsControl parent)
+    {
+        foreach (var item in parent.Items)
+        {
+            if (item is not MenuItem { IsSubMenuOpen: true } menuItem) continue;
+            if (menuItem.Presenter is Control presenter && presenter.GetVisualRoot() != parent.GetVisualRoot())
+                yield return presenter;
+            foreach (var nested in OpenSubmenus(menuItem))
+                yield return nested;
+        }
     }
 
     public void Dispose()

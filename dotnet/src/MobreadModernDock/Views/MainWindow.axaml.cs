@@ -1475,10 +1475,37 @@ public partial class MainWindow : Window
             if (added) menu.Items.Add(new Separator());
         }
 
-        if (vm.Item is DockSeparatorItemModel)
+        if (vm.Item is DockSeparatorItemModel separator)
         {
-            // A divider has no icon and nothing to launch; its only action is
-            // to go away. Adding another one from here is still useful.
+            // A divider has no icon and nothing to launch. It can be widened
+            // into a spacer (blank room on either side of the line, or with
+            // the line hidden), duplicated, or removed.
+            var spacingMenu = new MenuItem { Header = loc.Text("dock.context.separatorSpacing") };
+            foreach (double preset in DockSeparatorItemModel.SpacingPresets)
+            {
+                double captured = preset;
+                var option = new MenuItem
+                {
+                    Header = SpacingCaption(loc, preset),
+                    ToggleType = MenuItemToggleType.Radio,
+                    IsChecked = Math.Abs(separator.Spacing - preset) < 0.001,
+                };
+                option.Click += (_, _) => mainVm.SetSeparatorSpacing(vm, captured, separator.HideLine);
+                spacingMenu.Items.Add(option);
+            }
+            menu.Items.Add(spacingMenu);
+
+            var hideLine = new MenuItem
+            {
+                Header = loc.Text("dock.context.separatorHideLine"),
+                ToggleType = MenuItemToggleType.CheckBox,
+                IsChecked = separator.HideLine,
+            };
+            hideLine.Click += (_, _) => mainVm.SetSeparatorSpacing(vm, separator.Spacing, !separator.HideLine);
+            menu.Items.Add(hideLine);
+
+            menu.Items.Add(new Separator());
+
             var removeSep = new MenuItem { Header = loc.Text("dock.context.removeSeparator") };
             removeSep.Click += (_, _) => mainVm.RemoveSeparator(vm);
             menu.Items.Add(removeSep);
@@ -1613,6 +1640,23 @@ public partial class MainWindow : Window
             System.Windows.Forms.MessageBoxDefaultButton.Button1);
         if (answer == System.Windows.Forms.DialogResult.Yes)
             App.RequestShutdown();
+    }
+
+    /// <summary>
+    /// Caption for a spacer preset: "None" for a plain hairline, otherwise
+    /// the width as a fraction of an icon ("½ icon", "1 icon").
+    /// </summary>
+    private static string SpacingCaption(LocalizationService loc, double fraction)
+    {
+        if (fraction <= 0) return loc.Text("dock.context.separatorSpacing.none");
+        string amount = fraction switch
+        {
+            0.25 => "¼",
+            0.5 => "½",
+            0.75 => "¾",
+            _ => fraction.ToString("0.##", System.Globalization.CultureInfo.CurrentCulture),
+        };
+        return loc.Text("dock.context.separatorSpacing.icon", amount);
     }
 
     /// <summary>

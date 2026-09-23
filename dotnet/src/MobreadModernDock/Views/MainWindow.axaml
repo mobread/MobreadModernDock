@@ -172,15 +172,22 @@
                                 </Panel>
                                 <!-- Divider: sized across the dock's minor axis
                                      by the VM, so it follows icon size and
-                                     flips with a vertical dock. -->
-                                <Border IsVisible="{Binding IsSeparator}"
-                                        Width="{Binding SeparatorWidth}"
-                                        Height="{Binding SeparatorHeight}"
-                                        Background="White"
-                                        Opacity="0.35"
-                                        CornerRadius="1"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center" />
+                                     flips with a vertical dock. The outer
+                                     panel adds the spacer's blank width; the
+                                     hairline sits centred in it and can be
+                                     hidden for an invisible gap. -->
+                                <Panel IsVisible="{Binding IsSeparator}"
+                                       Width="{Binding SeparatorCellWidth}"
+                                       Height="{Binding SeparatorCellHeight}">
+                                    <Border IsVisible="{Binding ShowSeparatorLine}"
+                                            Width="{Binding SeparatorWidth}"
+                                            Height="{Binding SeparatorHeight}"
+                                            Background="White"
+                                            Opacity="0.35"
+                                            CornerRadius="1"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
+                                </Panel>
                             </Panel>
                         </Button>
                     </DataTemplate>

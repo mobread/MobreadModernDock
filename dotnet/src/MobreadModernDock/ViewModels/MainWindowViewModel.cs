@@ -424,6 +424,19 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Sets a divider's blank width (fraction of the icon size) and whether
+    /// its hairline is drawn (right-click → Spacing / Hide line).
+    /// </summary>
+    public void SetSeparatorSpacing(DockItemViewModel item, double spacing, bool hideLine)
+    {
+        if (_appServices == null || item.Item is not DockSeparatorItemModel) return;
+        int index = _appServices.DockService.GetItems().IndexOf(item.Item);
+        if (index < 0) return;
+        _appServices.DockService.SetSeparatorSpacing(index, spacing, hideLine);
+        UpdateDockUI();
+    }
+
+    /// <summary>
     /// Pins files or folders dropped from Explorer onto the dock at the given
     /// gap index. Executables and shortcuts become program items, directories
     /// become folder items, and any other file is pinned as a program item

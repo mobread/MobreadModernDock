@@ -22,6 +22,33 @@ public class DockSeparatorItemModel : DockItem
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? CustomIcon { get; set; }
 
+    /// <summary>
+    /// Empty space reserved along the dock's main axis, as a fraction of the
+    /// icon size (0 = a plain hairline; 0.5 = half an icon of blank space).
+    /// Scaling with the icon keeps a spacer proportional when the user
+    /// changes icon size, and lets the same config look right on any dock.
+    /// Omitted from JSON when 0 so older configs round-trip unchanged.
+    /// </summary>
+    [JsonPropertyName("spacing")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public double Spacing { get; set; }
+
+    /// <summary>
+    /// True hides the hairline, turning the item into an invisible gap
+    /// (only meaningful together with a non-zero <see cref="Spacing"/>).
+    /// Omitted from JSON when false.
+    /// </summary>
+    [JsonPropertyName("hideLine")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool HideLine { get; set; }
+
+    /// <summary>Presets offered in the separator's context menu, as icon-size fractions.</summary>
+    public static readonly double[] SpacingPresets = { 0, 0.25, 0.5, 1.0 };
+
+    /// <summary>Clamps a spacing to something sane (a gap is at most two icons wide).</summary>
+    public static double SanitizeSpacing(double spacing) =>
+        double.IsFinite(spacing) ? Math.Clamp(spacing, 0, 2) : 0;
+
     [JsonIgnore]
     public DockItemType Type => DockItemType.SEPARATOR;
 
