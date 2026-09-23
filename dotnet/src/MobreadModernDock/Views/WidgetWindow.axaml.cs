@@ -55,9 +55,15 @@ public partial class WidgetWindow : Window
                 restPosition: () => ((int)_definition.PositionX, (int)_definition.PositionY),
                 screenBounds: () =>
                 {
+                    // Hide against the physical monitor edge, not the work
+                    // area: when the dock reserves its screen edge (or the
+                    // taskbar is present) the work area stops short of the
+                    // real edge by that strip's thickness, and a widget that
+                    // slid only that far would leave a strip's worth of itself
+                    // on screen - roughly one row of tray icons.
                     var (x, y) = ((int)_definition.PositionX, (int)_definition.PositionY);
-                    var w = ScreenGeometry.WorkAreaAt(new PixelPoint(x + (int)Bounds.Width / 2, y + (int)Bounds.Height / 2));
-                    return (w.X, w.Y, w.Right, w.Bottom);
+                    var m = ScreenGeometry.MonitorAreaAt(new PixelPoint(x + (int)Bounds.Width / 2, y + (int)Bounds.Height / 2));
+                    return (m.X, m.Y, m.Right, m.Bottom);
                 },
                 blockHide: () => false);
         }
