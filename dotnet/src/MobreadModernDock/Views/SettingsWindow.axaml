@@ -132,10 +132,15 @@
                             </DockPanel>
                         </Border>
                         <ScrollViewer Grid.Column="1" Name="PART_Scroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
-                                      AllowAutoHide="True" Padding="32,24,28,32">
+                                      AllowAutoHide="True">
                             <!-- Width pinned to the viewport: without it the content
-                                 is measured unbounded and wide cards run off-screen. -->
+                                 is measured unbounded and wide cards run off-screen.
+                                 The page inset is a Margin here rather than the
+                                 ScrollViewer's Padding: padding is not part of the
+                                 scroll extent, so the bottom inset vanished once a
+                                 page was scrolled to the end. -->
                             <ContentPresenter Name="PART_SelectedContentHost"
+                                              Margin="32,24,28,40"
                                               Width="{Binding $parent[ScrollViewer].Viewport.Width, Converter={x:Static views:SettingsWindow.ContentWidth}}"
                                               HorizontalAlignment="Left"
                                               Content="{TemplateBinding SelectedContent}"
