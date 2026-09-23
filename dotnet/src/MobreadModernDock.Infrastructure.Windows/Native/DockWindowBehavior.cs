@@ -19,6 +19,9 @@ using System.Text;
 public sealed class DockWindowBehavior : IDisposable
 {
     private IntPtr _hwnd;
+
+    /// <summary>The native window handle this behavior is attached to.</summary>
+    public IntPtr Hwnd => _hwnd;
     private IntPtr _desktopParent;
     private readonly Action<string>? _onStatus;
     private SubclassProc? _subclassProc; // kept alive to prevent GC of the native callback

@@ -269,6 +269,12 @@ public static class User32
     public static extern bool GetCursorPos(out POINT lpPoint);
 
     [DllImport("user32.dll")]
+    public static extern IntPtr WindowFromPoint(POINT point);
+
+    [DllImport("user32.dll")]
+    public static extern int GetWindowTextLength(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
     public static extern short GetKeyState(int nVirtKey);
 
     [DllImport("user32.dll", SetLastError = true)]

@@ -68,7 +68,13 @@ internal sealed class DockAutoHideController
         if (enabled)
         {
             _poll.Start();
+            // Hide right away unless the pointer really is on the dock; if it
+            // is, arm the normal leave delay so the dock still hides on its
+            // own once the pointer moves off (previously it waited for a
+            // pointer-exit event that never comes if the pointer was over
+            // another window covering the dock rect - e.g. Settings).
             if (!PointerOverDock()) Hide();
+            else _hideDelay.Start();
         }
         else
         {
@@ -107,8 +113,13 @@ internal sealed class DockAutoHideController
         if (!_enabled) return;
         if (!User32.GetCursorPos(out POINT p)) return;
         var (x, y, w, h) = CurrentRect();
-        bool over = p.X >= x - RevealZonePx && p.X < x + w + RevealZonePx &&
-                    p.Y >= y - RevealZonePx && p.Y < y + h + RevealZonePx;
+        bool nearRect = p.X >= x - RevealZonePx && p.X < x + w + RevealZonePx &&
+                        p.Y >= y - RevealZonePx && p.Y < y + h + RevealZonePx;
+        // Hidden: anything near the sliver reveals. Shown: the pointer only
+        // counts as "over" if the dock is really the window under it - a
+        // Settings window (or anything else) covering the dock rect must not
+        // keep the dock awake.
+        bool over = nearRect && (_hidden || IsDockUnderPointer(p));
         if (_hidden && over) Reveal();
         else if (!_hidden && !over && !_hideDelay.IsEnabled && !_blockHide()) _hideDelay.Start();
         else if (!_hidden && over) _hideDelay.Stop();
@@ -118,7 +129,32 @@ internal sealed class DockAutoHideController
     {
         if (!User32.GetCursorPos(out POINT p)) return false;
         var (x, y, w, h) = CurrentRect();
-        return p.X >= x && p.X < x + w && p.Y >= y && p.Y < y + h;
+        return p.X >= x && p.X < x + w && p.Y >= y && p.Y < y + h && IsDockUnderPointer(p);
+    }
+
+    /// <summary>
+    /// True when the top-level window under the pointer is the dock itself or
+    /// one of its untitled popups (preview, menu, folder stack). Owned windows
+    /// with a title (Settings) do not count: they cover the dock's rect
+    /// without being the dock, and must not keep it awake. Falls back to true
+    /// when there is no native handle to compare against.
+    /// </summary>
+    private bool IsDockUnderPointer(POINT p)
+    {
+        var b = _behavior();
+        if (b == null || b.Hwnd == IntPtr.Zero) return true;
+        IntPtr hit = User32.WindowFromPoint(p);
+        if (hit == IntPtr.Zero) return false;
+        IntPtr root = User32.GetAncestor(hit, 2 /* GA_ROOT */);
+        if (root == b.Hwnd) return true;
+        return IsOwnedBy(root, b.Hwnd) && User32.GetWindowTextLength(root) == 0;
+    }
+
+    private static bool IsOwnedBy(IntPtr window, IntPtr owner)
+    {
+        for (IntPtr w = User32.GetWindow(window, 4 /* GW_OWNER */); w != IntPtr.Zero; w = User32.GetWindow(w, 4))
+            if (w == owner) return true;
+        return false;
     }
 
     /// <summary>
