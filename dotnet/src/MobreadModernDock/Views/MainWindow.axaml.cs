@@ -350,6 +350,28 @@ public partial class MainWindow : Window
             Math.Max(1, rect.Height - 2 * inset.Y));
     }
 
+    /// <summary>
+    /// The painted bar only: <see cref="VisibleBarScreenRect"/> minus the
+    /// transparent cross-axis headroom on the far side (above a horizontal
+    /// dock, left of a vertical one) that the bounce and magnification growth
+    /// paint into. Used for the appbar reservation, so the reserved strip
+    /// never grows with the magnification slider - magnified icons overlap
+    /// whatever window sits above the bar instead of pushing it up.
+    /// </summary>
+    private PixelRect PaintedBarScreenRect()
+    {
+        var rect = VisibleBarScreenRect();
+        if (DataContext is not MainWindowViewModel vm) return rect;
+        var m = vm.DockBarMargin;
+        if (vm.IsVerticalDock)
+        {
+            int left = (int)Math.Round(m.Left * RenderScaling);
+            return new PixelRect(rect.X + left, rect.Y, Math.Max(1, rect.Width - left), rect.Height);
+        }
+        int top = (int)Math.Round(m.Top * RenderScaling);
+        return new PixelRect(rect.X, rect.Y + top, rect.Width, Math.Max(1, rect.Height - top));
+    }
+
     private void OnDockSizeChanged(object? sender, SizeChangedEventArgs e)
     {
         RefreshTooltipPlacement();
@@ -1989,10 +2011,12 @@ public partial class MainWindow : Window
             return;
         }
 
-        // The visible bar, not the window rect: SizeToContent plus the bounce
+        // The painted bar, not the window rect: SizeToContent plus the bounce
         // and magnification headroom mean the window is larger than what the
-        // user sees, and the reserved strip has to match the visible bar.
-        var rect = VisibleBarScreenRect();
+        // user sees, and the reserved strip has to match the painted bar.
+        // The cross-axis headroom is excluded on purpose - magnified icons
+        // are meant to overlap the window above, not push it up.
+        var rect = PaintedBarScreenRect();
         var centre = new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
 
         // Measured against the full monitor, never the work area: the work
