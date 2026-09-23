@@ -25,6 +25,15 @@ A macOS-style dock for Windows 11 that can **replace the taskbar** — pinned ap
 
 <br>
 
+<!-- SUPPORT -->
+## Support This Project
+
+If this dock earned a spot on your desktop, you can leave a tip — it's genuinely appreciated and helps keep the features coming.
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/mobreadmeo)
+
+<br>
+
 ## Features
 
 ### Replace the taskbar
@@ -111,15 +120,6 @@ The dock and widgets are placed with true screen coordinates, so they land on th
 ## Supported Languages
 
 🇺🇸 English · 🇧🇷 Portuguese (Brazil) · 🇪🇸 Spanish · 🇫🇷 French · 🇩🇪 German · 🇯🇵 Japanese · 🇨🇳 Chinese (Simplified) · 🇹🇼 Chinese (Traditional) · 🇮🇳 Hindi · 🇸🇦 Arabic · 🇧🇩 Bengali · 🇷🇺 Russian · 🇵🇰 Urdu · 🇮🇩 Indonesian · 🇳🇬 Nigerian Pidgin · 🇮🇳 Marathi · 🇮🇳 Telugu · 🇹🇷 Turkish · 🇮🇳 Tamil · 🇭🇰 Cantonese · 🇻🇳 Vietnamese
-
-<br>
-
-<!-- SUPPORT -->
-## Support This Project
-
-If this dock earned a spot on your desktop, you can leave a tip — it's genuinely appreciated and helps keep the features coming.
-
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/mobreadmeo)
 
 <br>
 
