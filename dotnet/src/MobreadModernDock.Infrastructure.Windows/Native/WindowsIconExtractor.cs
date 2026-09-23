@@ -44,6 +44,36 @@ public static class WindowsIconExtractor
         }
     }
 
+    /// <summary>
+    /// Everything we know how to try for a program's icon, in order: the
+    /// exe's own icon resource; the AppX package logo (packaged apps such as
+    /// Terminal or Claude often ship no classic icon resource at all); and,
+    /// when the app has a window, that window's icon. Returns the cached
+    /// PNG path or null. Shared by pinned items and running apps - before,
+    /// only the running-app path knew about the fallbacks, so a pinned
+    /// packaged app stayed blank until one of its windows existed.
+    /// </summary>
+    public static string? ExtractAndCacheBestIcon(string exePath, IntPtr hwnd = default)
+    {
+        string resolved = PackagedAppPaths.ResolveCurrentVersion(exePath);
+        string? cached = ExtractAndCacheIcon(resolved);
+        if (cached == null) cached = ExtractAndCacheAppxIcon(resolved);
+        if (cached == null && hwnd != IntPtr.Zero) cached = ExtractAndCacheWindowIcon(resolved, hwnd);
+        if (cached == null) return null;
+        // The item is keyed on the path it was pinned with; make the icon
+        // reachable under that key too when the package was resolved to a
+        // newer version directory.
+        if (!string.Equals(resolved, exePath, StringComparison.OrdinalIgnoreCase))
+        {
+            string? original = GetCachedIconPath(exePath);
+            if (original != null && !File.Exists(original))
+            {
+                try { File.Copy(cached, original); } catch { }
+            }
+        }
+        return cached;
+    }
+
     public static string? ExtractAndCacheFolderIcon(string folderPath)
     {
         try

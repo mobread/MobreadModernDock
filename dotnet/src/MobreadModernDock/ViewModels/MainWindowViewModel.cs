@@ -884,28 +884,15 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
         // Not cached yet — extract in the background and push when ready.
-        // Modern/UWP apps (Settings, etc.) carry no icon resource in the EXE
-        // and their frame window exposes none either; fall back to the running
-        // window's icon, then to the AppX package manifest logo.
+        // ExtractAndCacheBestIcon tries the exe resource, then the AppX
+        // package logo, then (last, since only a running app has one) the
+        // window's own icon.
         _ = Task.Run(() =>
         {
             try
             {
-                _appServices.IconGateway.CacheProgramIcon(exe);
-                string? cached = _appServices.IconGateway.ResolveProgramIcon(exe);
+                string? cached = WindowsIconExtractor.ExtractAndCacheBestIcon(exe, windowHandle);
                 var loaded = IconLoader.LoadFromFile(cached);
-                if (loaded == null && windowHandle != IntPtr.Zero)
-                {
-                    WindowsIconExtractor.ExtractAndCacheWindowIcon(exe, windowHandle);
-                    cached = _appServices.IconGateway.ResolveProgramIcon(exe);
-                    loaded = IconLoader.LoadFromFile(cached);
-                }
-                if (loaded == null)
-                {
-                    WindowsIconExtractor.ExtractAndCacheAppxIcon(exe);
-                    cached = _appServices.IconGateway.ResolveProgramIcon(exe);
-                    loaded = IconLoader.LoadFromFile(cached);
-                }
                 if (loaded != null)
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {

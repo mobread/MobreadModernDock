@@ -18,7 +18,7 @@ public class CachedWindowsIconGateway : IIconGateway
         => WindowsIconExtractor.GetCachedFolderIconPath(folderPath);
 
     public void CacheProgramIcon(string executablePath)
-        => WindowsIconExtractor.ExtractAndCacheIcon(executablePath);
+        => WindowsIconExtractor.ExtractAndCacheBestIcon(executablePath);
 
     public void CacheFolderIcon(string folderPath)
         => WindowsIconExtractor.ExtractAndCacheFolderIcon(folderPath);

@@ -134,7 +134,9 @@ public class WindowsProgramLauncher : IProgramLauncher
     /// </summary>
     public static LaunchCommand ResolveLaunchCommand(string executablePath)
     {
-        string normalizedPath = Path.GetFullPath(executablePath);
+        // A packaged app pinned before a Store update points at a version
+        // directory that no longer exists; re-root onto the installed one.
+        string normalizedPath = Path.GetFullPath(Native.PackagedAppPaths.ResolveCurrentVersion(executablePath));
         if (IsDiscordExecutable(normalizedPath))
         {
             string? versionDirectory = Path.GetDirectoryName(normalizedPath);
