@@ -79,6 +79,14 @@ public partial class SettingsWindow : Window
         return window;
     }
 
+    /// <summary>
+    /// Viewport width minus the content padding (32 + 28), so the selected
+    /// page is measured with a real width and wrapping text wraps instead of
+    /// pushing cards off-screen. Guarded for the first layout pass (0).
+    /// </summary>
+    public static readonly Avalonia.Data.Converters.IValueConverter ContentWidth =
+        new Avalonia.Data.Converters.FuncValueConverter<double, double>(w => w > 60 ? w - 60 : double.NaN);
+
     private SettingsViewModel Vm => _vm ??= (DataContext as SettingsViewModel)!;
 
     private void OnClosed(object? sender, EventArgs e) => Vm?.Shutdown();
@@ -333,6 +341,7 @@ public partial class SettingsWindow : Window
         RemoveWidgetButton.IsEnabled = has;
         WidgetEnabledCheck.IsEnabled = has;
         WidgetNoSelection.IsVisible = !has;
+        WidgetDetailCard.IsVisible = has;
 
         _suppressWidgetEvents = true;
         WidgetEnabledCheck.IsChecked = def?.Enabled ?? false;
