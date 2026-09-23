@@ -2,7 +2,7 @@
 
 A macOS-style dock for Windows 11 that can **replace the taskbar** — pinned apps, running apps, folder stacks, live window previews, and a widget system that lives on the desktop layer or floats on top.
 
-<img alt="Mobread Modern Dock — two-row dock with live window previews for Chrome, running-app indicators, and a tray widget" src="docs/screenshot.png" />
+<img alt="Mobread Modern Dock — a bottom dock with Start menu, pinned apps between dividers, live window previews for Chrome, and running-app indicators" src="docs/screenshot.png" />
 
 <br>
 
