@@ -14,13 +14,17 @@ public sealed class BounceAnimator
     private readonly Action<double> _set;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(16) };
     private DateTime _started;
+    private bool _once;
 
     public BounceAnimator(Action<double> setOffset)
     {
         _set = setOffset;
         _timer.Tick += (_, _) =>
         {
-            double t = ((DateTime.UtcNow - _started).TotalSeconds % Period) / Period;
+            double elapsed = (DateTime.UtcNow - _started).TotalSeconds;
+            // A single hop ends once the icon has landed (55 % of the period).
+            if (_once && elapsed >= Period * 0.55) { Stop(); return; }
+            double t = (elapsed % Period) / Period;
             // Up for 30 % of the period (ease-out), down for 25 %, rest 45 %.
             double y = t < 0.30 ? -Height * EaseOut(t / 0.30)
                      : t < 0.55 ? -Height * (1 - EaseIn((t - 0.30) / 0.25))
@@ -32,6 +36,19 @@ public sealed class BounceAnimator
     private static double EaseOut(double x) => 1 - (1 - x) * (1 - x);
     private static double EaseIn(double x) => x * x;
 
-    public void Start() { if (_timer.IsEnabled) return; _started = DateTime.UtcNow; _timer.Start(); }
-    public void Stop() { _timer.Stop(); _set(0); }
+    /// <summary>Bounce continuously until <see cref="Stop"/>.</summary>
+    public void Start()
+    {
+        if (_timer.IsEnabled && !_once) return;
+        _once = false; _started = DateTime.UtcNow; _timer.Start();
+    }
+
+    /// <summary>One hop, then rest. Ignored while a continuous bounce is running.</summary>
+    public void BounceOnce()
+    {
+        if (_timer.IsEnabled) return;
+        _once = true; _started = DateTime.UtcNow; _timer.Start();
+    }
+
+    public void Stop() { _timer.Stop(); _once = false; _set(0); }
 }

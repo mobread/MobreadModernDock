@@ -856,6 +856,11 @@
                             </Grid>
                             <Border Classes="hairline"/>
                             <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel Classes="text"><TextBlock Classes="label" Text="{Binding LaunchBounceText}"/></StackPanel>
+                                <ToggleSwitch IsChecked="{Binding LaunchBounce}"/>
+                            </Grid>
+                            <Border Classes="hairline"/>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
                                 <StackPanel Classes="text"><TextBlock Classes="label" Text="{Binding FolderStacksText}"/></StackPanel>
                                 <ToggleSwitch IsChecked="{Binding FolderStacks}"/>
                             </Grid>

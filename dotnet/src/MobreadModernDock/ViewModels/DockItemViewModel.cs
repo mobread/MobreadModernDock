@@ -47,6 +47,13 @@ public class DockItemViewModel : ViewModelBase
         }
     }
 
+    /// <summary>A single macOS-style hop, used as launch feedback.</summary>
+    public void BounceOnce()
+    {
+        _bounce ??= new BounceAnimator(o => BounceOffset = o);
+        _bounce.BounceOnce();
+    }
+
     private BounceAnimator? _bounce;
     private double _bounceOffset;
     /// <summary>Vertical hop applied to the icon while <see cref="NeedsAttention"/>.</summary>

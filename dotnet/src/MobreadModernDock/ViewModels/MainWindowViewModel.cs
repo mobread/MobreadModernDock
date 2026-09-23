@@ -730,6 +730,12 @@ public partial class MainWindowViewModel : ViewModelBase
             bool launched = _appServices.ItemActionService.Execute(
                 itemVm.Item, () => OpenSettingsAction?.Invoke());
 
+            // One macOS-style hop as "got it" feedback for a fresh launch.
+            // Focusing an already-running app (handled above) doesn't hop.
+            if (launched && itemVm.ShowIndicator && !itemVm.IsRunning
+                && _appServices.AppearanceService.GetLaunchBounce())
+                itemVm.BounceOnce();
+
             if (!launched && itemVm.Item is DockProgramItemModel programItem)
             {
                 var loc = _appServices.LocalizationService;

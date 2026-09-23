@@ -154,6 +154,8 @@ public class DockAppearanceService
 
     public bool GetAttentionBounce() => GetDock().AttentionBounce;
 
+    public bool GetLaunchBounce() => GetDock().LaunchBounce;
+
     // --- #11 presets ---
 
     public IReadOnlyList<AppearancePreset> GetUserPresets() => GetDock().Presets;
@@ -202,6 +204,12 @@ public class DockAppearanceService
     public void SetAttentionBounce(bool value)
     {
         GetDock().AttentionBounce = value;
+        _dockService.SaveChanges();
+    }
+
+    public void SetLaunchBounce(bool value)
+    {
+        GetDock().LaunchBounce = value;
         _dockService.SaveChanges();
     }
 

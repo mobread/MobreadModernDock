@@ -729,6 +729,7 @@ public partial class SettingsViewModel : ViewModelBase
     public string ReserveScreenEdgeText => T("settings.general.reserveScreenEdge");
     public string HideInFullscreenText => T("settings.general.hideInFullscreen");
     public string AttentionBounceText => T("settings.general.attentionBounce");
+    public string LaunchBounceText => T("settings.general.launchBounce");
     public string MirrorMonitorsText => T("settings.general.mirrorMonitors");
     public string AutoHideText => T("settings.general.autoHide");
     public string FolderStacksText => T("settings.general.folderStacks");
@@ -761,6 +762,8 @@ public partial class SettingsViewModel : ViewModelBase
     public bool HideInFullscreen { get => _hideInFullscreen; set => SetProperty(ref _hideInFullscreen, value); }
     private bool _attentionBounce;
     public bool AttentionBounce { get => _attentionBounce; set => SetProperty(ref _attentionBounce, value); }
+    private bool _launchBounce;
+    public bool LaunchBounce { get => _launchBounce; set => SetProperty(ref _launchBounce, value); }
     private bool _mirrorMonitors;
     public bool MirrorMonitors { get => _mirrorMonitors; set => SetProperty(ref _mirrorMonitors, value); }
 
@@ -957,6 +960,7 @@ public partial class SettingsViewModel : ViewModelBase
         ReloadHideForApps();
         RefreshHotkeyStatus();
         AttentionBounce = app.GetAttentionBounce();
+        LaunchBounce = app.GetLaunchBounce();
         MirrorMonitors = _appServices.PositioningService.GetMirrorOnAllMonitors();
         AutoHide = app.GetAutoHide();
         FolderStacks = app.GetFolderStacks();
@@ -1004,6 +1008,7 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(HotkeyToggleDock):
             case nameof(HotkeyLaunchModifiers): OnHotkeysChanged(); break;
             case nameof(AttentionBounce): _appServices.AppearanceService.SetAttentionBounce(AttentionBounce); break;
+            case nameof(LaunchBounce): _appServices.AppearanceService.SetLaunchBounce(LaunchBounce); break;
             case nameof(MirrorMonitors): _appServices.PositioningService.SetMirrorOnAllMonitors(MirrorMonitors); App.SyncMirrorDocks(); break;
             case nameof(AutoHide): _appServices.AppearanceService.SetAutoHide(AutoHide); _dockRefreshAction(); App.ApplyEdgeReservation(); break;
             case nameof(FolderStacks): _appServices.AppearanceService.SetFolderStacks(FolderStacks); break;

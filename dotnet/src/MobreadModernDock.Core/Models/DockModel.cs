@@ -128,6 +128,10 @@ public class DockModel
     [JsonPropertyName("attentionBounce")]
     public bool AttentionBounce { get; set; } = true;
 
+    /// <summary>Bounce a dock icon from launch until its first window appears (macOS style).</summary>
+    [JsonPropertyName("launchBounce")]
+    public bool LaunchBounce { get; set; } = true;
+
     /// <summary>#10 Show a copy of the dock on every monitor (secondaries use the static anchors).</summary>
     [JsonPropertyName("mirrorOnAllMonitors")]
     public bool MirrorOnAllMonitors { get; set; }
@@ -380,6 +384,7 @@ public class DockModel
         ReserveScreenEdge = other.ReserveScreenEdge;
         HideInFullscreen = other.HideInFullscreen;
         AttentionBounce = other.AttentionBounce;
+        LaunchBounce = other.LaunchBounce;
         MirrorOnAllMonitors = other.MirrorOnAllMonitors;
         AutoHide = other.AutoHide;
         FolderStacks = other.FolderStacks;
