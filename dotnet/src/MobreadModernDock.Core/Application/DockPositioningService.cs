@@ -204,6 +204,40 @@ public class DockPositioningService
         return (SnapToPixel(cx), SnapToPixel(y));
     }
 
+    /// <summary>
+    /// Where a freely-dragged dock should sit after its bar changed size
+    /// (icon size, padding, items, running apps coming and going).
+    ///
+    /// The window is top-left anchored, so left alone a bar that grows keeps
+    /// its left/top edge: a centred dock drifts off-centre and a bottom dock
+    /// grows <i>downward</i> past the screen edge. Per axis, in order:
+    /// a bar that was centred (within <paramref name="tolerance"/>) is
+    /// re-centred; one flush with the far edge (right/bottom) stays flush;
+    /// anything else keeps its start edge. The result is clamped to the
+    /// bounds. Every rule is idempotent, so repeated resizes cannot creep.
+    /// </summary>
+    public static (double X, double Y) KeepPlacementAfterResize(
+        ScreenBounds bounds, double oldX, double oldY, double oldWidth, double oldHeight,
+        double newWidth, double newHeight, double tolerance = 8)
+    {
+        double x = KeepPlacementOnAxis(bounds.MinX, bounds.MaxX, oldX, oldWidth, newWidth, tolerance);
+        double y = KeepPlacementOnAxis(bounds.MinY, bounds.MaxY, oldY, oldHeight, newHeight, tolerance);
+        return (SnapToPixel(x), SnapToPixel(y));
+    }
+
+    private static double KeepPlacementOnAxis(
+        double min, double max, double oldStart, double oldSize, double newSize, double tolerance)
+    {
+        double start;
+        if (Math.Abs((oldStart + oldSize / 2) - (min + max) / 2) <= tolerance)
+            start = min + (max - min - newSize) / 2;
+        else if (Math.Abs((oldStart + oldSize) - max) <= tolerance)
+            start = max - newSize;
+        else
+            start = oldStart;
+        return Math.Max(min, Math.Min(start, max - newSize));
+    }
+
     private static double ResolveHorizontalPosition(
         ScreenBounds bounds, double windowWidth, DockModel dock)
     {

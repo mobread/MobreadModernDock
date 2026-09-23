@@ -184,6 +184,25 @@ public partial class MainWindow : Window
         // Reservation needs the finalized window rect, which SizeToContent
         // only produces after the first layout pass.
         Dispatcher.UIThread.Post(ApplyEdgeReservation, DispatcherPriority.Loaded);
+        // DYNAMIC: startup runs several layout passes (empty bar, items,
+        // magnification headroom) that each resize the window. None of them
+        // is a user-facing size change, so resize re-centring only starts
+        // tracking once they have settled; until then the persisted bar
+        // position is simply re-applied with the now-known headroom.
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!IsMirror && _appServices?.PositioningService.IsDynamicPositioning() == true
+                && _autoHide is not { IsEnabled: true, IsHidden: true })
+            {
+                // Persisted point read directly (see KeepBarPlacementAfterResize
+                // for why not ResolvePosition).
+                var dock = _appServices.DockService.GetDock();
+                var inset = MagnifyInset();
+                SetScreenPosition((int)dock.DockPositionX - inset.X, (int)dock.DockPositionY - inset.Y);
+                ApplyEdgeReservation();
+            }
+            _lastBarSize = CurrentBarSize();
+        }, DispatcherPriority.Background);
     }
 
     /// <summary>
@@ -331,8 +350,81 @@ public partial class MainWindow : Window
         RefreshTooltipPlacement();
         if (IsMirror || _appServices?.PositioningService.IsDynamicPositioning() == false)
             ApplyDockPosition();
+        else
+            KeepBarPlacementAfterResize();
         // A taller/wider bar must reserve a correspondingly bigger strip.
         ApplyEdgeReservation();
+    }
+
+    /// <summary>Visible-bar size (physical px) as of the last size change; null until startup layout has settled.</summary>
+    private (int W, int H)? _lastBarSize;
+
+    private (int W, int H) CurrentBarSize()
+    {
+        var inset = MagnifyInset();
+        double scale = Math.Max(0.01, RenderScaling);
+        return ((int)Math.Round(Bounds.Width * scale) - 2 * inset.X,
+                (int)Math.Round(Bounds.Height * scale) - 2 * inset.Y);
+    }
+
+    /// <summary>
+    /// DYNAMIC mode: a freely-placed dock has no anchor to re-resolve against,
+    /// and the window is top-left anchored, so any change to the bar's size
+    /// (icon size, padding, items, or the magnification headroom) would leave
+    /// the bar drifting right/down from where the user put it. A centred bar
+    /// is re-centred and an edge-flush bar stays flush, per axis - see
+    /// <see cref="DockPositioningService.KeepPlacementAfterResize"/>.
+    ///
+    /// Everything is done in <i>visible bar</i> coordinates from the persisted
+    /// rest position, not the live window position: while auto-hide has the
+    /// dock slid off-screen (which is exactly when the user is in Settings
+    /// changing sizes) the live position is the hidden one.
+    /// </summary>
+    private void KeepBarPlacementAfterResize()
+    {
+        if (_appServices == null || IsMirror) return;
+        // Not armed until startup layout has settled (see OnOpened).
+        if (_lastBarSize is not { } oldBar) return;
+        var inset = MagnifyInset();
+        var newBar = CurrentBarSize();
+        _lastBarSize = newBar;
+
+        // Rest position of the bar before this resize: the persisted point,
+        // read directly. NOT ResolvePosition(): its off-screen fallback checks
+        // the *work area*, which our own reserved strip has already shrunk to
+        // the bar's top edge, so a bottom-flush dock reads as off-screen and
+        // gets re-anchored a bar-height higher on every resize.
+        var dock = _appServices.DockService.GetDock();
+        var (ox, oy) = (dock.DockPositionX, dock.DockPositionY);
+        int bx, by;
+        if (newBar == oldBar)
+        {
+            // Only the headroom changed: the bar stays put, the window moves.
+            (bx, by) = ((int)ox, (int)oy);
+        }
+        else
+        {
+            var centre = new PixelPoint((int)ox + oldBar.W / 2, (int)oy + oldBar.H / 2);
+            bool reserving = _appServices.AppearanceService.GetReserveScreenEdge()
+                             && !_appServices.AppearanceService.GetAutoHide();
+            var area = reserving ? ScreenGeometry.MonitorAreaAt(centre) : ScreenGeometry.WorkAreaAt(centre);
+            var bounds = new ScreenBounds(area.X, area.Y, area.Width, area.Height);
+            var (nx, ny) = DockPositioningService.KeepPlacementAfterResize(
+                bounds, ox, oy, oldBar.W, oldBar.H, newBar.W, newBar.H);
+            (bx, by) = ((int)nx, (int)ny);
+            if (bx != (int)ox || by != (int)oy)
+            {
+                _appServices.DockService.SetDockPosition(bx, by);
+                App.RepositionMirrorDocks();
+            }
+        }
+
+        if (_autoHide is { IsEnabled: true, IsHidden: true })
+        {
+            _autoHide.OnLayoutChanged();
+            return;
+        }
+        SetScreenPosition(bx - inset.X, by - inset.Y);
     }
 
     /// <summary>
@@ -403,27 +495,14 @@ public partial class MainWindow : Window
         if (Math.Abs(vm.MagnifyOverhang - overhang) < 0.5) return;
 
         // Keep the *bar* where it is. The window grows/shrinks by the headroom
-        // delta on each side, so shift the window by that delta rather than
-        // re-resolving the position: in DYNAMIC mode a forced re-resolve would
-        // re-anchor the dock (and fight a position the user dragged), and in
-        // STATIC mode ApplyDockPosition already runs on the resulting resize.
-        double before = vm.MagnifyOverhang;
+        // delta on each side; the resulting SizeChanged re-places the window
+        // so the bar does not move: KeepBarPlacementAfterResize in DYNAMIC mode
+        // (bar size unchanged -> same bar position, new inset), and
+        // ApplyDockPosition against the anchor in STATIC mode / for mirrors.
         vm.MagnifyOverhang = overhang;
 
         if (_appServices?.PositioningService.IsDynamicPositioning() == true && !IsMirror)
-        {
-            int delta = (int)Math.Round((overhang - before) * RenderScaling);
-            if (delta != 0)
-            {
-                var (cx, cy) = GetScreenPosition();
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (vm.IsVerticalDock) SetScreenPosition(cx, cy - delta);
-                    else SetScreenPosition(cx - delta, cy);
-                }, DispatcherPriority.Loaded);
-            }
             return;
-        }
 
         // STATIC / mirrors: the anchor is authoritative, so re-place against it.
         Dispatcher.UIThread.Post(() => ApplyDockPosition(force: true), DispatcherPriority.Loaded);
