@@ -209,9 +209,44 @@ public partial class WidgetWindow : Window
         BeginMoveDrag(e);
     }
 
+    private readonly DismissableMenu _menu = new();
+
+    /// <summary>
+    /// Right-click on the widget's chrome: open its settings, or disable it.
+    /// A press on a button inside the widget (a tray icon, a quick-launch
+    /// entry) belongs to that content and its own menu, so it is left alone.
+    /// The window is WS_EX_NOACTIVATE like the dock, hence the dismissable
+    /// menu rather than a plain ContextMenu.
+    /// </summary>
+    private void OnContextRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        if (_appServices == null || _definition == null) return;
+        if (e.Source is Visual source && source.FindAncestorOfType<Button>(includeSelf: true) != null)
+            return;
+        e.Handled = true;
+
+        var loc = _appServices.LocalizationService;
+        var menu = new ContextMenu();
+
+        var settings = new MenuItem { Header = loc.Text("widget.context.settings") };
+        settings.Click += (_, _) => App.OpenWidgetSettings(_definition.Id);
+        menu.Items.Add(settings);
+
+        menu.Items.Add(new Separator());
+
+        var disable = new MenuItem { Header = loc.Text("widget.context.disable") };
+        // The service notifies App, which closes this window; nothing else
+        // to do here, and the definition stays in Settings for re-enabling.
+        disable.Click += (_, _) => _appServices.WidgetService.SetEnabled(_definition.Id, false);
+        menu.Items.Add(disable);
+
+        _menu.Open(menu, Chrome);
+    }
+
     protected override void OnClosed(EventArgs e)
     {
         _positionPersistTimer.Stop();
+        _menu.Dispose();
         _autoHide?.Dispose();
         _autoHide = null;
         (ContentHost.Content as Control)?.DataContext.As<WidgetViewModelBase>()?.Shutdown();

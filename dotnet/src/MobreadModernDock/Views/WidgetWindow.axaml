@@ -9,7 +9,8 @@
         TransparencyLevelHint="Transparent"
         Background="Transparent"
         SizeToContent="WidthAndHeight"
-        PointerPressed="OnPointerPressed">
+        PointerPressed="OnPointerPressed"
+        ContextRequested="OnContextRequested">
 
     <!-- Same visual language as the dock bar: dock color + transparency +
          rounding (set from code-behind), around provider-supplied content. -->

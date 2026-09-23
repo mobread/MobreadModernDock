@@ -40,12 +40,29 @@ public partial class SettingsWindow : Window
     public static void Open(AppServices appServices, Window owner,
         Action dockRefreshAction, Action<DockPositioningMode> positioningModeChangeAction)
     {
+        OpenCore(appServices, owner, dockRefreshAction, positioningModeChangeAction);
+    }
+
+    /// <summary>Opens Settings on the Widgets tab with <paramref name="widgetId"/> selected.</summary>
+    public static void OpenForWidget(AppServices appServices, Window owner,
+        Action dockRefreshAction, Action<DockPositioningMode> positioningModeChangeAction, string widgetId)
+    {
+        var window = OpenCore(appServices, owner, dockRefreshAction, positioningModeChangeAction);
+        window.Tabs.SelectedIndex = WidgetsTabIndex;
+        window.RefreshWidgetList(widgetId);
+    }
+
+    private const int WidgetsTabIndex = 4; // Items, Appearance, Layout, Behavior, Widgets, General
+
+    private static SettingsWindow OpenCore(AppServices appServices, Window owner,
+        Action dockRefreshAction, Action<DockPositioningMode> positioningModeChangeAction)
+    {
         // Only one settings window at a time: focus the existing one.
         if (_instance != null)
         {
             _instance.WindowState = WindowState.Normal;
             _instance.Activate();
-            return;
+            return _instance;
         }
 
         var vm = new SettingsViewModel(appServices, dockRefreshAction, positioningModeChangeAction);
@@ -59,6 +76,7 @@ public partial class SettingsWindow : Window
         vm.Initialize();
         window.InitializeWidgetsTab();
         window.Show(owner);
+        return window;
     }
 
     private SettingsViewModel Vm => _vm ??= (DataContext as SettingsViewModel)!;

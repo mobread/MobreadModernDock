@@ -193,7 +193,7 @@
 
     <ScrollViewer Padding="20,16,20,24" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                   AllowAutoHide="False">
-        <TabControl Background="Transparent" Padding="0,8,0,0" VerticalContentAlignment="Top">
+        <TabControl x:Name="Tabs" Background="Transparent" Padding="0,8,0,0" VerticalContentAlignment="Top">
 
             <!-- ===================== Items ===================== -->
             <TabItem Header="{Binding TabIcons}">

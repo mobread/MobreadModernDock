@@ -178,6 +178,19 @@ public partial class App : Application
         );
     }
 
+    /// <summary>A widget's context menu: Settings on the Widgets tab, that widget selected.</summary>
+    public static void OpenWidgetSettings(string widgetId)
+    {
+        if (_appServices == null || _mainWindow == null || _mainViewModel == null) return;
+        _mainWindow.Show();
+        SettingsWindow.OpenForWidget(
+            _appServices,
+            _mainWindow,
+            _mainViewModel.UpdateDockUI,
+            mode => HandlePositioningModeChange(mode),
+            widgetId);
+    }
+
     private static void HandlePositioningModeChange(DockPositioningMode mode)
     {
         if (_appServices == null || _mainWindow == null) return;

@@ -1603,69 +1603,13 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Opens a dock context menu and arranges for it to be dismissed when the
-    /// user clicks anywhere outside it.
-    ///
-    /// The dock window is WS_EX_NOACTIVATE, so it is never activated and never
-    /// deactivated — the usual light-dismiss never fires and the menu would sit
-    /// there after a click on the desktop or another app. A low-level mouse
-    /// hook supplies the clicks the window cannot see; the hook only lives
-    /// while a menu is open.
+    /// user clicks anywhere outside it - see <see cref="DismissableMenu"/>.
     /// </summary>
-    private void OpenDismissableMenu(ContextMenu menu, Control anchor)
-    {
-        DisposeMenuDismisser();
+    private void OpenDismissableMenu(ContextMenu menu, Control anchor) => _menu.Open(menu, anchor);
 
-        menu.Closed += (_, _) => DisposeMenuDismisser();
-        menu.Open(anchor);
+    private readonly DismissableMenu _menu = new();
 
-        // Arm after the popup exists, so its bounds can be hit-tested.
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (!menu.IsOpen) return;
-            _openMenu = menu;
-            var hook = new GlobalMouseHook((x, y) =>
-                Dispatcher.UIThread.Post(() => OnGlobalClick(x, y)));
-            if (hook.IsInstalled) _menuDismissHook = hook;
-            else hook.Dispose(); // no hook: the menu still closes on selection
-        }, DispatcherPriority.Background);
-    }
-
-    private GlobalMouseHook? _menuDismissHook;
-    private ContextMenu? _openMenu;
-
-    /// <summary>
-    /// Closes the open context menu unless the click landed inside it. The
-    /// popup is its own top-level window, so its screen rect comes from the
-    /// PopupRoot rather than from the anchor control.
-    /// </summary>
-    private void OnGlobalClick(int screenX, int screenY)
-    {
-        if (_openMenu is not { IsOpen: true } menu)
-        {
-            DisposeMenuDismisser();
-            return;
-        }
-
-        if (menu.GetVisualRoot() is Visual root)
-        {
-            var topLeft = root.PointToScreen(new Point(0, 0));
-            var size = root.Bounds.Size;
-            var rect = new PixelRect(topLeft,
-                new PixelSize((int)Math.Ceiling(size.Width), (int)Math.Ceiling(size.Height)));
-            // Inside the menu: let Avalonia handle the selection itself.
-            if (rect.Contains(new PixelPoint(screenX, screenY))) return;
-        }
-
-        menu.Close();
-        DisposeMenuDismisser();
-    }
-
-    private void DisposeMenuDismisser()
-    {
-        _menuDismissHook?.Dispose();
-        _menuDismissHook = null;
-        _openMenu = null;
-    }
+    private void DisposeMenuDismisser() => _menu.Dispose();
 
     private void OnRunningAppContextRequested(object? sender, ContextRequestedEventArgs e)
     {
