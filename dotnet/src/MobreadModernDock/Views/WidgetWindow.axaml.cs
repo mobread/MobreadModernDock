@@ -51,7 +51,8 @@ public partial class WidgetWindow : Window
         {
             _autoHide = new DockAutoHideController(
                 behavior: () => _behavior,
-                size: () => ((int)Math.Round(Bounds.Width), (int)Math.Round(Bounds.Height)),
+                // Physical pixels, like everything else the controller compares against.
+                size: () => { var r = ScreenGeometry.WindowScreenRect(this); return (r.Width, r.Height); },
                 restPosition: () => ((int)_definition.PositionX, (int)_definition.PositionY),
                 screenBounds: () =>
                 {
@@ -62,7 +63,8 @@ public partial class WidgetWindow : Window
                     // slid only that far would leave a strip's worth of itself
                     // on screen - roughly one row of tray icons.
                     var (x, y) = ((int)_definition.PositionX, (int)_definition.PositionY);
-                    var m = ScreenGeometry.MonitorAreaAt(new PixelPoint(x + (int)Bounds.Width / 2, y + (int)Bounds.Height / 2));
+                    var r = ScreenGeometry.WindowScreenRect(this);
+                    var m = ScreenGeometry.MonitorAreaAt(new PixelPoint(x + r.Width / 2, y + r.Height / 2));
                     return (m.X, m.Y, m.Right, m.Bottom);
                 },
                 blockHide: () => false);

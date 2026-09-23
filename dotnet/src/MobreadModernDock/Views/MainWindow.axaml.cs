@@ -160,7 +160,11 @@ public partial class MainWindow : Window
 
         _autoHide = new DockAutoHideController(
             behavior: () => _dockBehavior,
-            size: () => ((int)Math.Round(Bounds.Width), (int)Math.Round(Bounds.Height)),
+            // Physical pixels: the controller compares against GetCursorPos
+            // and monitor rects, which are physical too.
+            size: () => ScreenGeometry.WindowScreenRect(this) is { Width: > 0 } r
+                ? (r.Width, r.Height)
+                : ((int)Math.Round(Bounds.Width * RenderScaling), (int)Math.Round(Bounds.Height * RenderScaling)),
             restPosition: RestPosition,
             screenBounds: () =>
             {
@@ -234,10 +238,12 @@ public partial class MainWindow : Window
         if (_appServices == null) return;
         if (!IsMirror && !force && _appServices.PositioningService.IsDynamicPositioning()) return;
         // Resolve against the visible bar, then step back by the headroom.
+        // Screen bounds are physical pixels; Width/Height are DIPs, so the
+        // bar size must be scaled first or a RIGHT/DOWN-anchored dock lands
+        // (1 - 1/scale) of its size past the screen edge on a 125% display.
         var inset = MagnifyInset();
-        double scale = Math.Max(0.01, RenderScaling);
-        var (bx, by) = ResolveOwnPosition(
-            Width - 2 * (inset.X / scale), Height - 2 * (inset.Y / scale));
+        var bar = CurrentBarSize();
+        var (bx, by) = ResolveOwnPosition(bar.W, bar.H);
         var (x, y) = (bx - inset.X, by - inset.Y);
         if (_autoHide is { IsEnabled: true, IsHidden: true })
         {
@@ -296,9 +302,8 @@ public partial class MainWindow : Window
     {
         if (_appServices == null) return GetScreenPosition();
         var inset = MagnifyInset();
-        double scale = Math.Max(0.01, RenderScaling);
-        var (bx, by) = ResolveOwnPosition(
-            Bounds.Width - 2 * (inset.X / scale), Bounds.Height - 2 * (inset.Y / scale));
+        var bar = CurrentBarSize();
+        var (bx, by) = ResolveOwnPosition(bar.W, bar.H);
         return ((int)bx - inset.X, (int)by - inset.Y);
     }
 
