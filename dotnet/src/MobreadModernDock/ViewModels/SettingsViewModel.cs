@@ -940,13 +940,17 @@ public partial class SettingsViewModel : ViewModelBase
     /// <summary>
     /// Turning "follow system theme" on immediately adopts the current Windows
     /// theme colour, so the effect is visible without waiting for a switch.
+    /// Turning it off gives back the colour the user had before (the service
+    /// stashed it), so the picker and the dock both return to it.
     /// </summary>
     public void OnFollowSystemThemeChanged()
     {
-        _appServices.AppearanceService.SetFollowSystemTheme(FollowSystemTheme);
-        if (!FollowSystemTheme) return;
-        App.ApplySystemTheme(Infrastructure.Windows.Native.SystemThemeWatcher.IsLightTheme());
-        // Reflect the colour the dock just adopted in the picker.
+        bool restored = _appServices.AppearanceService.SetFollowSystemTheme(FollowSystemTheme);
+        if (FollowSystemTheme)
+            App.ApplySystemTheme(Infrastructure.Windows.Native.SystemThemeWatcher.IsLightTheme());
+        else if (restored)
+            _dockRefreshAction();
+        // Reflect the colour the dock now has in the picker.
         _isInitialized = false;
         DockColor = ParseRgbColor(_appServices.AppearanceService.GetDockColorRGB());
         _isInitialized = true;

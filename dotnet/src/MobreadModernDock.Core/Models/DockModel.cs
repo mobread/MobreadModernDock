@@ -188,6 +188,14 @@ public class DockModel
     [JsonPropertyName("followSystemTheme")]
     public bool FollowSystemTheme { get; set; }
 
+    /// <summary>
+    /// The colour the user had picked before "follow system theme" was turned
+    /// on, so turning it off again gives that colour back instead of leaving
+    /// the last light/dark preset behind. Null when nothing is stashed.
+    /// </summary>
+    [JsonPropertyName("customDockColorRGB")]
+    public string? CustomDockColorRGB { get; set; }
+
     /// <summary>Gap in px kept between a snapped dock/widget and the screen edge. 0 = flush.</summary>
     [JsonPropertyName("edgeSnapMargin")]
     public int EdgeSnapMargin { get; set; } = 8;
@@ -349,6 +357,7 @@ public class DockModel
         LastUpdateCheckUtc = other.LastUpdateCheckUtc;
         PreviewDelayMs = other.PreviewDelayMs;
         FollowSystemTheme = other.FollowSystemTheme;
+        CustomDockColorRGB = other.CustomDockColorRGB;
         GlobalOpacity = other.GlobalOpacity;
         Presets = other.Presets;
         Widgets = other.Widgets;

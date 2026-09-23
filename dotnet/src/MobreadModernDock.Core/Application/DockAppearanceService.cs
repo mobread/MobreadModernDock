@@ -53,7 +53,12 @@ public class DockAppearanceService
 
     public void SetDockColorRGB(string value)
     {
-        GetDock().DockColorRGB = value;
+        var dock = GetDock();
+        dock.DockColorRGB = value;
+        // A colour picked while the system theme is driving the dock is the
+        // user's latest deliberate choice: make it the one that comes back
+        // when follow-theme is switched off.
+        if (dock.FollowSystemTheme) dock.CustomDockColorRGB = value;
         _dockService.SaveChanges();
     }
 
@@ -325,10 +330,29 @@ public class DockAppearanceService
 
     public bool GetFollowSystemTheme() => GetDock().FollowSystemTheme;
 
-    public void SetFollowSystemTheme(bool value)
+    /// <summary>
+    /// Turning follow-theme on stashes the user's current colour; turning it
+    /// off restores it. Without the stash the last light/dark preset the
+    /// watcher wrote would simply stay behind, and the colour the user had
+    /// picked would be gone. Returns true when the dock colour changed.
+    /// </summary>
+    public bool SetFollowSystemTheme(bool value)
     {
-        GetDock().FollowSystemTheme = value;
+        var dock = GetDock();
+        bool changedColor = false;
+        if (value && !dock.FollowSystemTheme)
+        {
+            dock.CustomDockColorRGB = dock.DockColorRGB;
+        }
+        else if (!value && dock.FollowSystemTheme && dock.CustomDockColorRGB is { } custom)
+        {
+            changedColor = !string.Equals(dock.DockColorRGB, custom, StringComparison.Ordinal);
+            dock.DockColorRGB = custom;
+            dock.CustomDockColorRGB = null;
+        }
+        dock.FollowSystemTheme = value;
         _dockService.SaveChanges();
+        return changedColor;
     }
 
     /// <summary>

@@ -77,6 +77,9 @@ public sealed class AppearancePreset
         d.GlobalOpacity = GlobalOpacity;
         d.DockBorderRounding = DockBorderRounding;
         d.DockColorRGB = DockColorRGB;
+        // A preset's colour is a deliberate choice like a picked one: it is
+        // what comes back if "follow system theme" is later switched off.
+        if (d.FollowSystemTheme) d.CustomDockColorRGB = DockColorRGB;
         d.TintIcons = TintIcons;
         d.TintColorRGB = TintColorRGB;
         d.VerticalDock = VerticalDock;
