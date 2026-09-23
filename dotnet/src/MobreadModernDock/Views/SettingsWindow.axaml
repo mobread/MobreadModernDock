@@ -270,7 +270,7 @@
             <Setter Property="MaxWidth" Value="460"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
         </Style>
-        <Style Selector="Grid.row > ToggleSwitch, Grid.row > ComboBox, Grid.row > StackPanel.control, Grid.row > Button, Grid.row > ColorPicker">
+        <Style Selector="Grid.row > ToggleSwitch, Grid.row > ComboBox, Grid.row > StackPanel.control, Grid.row > Button, Grid.row > ColorPicker, Grid.row > TextBox">
             <Setter Property="Grid.Column" Value="1"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -824,6 +824,14 @@
                                 <StackPanel Classes="text"><TextBlock Classes="label" Text="{Binding ReserveScreenEdgeText}"/></StackPanel>
                                 <ToggleSwitch IsChecked="{Binding ReserveScreenEdge}"/>
                             </Grid>
+                            <Border Classes="hairline"/>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel Classes="text">
+                                    <TextBlock Classes="label" Text="{Binding LockDockText}"/>
+                                    <TextBlock Classes="helper" Text="{Binding LockDockHelper}"/>
+                                </StackPanel>
+                                <ToggleSwitch IsChecked="{Binding LockDock}"/>
+                            </Grid>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -855,6 +863,54 @@
                                 </Grid>
                                 <TextBlock Classes="helper" Text="{Binding PreviewDelayHelper}"/>
                             </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Classes="section">
+                    <TextBlock Classes="title" Text="{Binding SectionHideForApps}"/>
+                    <Border Classes="card">
+                        <StackPanel Spacing="10">
+                            <TextBlock Classes="helper" Text="{Binding HideForAppsHelper}" TextWrapping="Wrap"/>
+                            <ListBox x:Name="HideForAppsList" ItemsSource="{Binding HideForAppsEntries}"
+                                     SelectedIndex="{Binding SelectedHideForAppIndex}"
+                                     MinHeight="80" MaxHeight="200"/>
+                            <TextBlock Classes="helper" Text="{Binding HideForAppsEmptyText}" IsVisible="{Binding HideForAppsIsEmpty}"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="{Binding HideForAppsAddText}" Click="OnAddHideForApp"/>
+                                <Button Content="{Binding HideForAppsAddRunningText}" Click="OnAddRunningHideForApp"/>
+                                <Button Content="{Binding HideForAppsRemoveText}" Click="OnRemoveHideForApp" IsEnabled="{Binding CanRemoveHideForApp}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Classes="section">
+                    <TextBlock Classes="title" Text="{Binding SectionHotkeys}"/>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel Classes="text"><TextBlock Classes="label" Text="{Binding HotkeysEnabledText}"/></StackPanel>
+                                <ToggleSwitch IsChecked="{Binding HotkeysEnabled}"/>
+                            </Grid>
+                            <Border Classes="hairline"/>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto" IsEnabled="{Binding HotkeysEnabled}">
+                                <StackPanel Classes="text">
+                                    <TextBlock Classes="label" Text="{Binding HotkeyToggleText}"/>
+                                    <TextBlock Classes="helper" Text="{Binding HotkeyToggleHelper}"/>
+                                </StackPanel>
+                                <TextBox Grid.Column="1" Width="160" Text="{Binding HotkeyToggleDock, UpdateSourceTrigger=LostFocus}" Watermark="Ctrl+Alt+D"/>
+                            </Grid>
+                            <Border Classes="hairline"/>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto" IsEnabled="{Binding HotkeysEnabled}">
+                                <StackPanel Classes="text">
+                                    <TextBlock Classes="label" Text="{Binding HotkeyLaunchText}"/>
+                                    <TextBlock Classes="helper" Text="{Binding HotkeyLaunchHelper}"/>
+                                </StackPanel>
+                                <TextBox Grid.Column="1" Width="160" Text="{Binding HotkeyLaunchModifiers, UpdateSourceTrigger=LostFocus}" Watermark="Ctrl+Alt"/>
+                            </Grid>
+                            <TextBlock Classes="helper" Foreground="#F59E0B" Margin="0,8,0,0" TextWrapping="Wrap"
+                                       Text="{Binding HotkeyStatus}" IsVisible="{Binding HasHotkeyStatus}"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>

@@ -559,7 +559,13 @@ public partial class MainWindowViewModel : ViewModelBase
         // LayerRefreshAction also re-syncs the items panel's rows/orientation.
         LayerRefreshAction?.Invoke();
         App.RefreshWidgetAppearance();
-        if (!IsMirrorViewModel) App.SyncMirrorDocks();
+        if (!IsMirrorViewModel)
+        {
+            App.SyncMirrorDocks();
+            // Launch chords index into the pinned programs, so any reorder /
+            // pin / unpin re-maps them.
+            App.ApplyHotkeys();
+        }
     }
 
     /// <summary>#10 Set on VMs that back a secondary-monitor mirror so they don't recurse into SyncMirrorDocks.</summary>

@@ -63,6 +63,7 @@ public partial class App : Application
                 StartFullscreenWatcher();
                 StartThemeWatcher();
                 StartUpdateCheck();
+                ApplyHotkeys();
             };
             desktop.ShutdownRequested += (_, _) => TaskbarVisibility.Restore();
             desktop.Exit += (_, _) => TaskbarVisibility.Restore();
@@ -150,6 +151,8 @@ public partial class App : Application
         if (_shuttingDown) return;
         _shuttingDown = true;
         try { TaskbarVisibility.Restore(); } catch { }
+        _hotkeys?.Dispose();
+        _hotkeys = null;
         _themeWatcher?.Dispose();
         _themeWatcher = null;
         _mainViewModel?.Shutdown();
@@ -354,11 +357,17 @@ public partial class App : Application
         _fullscreenPoll ??= new System.Threading.Timer(_ =>
         {
             if (_appServices == null || _shuttingDown) return;
-            bool enabled = _appServices.AppearanceService.GetHideInFullscreen();
-            bool shouldHide = enabled && FullscreenDetector.IsFullscreenAppActive();
+            var appearance = _appServices.AppearanceService;
+            bool shouldHide = false;
+            if (appearance.GetHideInFullscreen() && FullscreenDetector.IsFullscreenAppActive())
+                shouldHide = true;
+            // Per-app rules share the poll: same cost, same hide path.
+            else if (appearance.GetHideForApps().Count > 0
+                     && appearance.IsHideForApp(FullscreenDetector.ForegroundExecutable()))
+                shouldHide = true;
             if (shouldHide == _hiddenForFullscreen) return;
             _hiddenForFullscreen = shouldHide;
-            Avalonia.Threading.Dispatcher.UIThread.Post(() => SetAllVisible(!shouldHide));
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => SetAllVisible(!shouldHide && !_hiddenByHotkey));
         }, null, 1000, 500);
     }
 
@@ -369,6 +378,89 @@ public partial class App : Application
             m.SetNativeVisible(visible);
         foreach (var w in _widgetWindows.Values)
             w.SetNativeVisible(visible);
+    }
+
+    // --- Global keyboard shortcuts ---
+
+    private static GlobalHotkeys? _hotkeys;
+    private static bool _hiddenByHotkey;
+
+    /// <summary>Labels of chords the last <see cref="ApplyHotkeys"/> could not register.</summary>
+    public static IReadOnlyList<string> HotkeyConflicts { get; private set; } = Array.Empty<string>();
+
+    /// <summary>
+    /// (Re)registers every shortcut from the current settings. Called at
+    /// startup, whenever the shortcut settings change, and after the pinned
+    /// items change (the launch chords index into them).
+    /// </summary>
+    public static void ApplyHotkeys()
+    {
+        if (_appServices == null || _shuttingDown) return;
+        var appearance = _appServices.AppearanceService;
+        _hotkeys ??= new GlobalHotkeys();
+
+        if (!appearance.GetHotkeysEnabled())
+        {
+            _hotkeys.Clear();
+            HotkeyConflicts = Array.Empty<string>();
+            return;
+        }
+
+        var bindings = new List<GlobalHotkeys.Binding>();
+        if (HotkeyChord.TryParse(appearance.GetHotkeyToggleDock()) is { } toggle)
+            bindings.Add(new GlobalHotkeys.Binding(toggle, HotkeyChord.Format(toggle), ToggleDockVisibility));
+
+        if (HotkeyChord.TryParse(appearance.GetHotkeyLaunchModifiers(), allowModifiersOnly: true) is { HasKey: false } mods)
+        {
+            for (int n = 1; n <= 9; n++)
+            {
+                int slot = n;
+                var chord = new HotkeyChord.Parsed(mods.Modifiers, HotkeyChord.DigitKey(n));
+                bindings.Add(new GlobalHotkeys.Binding(chord, HotkeyChord.Format(chord), () => ActivatePinnedSlot(slot)));
+            }
+        }
+        HotkeyConflicts = _hotkeys.Apply(bindings);
+    }
+
+    /// <summary>
+    /// Show/hide chord. A hidden dock comes back regardless of what hid it;
+    /// a visible one is hidden until the chord is pressed again. An
+    /// auto-hidden dock is revealed rather than toggled off.
+    /// </summary>
+    private static void ToggleDockVisibility()
+    {
+        if (_mainWindow == null) return;
+        if (_hiddenByHotkey || _hiddenForFullscreen)
+        {
+            _hiddenByHotkey = false;
+            _hiddenForFullscreen = false;
+            SetAllVisible(true);
+            _mainWindow.RevealIfAutoHidden();
+            return;
+        }
+        if (_mainWindow.RevealIfAutoHidden()) return;
+        _hiddenByHotkey = true;
+        SetAllVisible(false);
+    }
+
+    /// <summary>
+    /// Launch-or-focus for the Nth launchable pinned item (1-based). Only
+    /// programs count - separators, folders, modules and the gear are skipped,
+    /// so the numbering matches what a user would count as "apps" on the bar.
+    /// </summary>
+    private static void ActivatePinnedSlot(int slot)
+    {
+        if (_mainViewModel == null) return;
+        int seen = 0;
+        foreach (var item in _mainViewModel.Items)
+        {
+            if (item.Item is not Core.Models.DockProgramItemModel) continue;
+            if (++seen == slot)
+            {
+                item.ClickCommand.Execute(item);
+                return;
+            }
+        }
     }
 
     // --- Startup update check ---

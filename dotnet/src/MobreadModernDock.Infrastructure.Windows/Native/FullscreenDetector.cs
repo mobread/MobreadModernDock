@@ -30,6 +30,28 @@ public static class FullscreenDetector
         return ForegroundCoversMonitor();
     }
 
+    /// <summary>
+    /// Full path of the executable owning the foreground window, or null
+    /// (no foreground window, the shell, or ourselves). Used by the per-app
+    /// hide rules; polled alongside the fullscreen check.
+    /// </summary>
+    public static string? ForegroundExecutable()
+    {
+        IntPtr fg = User32.GetForegroundWindow();
+        if (fg == IntPtr.Zero) return null;
+        User32.GetWindowThreadProcessId(fg, out uint pid);
+        if (pid == 0 || pid == (uint)Environment.ProcessId) return null;
+        IntPtr process = Kernel32.OpenProcess(Win32Constants.PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (process == IntPtr.Zero) return null;
+        try
+        {
+            var buf = new StringBuilder(1024);
+            uint size = (uint)buf.Capacity;
+            return Kernel32.QueryFullProcessImageName(process, 0, buf, ref size) ? buf.ToString(0, (int)size) : null;
+        }
+        finally { Kernel32.CloseHandle(process); }
+    }
+
     private static bool ForegroundCoversMonitor()
     {
         IntPtr fg = User32.GetForegroundWindow();

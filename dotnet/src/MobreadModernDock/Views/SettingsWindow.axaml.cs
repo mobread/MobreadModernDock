@@ -122,6 +122,31 @@ public partial class SettingsWindow : Window
     private void OnMoveUp(object? sender, RoutedEventArgs e) => Vm?.MoveItemUp();
     private void OnMoveDown(object? sender, RoutedEventArgs e) => Vm?.MoveItemDown();
 
+    // --- Hide-for-apps rules ---
+
+    private async void OnAddHideForApp(object? sender, RoutedEventArgs e) { if (Vm != null) await Vm.AddHideForAppAsync(this); }
+    private void OnRemoveHideForApp(object? sender, RoutedEventArgs e) => Vm?.RemoveSelectedHideForApp();
+
+    /// <summary>Flyout of running taskbar apps; picking one adds its rule.</summary>
+    private void OnAddRunningHideForApp(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || Vm == null) return;
+        var flyout = new MenuFlyout();
+        var choices = Vm.RunningAppChoices();
+        if (choices.Count == 0)
+        {
+            flyout.Items.Add(new MenuItem { Header = Vm.HideForAppsEmptyText, IsEnabled = false });
+        }
+        foreach (var exe in choices)
+        {
+            var item = new MenuItem { Header = exe };
+            string captured = exe;
+            item.Click += (_, _) => Vm.AddRunningHideForApp(captured);
+            flyout.Items.Add(item);
+        }
+        flyout.ShowAt(button);
+    }
+
     // --- Drag-to-reorder the dock items list ---
 
     private void OnItemsPointerPressed(object? sender, PointerPressedEventArgs e)

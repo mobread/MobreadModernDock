@@ -212,6 +212,40 @@ public class DockModel
     [JsonPropertyName("presets")]
     public List<AppearancePreset> Presets { get; set; } = new();
 
+    /// <summary>
+    /// Lock the dock: no window drag, no icon reorder, no pinning by drop.
+    /// Launching, previews and "open with" drops keep working.
+    /// </summary>
+    [JsonPropertyName("lockDock")]
+    public bool LockDock { get; set; }
+
+    /// <summary>
+    /// Executable file names (e.g. "notepad.exe") that hide the dock and
+    /// widgets while one of them owns the foreground window. Complements the
+    /// fullscreen detector for windowed games and focus-heavy apps.
+    /// </summary>
+    [JsonPropertyName("hideForApps")]
+    public List<string> HideForApps { get; set; } = new();
+
+    // --- Keyboard shortcuts ---
+
+    /// <summary>Master switch for the global hotkeys.</summary>
+    [JsonPropertyName("hotkeysEnabled")]
+    public bool HotkeysEnabled { get; set; } = true;
+
+    /// <summary>Chord that shows/hides the dock (and reveals an auto-hidden one). Empty = none.</summary>
+    [JsonPropertyName("hotkeyToggleDock")]
+    public string HotkeyToggleDock { get; set; } = "Ctrl+Alt+D";
+
+    /// <summary>
+    /// Modifier part of the launch/focus chords: this + 1..9 activates the
+    /// Nth launchable pinned item, the way Win+N works on the taskbar. Win+N
+    /// itself is owned by Explorer and cannot be registered, hence the
+    /// Ctrl+Alt default. Empty = disabled.
+    /// </summary>
+    [JsonPropertyName("hotkeyLaunchModifiers")]
+    public string HotkeyLaunchModifiers { get; set; } = "Ctrl+Alt";
+
     // --- Floating widgets ---
 
     [JsonPropertyName("widgets")]
@@ -360,6 +394,11 @@ public class DockModel
         CustomDockColorRGB = other.CustomDockColorRGB;
         GlobalOpacity = other.GlobalOpacity;
         Presets = other.Presets;
+        LockDock = other.LockDock;
+        HideForApps = other.HideForApps;
+        HotkeysEnabled = other.HotkeysEnabled;
+        HotkeyToggleDock = other.HotkeyToggleDock;
+        HotkeyLaunchModifiers = other.HotkeyLaunchModifiers;
         Widgets = other.Widgets;
         KeepSettingsLast();
     }

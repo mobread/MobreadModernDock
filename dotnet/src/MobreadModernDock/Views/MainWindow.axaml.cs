@@ -1095,6 +1095,7 @@ public partial class MainWindow : Window
         // dragged; dragging is only meaningful in DYNAMIC mode.
         if (_appServices == null || !_appServices.PositioningService.IsDynamicPositioning())
             return;
+        if (IsLocked) return;
         BeginMoveDrag(e);
     }
 
@@ -1122,6 +1123,7 @@ public partial class MainWindow : Window
     {
         if (_reorderSourceIndex < 0 || _reorderInProgress) return;
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (IsLocked) return;
 
         var current = e.GetPosition(PinnedItems);
         if (Math.Abs(current.X - _reorderPressPoint.X) < ReorderDragThresholdPixels &&
@@ -1260,6 +1262,10 @@ public partial class MainWindow : Window
             e.DragEffects = DragDropEffects.Copy;
             return;
         }
+
+        // Locked: files still open with the app they were dropped on (above),
+        // but nothing new gets pinned.
+        if (IsLocked) { e.DragEffects = DragDropEffects.None; return; }
 
         var (gapIndex, _) = ResolvePinnedDropGap(e.GetPosition(PinnedItems));
         vm.PinDroppedPaths(paths, gapIndex);
@@ -1504,9 +1510,10 @@ public partial class MainWindow : Window
 
         // Only program items are unpinnable from the dock; the Settings item
         // and Windows modules are managed from the Settings window.
-        if (vm.Item is DockProgramItemModel)
+        if (vm.Item is DockProgramItemModel programItem)
         {
             menu.Items.Add(new Separator());
+            AddHideForAppItem(menu, programItem.ExecutablePath);
             var unpin = new MenuItem { Header = loc.Text("dock.context.unpin") };
             unpin.Click += (_, _) => mainVm.UnpinItem(vm);
             menu.Items.Add(unpin);
@@ -1518,6 +1525,16 @@ public partial class MainWindow : Window
         if (vm.Item is DockSettingsItemModel)
         {
             menu.Items.Add(new Separator());
+
+            var lockItem = new MenuItem
+            {
+                Header = loc.Text("dock.context.lockDock"),
+                ToggleType = MenuItemToggleType.CheckBox,
+                IsChecked = IsLocked,
+            };
+            lockItem.Click += (_, _) =>
+                _appServices.AppearanceService.SetLockDock(!_appServices.AppearanceService.GetLockDock());
+            menu.Items.Add(lockItem);
 
             // Centring only means anything for a freely-dragged dock. In
             // STATIC mode the anchors already place it and the entry would do
@@ -1656,7 +1673,34 @@ public partial class MainWindow : Window
         var pin = new MenuItem { Header = loc.Text("dock.context.pin") };
         pin.Click += (_, _) => mainVm.PinRunningApp(vm);
         menu.Items.Add(pin);
+        AddHideForAppItem(menu, vm.ExecutablePath);
         OpenDismissableMenu(menu, button);
+    }
+
+    /// <summary>
+    /// Checkable "Hide dock while this app is focused" entry. Toggles the
+    /// per-app rule for the item's executable (matched by file name).
+    /// </summary>
+    private void AddHideForAppItem(ContextMenu menu, string? executablePath)
+    {
+        if (_appServices == null || string.IsNullOrEmpty(executablePath)) return;
+        // The poll ignores our own process, so a rule for the dock itself
+        // could never fire; don't offer one.
+        string self = System.Diagnostics.Process.GetCurrentProcess().ProcessName + ".exe";
+        if (string.Equals(DockAppearanceService.NormalizeExeName(executablePath), self, StringComparison.OrdinalIgnoreCase)) return;
+        var appearance = _appServices.AppearanceService;
+        var item = new MenuItem
+        {
+            Header = _appServices.LocalizationService.Text("dock.context.hideForApp"),
+            ToggleType = MenuItemToggleType.CheckBox,
+            IsChecked = appearance.IsHideForApp(executablePath),
+        };
+        item.Click += (_, _) =>
+        {
+            if (appearance.IsHideForApp(executablePath)) appearance.RemoveHideForApp(executablePath);
+            else appearance.AddHideForApp(executablePath);
+        };
+        menu.Items.Add(item);
     }
 
     /// <summary>
@@ -1816,6 +1860,19 @@ public partial class MainWindow : Window
 
     /// <summary>Fullscreen auto-hide: show/hide the native window without changing layering.</summary>
     public void SetNativeVisible(bool visible) => _dockBehavior?.SetNativeVisible(visible);
+
+    /// <summary>
+    /// Hotkey path: if auto-hide has the dock slid away, slide it back and
+    /// return true; otherwise return false so the caller can hide it instead.
+    /// </summary>
+    public bool RevealIfAutoHidden()
+    {
+        if (_autoHide is not { IsEnabled: true, IsHidden: true }) return false;
+        _autoHide.OnPointerEntered();
+        return true;
+    }
+
+    private bool IsLocked => _appServices?.AppearanceService.GetLockDock() == true;
 
     /// <summary>Re-reads the always-on-top setting and switches the window layer live.</summary>
     public void ApplyAlwaysOnTop()

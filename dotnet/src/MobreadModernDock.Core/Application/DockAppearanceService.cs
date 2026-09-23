@@ -213,6 +213,87 @@ public class DockAppearanceService
 
     public bool GetHideTaskbar() => GetDock().HideTaskbar;
 
+    // --- Lock dock ---
+
+    public bool GetLockDock() => GetDock().LockDock;
+
+    public void SetLockDock(bool value)
+    {
+        GetDock().LockDock = value;
+        _dockService.SaveChanges();
+    }
+
+    // --- Per-app hide rules ---
+
+    /// <summary>Executable file names that hide the dock while focused, lower-cased, de-duplicated.</summary>
+    public IReadOnlyList<string> GetHideForApps() => GetDock().HideForApps;
+
+    /// <summary>Adds a rule by executable file name (a full path is reduced to its file name). Returns false if already present.</summary>
+    public bool AddHideForApp(string executable)
+    {
+        string name = NormalizeExeName(executable);
+        if (name.Length == 0) return false;
+        var list = GetDock().HideForApps;
+        if (list.Any(e => string.Equals(e, name, StringComparison.OrdinalIgnoreCase))) return false;
+        list.Add(name);
+        _dockService.SaveChanges();
+        return true;
+    }
+
+    public void RemoveHideForApp(string executable)
+    {
+        string name = NormalizeExeName(executable);
+        int removed = GetDock().HideForApps.RemoveAll(e => string.Equals(e, name, StringComparison.OrdinalIgnoreCase));
+        if (removed > 0) _dockService.SaveChanges();
+    }
+
+    /// <summary>True when the given foreground executable (path or name) matches a hide rule.</summary>
+    public bool IsHideForApp(string? executablePath)
+    {
+        if (string.IsNullOrEmpty(executablePath)) return false;
+        var rules = GetDock().HideForApps;
+        if (rules.Count == 0) return false;
+        string name = NormalizeExeName(executablePath);
+        return rules.Any(e => string.Equals(e, name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public static string NormalizeExeName(string executable)
+    {
+        string trimmed = executable.Trim().Trim('"');
+        if (trimmed.Length == 0) return "";
+        try { trimmed = Path.GetFileName(trimmed); } catch { }
+        return trimmed.ToLowerInvariant();
+    }
+
+    // --- Keyboard shortcuts ---
+
+    public bool GetHotkeysEnabled() => GetDock().HotkeysEnabled;
+
+    public void SetHotkeysEnabled(bool value)
+    {
+        GetDock().HotkeysEnabled = value;
+        _dockService.SaveChanges();
+    }
+
+    public string GetHotkeyToggleDock() => GetDock().HotkeyToggleDock ?? "";
+
+    /// <summary>Stores the chord in canonical form; an unparsable one is stored as empty (= off).</summary>
+    public void SetHotkeyToggleDock(string chord)
+    {
+        var parsed = HotkeyChord.TryParse(chord);
+        GetDock().HotkeyToggleDock = parsed is null ? "" : HotkeyChord.Format(parsed);
+        _dockService.SaveChanges();
+    }
+
+    public string GetHotkeyLaunchModifiers() => GetDock().HotkeyLaunchModifiers ?? "";
+
+    public void SetHotkeyLaunchModifiers(string modifiers)
+    {
+        var parsed = HotkeyChord.TryParse(modifiers, allowModifiersOnly: true);
+        GetDock().HotkeyLaunchModifiers = parsed is null || parsed.HasKey ? "" : HotkeyChord.Format(parsed);
+        _dockService.SaveChanges();
+    }
+
     public void SetHideTaskbar(bool value)
     {
         GetDock().HideTaskbar = value;

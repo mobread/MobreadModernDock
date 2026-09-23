@@ -764,6 +764,132 @@ public partial class SettingsViewModel : ViewModelBase
     private bool _mirrorMonitors;
     public bool MirrorMonitors { get => _mirrorMonitors; set => SetProperty(ref _mirrorMonitors, value); }
 
+    // --- Lock dock / per-app hide / hotkeys ---
+
+    public string LockDockText => T("settings.general.lockDock");
+    public string LockDockHelper => T("settings.general.lockDock.helper");
+    public string SectionHideForApps => T("settings.section.hideForApps");
+    public string HideForAppsHelper => T("settings.general.hideForApps.helper");
+    public string HideForAppsAddText => T("settings.general.hideForApps.add");
+    public string HideForAppsAddRunningText => T("settings.general.hideForApps.addRunning");
+    public string HideForAppsRemoveText => T("settings.general.hideForApps.remove");
+    public string HideForAppsEmptyText => T("settings.general.hideForApps.empty");
+    public string SectionHotkeys => T("settings.section.hotkeys");
+    public string HotkeysEnabledText => T("settings.general.hotkeys.enabled");
+    public string HotkeyToggleText => T("settings.general.hotkeys.toggle");
+    public string HotkeyToggleHelper => T("settings.general.hotkeys.toggle.helper");
+    public string HotkeyLaunchText => T("settings.general.hotkeys.launch");
+    public string HotkeyLaunchHelper => T("settings.general.hotkeys.launch.helper");
+
+    private bool _lockDock;
+    public bool LockDock { get => _lockDock; set => SetProperty(ref _lockDock, value); }
+
+    public ObservableCollection<string> HideForAppsEntries { get; } = new();
+    public bool HideForAppsIsEmpty => HideForAppsEntries.Count == 0;
+
+    private int _selectedHideForAppIndex = -1;
+    public int SelectedHideForAppIndex
+    {
+        get => _selectedHideForAppIndex;
+        set { if (SetProperty(ref _selectedHideForAppIndex, value)) OnPropertyChanged(nameof(CanRemoveHideForApp)); }
+    }
+    public bool CanRemoveHideForApp => _selectedHideForAppIndex >= 0 && _selectedHideForAppIndex < HideForAppsEntries.Count;
+
+    private void ReloadHideForApps()
+    {
+        HideForAppsEntries.Clear();
+        foreach (var e in _appServices.AppearanceService.GetHideForApps()) HideForAppsEntries.Add(e);
+        OnPropertyChanged(nameof(HideForAppsIsEmpty));
+        OnPropertyChanged(nameof(CanRemoveHideForApp));
+    }
+
+    public async Task AddHideForAppAsync(Window window)
+    {
+        var files = await window.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+        {
+            Title = T("dialog.fileChooser.executableTitle"),
+            AllowMultiple = true,
+            FileTypeFilter = new[] { new Avalonia.Platform.Storage.FilePickerFileType("Executable (*.exe)") { Patterns = new[] { "*.exe" } } }
+        });
+        foreach (var file in files)
+            _appServices.AppearanceService.AddHideForApp(file.Path.LocalPath);
+        ReloadHideForApps();
+    }
+
+    /// <summary>
+    /// Adds an executable to the per-app hide rules (path or bare file
+    /// name). The dock's own process is never added.
+    /// </summary>
+    public void AddRunningHideForApp(string? executable)
+    {
+        if (string.IsNullOrEmpty(executable)) return;
+        string self = System.Diagnostics.Process.GetCurrentProcess().ProcessName + ".exe";
+        if (string.Equals(DockAppearanceService.NormalizeExeName(executable), self, StringComparison.OrdinalIgnoreCase)) return;
+        _appServices.AppearanceService.AddHideForApp(executable);
+        ReloadHideForApps();
+    }
+
+    /// <summary>
+    /// Executables of the apps currently on the taskbar (distinct file names,
+    /// sorted), minus the dock itself and those already ruled - feeds the
+    /// "Add running app" flyout.
+    /// </summary>
+    public List<string> RunningAppChoices()
+    {
+        string self = System.Diagnostics.Process.GetCurrentProcess().ProcessName + ".exe";
+        var existing = new HashSet<string>(HideForAppsEntries, StringComparer.OrdinalIgnoreCase);
+        return _appServices.WindowPreviewService.FindTaskbarWindows()
+            .Select(w => DockAppearanceService.NormalizeExeName(w.ExecutablePath))
+            .Where(n => n.Length > 0 && !existing.Contains(n) && !string.Equals(n, self, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public void RemoveSelectedHideForApp()
+    {
+        if (!CanRemoveHideForApp) return;
+        _appServices.AppearanceService.RemoveHideForApp(HideForAppsEntries[_selectedHideForAppIndex]);
+        ReloadHideForApps();
+    }
+
+    private bool _hotkeysEnabled = true;
+    public bool HotkeysEnabled { get => _hotkeysEnabled; set => SetProperty(ref _hotkeysEnabled, value); }
+
+    private string _hotkeyToggleDock = "";
+    public string HotkeyToggleDock { get => _hotkeyToggleDock; set => SetProperty(ref _hotkeyToggleDock, value); }
+
+    private string _hotkeyLaunchModifiers = "";
+    public string HotkeyLaunchModifiers { get => _hotkeyLaunchModifiers; set => SetProperty(ref _hotkeyLaunchModifiers, value); }
+
+    private string _hotkeyStatus = "";
+    /// <summary>Conflict / validation message under the shortcut fields; empty when all is well.</summary>
+    public string HotkeyStatus { get => _hotkeyStatus; private set { if (SetProperty(ref _hotkeyStatus, value)) OnPropertyChanged(nameof(HasHotkeyStatus)); } }
+    public bool HasHotkeyStatus => _hotkeyStatus.Length > 0;
+
+    private void OnHotkeysChanged()
+    {
+        var app = _appServices.AppearanceService;
+        app.SetHotkeysEnabled(HotkeysEnabled);
+        bool invalid = false;
+        if (!string.IsNullOrWhiteSpace(HotkeyToggleDock) && HotkeyChord.TryParse(HotkeyToggleDock) is null) invalid = true;
+        if (!string.IsNullOrWhiteSpace(HotkeyLaunchModifiers)
+            && HotkeyChord.TryParse(HotkeyLaunchModifiers, allowModifiersOnly: true) is not { HasKey: false }) invalid = true;
+        app.SetHotkeyToggleDock(HotkeyToggleDock);
+        app.SetHotkeyLaunchModifiers(HotkeyLaunchModifiers);
+        App.ApplyHotkeys();
+        RefreshHotkeyStatus(invalid);
+    }
+
+    private void RefreshHotkeyStatus(bool invalid = false)
+    {
+        if (invalid) { HotkeyStatus = T("settings.general.hotkeys.invalid"); return; }
+        var conflicts = App.HotkeyConflicts;
+        HotkeyStatus = conflicts.Count == 0
+            ? ""
+            : _appServices.LocalizationService.Text("settings.general.hotkeys.conflict", string.Join(", ", conflicts));
+    }
+
     private bool _hideTaskbar;
     public bool HideTaskbar { get => _hideTaskbar; set => SetProperty(ref _hideTaskbar, value); }
 
@@ -824,6 +950,12 @@ public partial class SettingsViewModel : ViewModelBase
         HideTaskbar = app.GetHideTaskbar();
         ReserveScreenEdge = app.GetReserveScreenEdge();
         HideInFullscreen = app.GetHideInFullscreen();
+        LockDock = app.GetLockDock();
+        HotkeysEnabled = app.GetHotkeysEnabled();
+        HotkeyToggleDock = app.GetHotkeyToggleDock();
+        HotkeyLaunchModifiers = app.GetHotkeyLaunchModifiers();
+        ReloadHideForApps();
+        RefreshHotkeyStatus();
         AttentionBounce = app.GetAttentionBounce();
         MirrorMonitors = _appServices.PositioningService.GetMirrorOnAllMonitors();
         AutoHide = app.GetAutoHide();
@@ -867,6 +999,10 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(HideTaskbar): OnHideTaskbarChanged(); break;
             case nameof(ReserveScreenEdge): _appServices.AppearanceService.SetReserveScreenEdge(ReserveScreenEdge); App.ApplyEdgeReservation(); break;
             case nameof(HideInFullscreen): _appServices.AppearanceService.SetHideInFullscreen(HideInFullscreen); break;
+            case nameof(LockDock): _appServices.AppearanceService.SetLockDock(LockDock); break;
+            case nameof(HotkeysEnabled):
+            case nameof(HotkeyToggleDock):
+            case nameof(HotkeyLaunchModifiers): OnHotkeysChanged(); break;
             case nameof(AttentionBounce): _appServices.AppearanceService.SetAttentionBounce(AttentionBounce); break;
             case nameof(MirrorMonitors): _appServices.PositioningService.SetMirrorOnAllMonitors(MirrorMonitors); App.SyncMirrorDocks(); break;
             case nameof(AutoHide): _appServices.AppearanceService.SetAutoHide(AutoHide); _dockRefreshAction(); App.ApplyEdgeReservation(); break;
