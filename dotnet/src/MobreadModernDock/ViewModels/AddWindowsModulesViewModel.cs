@@ -12,6 +12,7 @@ public sealed record WindowsModuleEntry(string Name, Bitmap? Icon);
 public class AddWindowsModulesViewModel : ViewModelBase
 {
     private static readonly string[] ModuleIds = { "start", "mypc", "trash", "ctrlpnl", "pconfig",
+                                                   "showdesktop", "taskview",
                                                    "shutdown", "restart", "signout", "sleep", "lock" };
 
     private readonly AppServices _appServices;
@@ -55,6 +56,8 @@ public class AddWindowsModulesViewModel : ViewModelBase
             "signout" => "Sign Out",
             "sleep" => "Sleep",
             "lock" => "Lock",
+            "showdesktop" => "Show Desktop",
+            "taskview" => "Task View",
             _ => moduleId
         };
 
@@ -80,6 +83,8 @@ public class AddWindowsModulesViewModel : ViewModelBase
                 "signout" => loc.Text("windowsModule.signOut"),
                 "sleep" => loc.Text("windowsModule.sleep"),
                 "lock" => loc.Text("windowsModule.lock"),
+                "showdesktop" => loc.Text("windowsModule.showDesktop"),
+                "taskview" => loc.Text("windowsModule.taskView"),
                 _ => id
             };
             ModuleNames.Add(new WindowsModuleEntry(name, LoadModuleIcon(id)));

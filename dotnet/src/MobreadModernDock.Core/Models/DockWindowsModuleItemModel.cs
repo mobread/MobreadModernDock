@@ -37,6 +37,8 @@ public class DockWindowsModuleItemModel : DockItem
             "signout" => "/com/github/mobread/mobreadmoderndock/icons/power_signout.png",
             "sleep" => "/com/github/mobread/mobreadmoderndock/icons/power_sleep.png",
             "lock" => "/com/github/mobread/mobreadmoderndock/icons/power_lock.png",
+            "showdesktop" => "/com/github/mobread/mobreadmoderndock/icons/show_desktop.png",
+            "taskview" => "/com/github/mobread/mobreadmoderndock/icons/task_view.png",
             _ => ""
         };
 

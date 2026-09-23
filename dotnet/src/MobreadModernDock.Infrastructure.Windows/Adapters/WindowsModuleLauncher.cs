@@ -87,6 +87,20 @@ public class WindowsModuleLauncher : IWindowsModuleLauncher
                     if (!LockWorkStation())
                         throw new InvalidOperationException("LockWorkStation failed.");
                     break;
+
+                // --- Shell surfaces ---
+                case "showdesktop":
+                    // Shell.Application.ToggleDesktop is exactly what the
+                    // taskbar's own corner button does (Win+D semantics,
+                    // including the restore on a second click).
+                    ToggleDesktop();
+                    break;
+                case "taskview":
+                    // No documented API opens Task View; the shell itself
+                    // binds it to Win+Tab, so send that chord.
+                    if (!_inputSender.SendKeyChord(new ushort[] { 0x5B /* VK_LWIN */ }, 0x09 /* VK_TAB */))
+                        throw new InvalidOperationException("Failed to send Win+Tab for Task View.");
+                    break;
             }
         }
         catch (Exception e) when (e is not InvalidOperationException)
@@ -116,6 +130,27 @@ public class WindowsModuleLauncher : IWindowsModuleLauncher
     [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
     private static extern bool LockWorkStation();
+
+    /// <summary>
+    /// <c>Shell.Application.ToggleDesktop()</c> via late-bound COM. The
+    /// interop assembly for the shell automation objects is not referenced,
+    /// and a one-line dynamic call is all that is needed.
+    /// </summary>
+    private static void ToggleDesktop()
+    {
+        var type = Type.GetTypeFromProgID("Shell.Application")
+                   ?? throw new InvalidOperationException("Shell.Application is not registered.");
+        object? shell = null;
+        try
+        {
+            shell = Activator.CreateInstance(type);
+            type.InvokeMember("ToggleDesktop", System.Reflection.BindingFlags.InvokeMethod, null, shell, null);
+        }
+        finally
+        {
+            if (shell != null) System.Runtime.InteropServices.Marshal.ReleaseComObject(shell);
+        }
+    }
 
     [System.Runtime.InteropServices.DllImport("powrprof.dll", SetLastError = true)]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]

@@ -71,6 +71,8 @@ public class LocalizationService
                 "signout" => Text("windowsModule.signOut"),
                 "sleep" => Text("windowsModule.sleep"),
                 "lock" => Text("windowsModule.lock"),
+                "showdesktop" => Text("windowsModule.showDesktop"),
+                "taskview" => Text("windowsModule.taskView"),
                 _ => item.Label
             };
         }

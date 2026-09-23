@@ -36,5 +36,7 @@ public class StartMenuModuleTest
             WasCalled = true;
             return Result;
         }
+
+        public bool SendKeyChord(ushort[] modifiers, ushort key) => Result;
     }
 }

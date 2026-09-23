@@ -31,6 +31,27 @@ public sealed class Win32WindowsInputSender : IWindowsInputSender
         return false;
     }
 
+    public bool SendKeyChord(ushort[] modifiers, ushort key)
+    {
+        // Scan codes, like the Start-menu path: the shell's own hotkey
+        // handling (Win+Tab) is more reliably triggered by scan-code input
+        // than by bare virtual keys from a WS_EX_NOACTIVATE window.
+        var inputs = new List<INPUT>(modifiers.Length * 2 + 2);
+        foreach (var m in modifiers) inputs.Add(KeyInput(m, keyUp: false));
+        inputs.Add(KeyInput(key, keyUp: false));
+        inputs.Add(KeyInput(key, keyUp: true));
+        for (int i = modifiers.Length - 1; i >= 0; i--) inputs.Add(KeyInput(modifiers[i], keyUp: true));
+        return SendInputBatch(inputs.ToArray());
+    }
+
+    private static INPUT KeyInput(ushort virtualKey, bool keyUp)
+    {
+        ushort scanCode = MapVirtualKey(virtualKey, MapVirtualKeyVkToScanCode);
+        return scanCode != 0
+            ? CreateScanCodeInput(scanCode, keyUp)
+            : CreateVirtualKeyInput(virtualKey, keyUp);
+    }
+
     private static bool TrySendInputWithScanCode()
     {
         ushort scanCode = MapVirtualKey(VirtualKeyLeftWindows, MapVirtualKeyVkToScanCode);
