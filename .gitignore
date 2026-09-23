@@ -41,3 +41,7 @@ dotnet/installer/publish/
 dotnet/installer/portable-staging/
 dotnet/installer/*.msi
 dotnet/installer/*.wixpdb
+
+# Internal research notes, not part of the project
+docs/community-feedback-reddit.md
+docs/competitor-mydockfinder.md
