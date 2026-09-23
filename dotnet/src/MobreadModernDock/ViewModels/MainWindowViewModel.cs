@@ -177,13 +177,37 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Margin around the dock bar: 12px of bounce headroom above, plus
-    /// magnification headroom along the main axis. Vertical docks need the
-    /// overhang top and bottom instead of left and right.
+    /// Headroom on the far side of the bar (above a horizontal dock, beside
+    /// a vertical one), in layout units. At least the 12px the attention
+    /// bounce needs; more while magnification is on, because a magnified
+    /// icon scales from the edge it rests on and grows <i>away</i> from the
+    /// screen edge by <c>iconSize × (scale − 1)</c> - past the bar and, with
+    /// only the bounce headroom, past the window, where it cannot paint and
+    /// is sliced flat. Set alongside <see cref="MagnifyOverhang"/>.
+    /// </summary>
+    public double CrossHeadroom
+    {
+        get => _crossHeadroom;
+        set
+        {
+            if (SetProperty(ref _crossHeadroom, value))
+                OnPropertyChanged(nameof(DockBarMargin));
+        }
+    }
+    private double _crossHeadroom = BounceHeadroom;
+
+    public const double BounceHeadroom = 12;
+
+    /// <summary>
+    /// Margin around the dock bar: cross-axis headroom on the far side (bounce
+    /// and magnification growth), plus magnification headroom along the main
+    /// axis. A vertical dock rests on the right edge of its slot (see the
+    /// panel's RenderTransformOrigin), so its magnification headroom is on the
+    /// left; the bounce is always vertical, so it keeps its room on top.
     /// </summary>
     public Thickness DockBarMargin => IsVerticalDock
-        ? new Thickness(0, 12 + _magnifyOverhang, 0, _magnifyOverhang)
-        : new Thickness(_magnifyOverhang, 12, _magnifyOverhang, 0);
+        ? new Thickness(_crossHeadroom - BounceHeadroom, BounceHeadroom + _magnifyOverhang, 0, _magnifyOverhang)
+        : new Thickness(_magnifyOverhang, _crossHeadroom, _magnifyOverhang, 0);
 
     private int _previewDelayMs = 400;
     /// <summary>

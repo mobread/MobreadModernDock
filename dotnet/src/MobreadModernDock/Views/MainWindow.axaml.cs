@@ -473,6 +473,7 @@ public partial class MainWindow : Window
         MainWindowViewModel vm, DockItemsPanel pinned, DockItemsPanel? running)
     {
         double overhang = 0;
+        double growth = 0;
         if (pinned.MagnifyScale > 1.0 && vm.DockLines <= 1)
         {
             // The same row the panels magnify over: ours, the divider gap, then
@@ -490,9 +491,26 @@ public partial class MainWindow : Window
 
             overhang = DockMagnification.MaxOverhang(row, pinned.MagnifyScale, influence);
             overhang = Math.Ceiling(overhang);
+
+            // Cross-axis: the icon under the pointer scales from the resting
+            // edge, so it grows away from the screen edge by size × (scale − 1)
+            // - straight through the bar's padding and, unless the window has
+            // room, off the top of the window where it is sliced flat.
+            double largest = 0;
+            foreach (var s in row) largest = Math.Max(largest, s);
+            growth = Math.Ceiling(largest * (pinned.MagnifyScale - 1.0));
         }
 
-        if (Math.Abs(vm.MagnifyOverhang - overhang) < 0.5) return;
+        double cross = Math.Max(MainWindowViewModel.BounceHeadroom, growth + 4);
+        bool crossChanged = Math.Abs(vm.CrossHeadroom - cross) >= 0.5;
+        if (crossChanged) vm.CrossHeadroom = cross;
+
+        if (Math.Abs(vm.MagnifyOverhang - overhang) < 0.5)
+        {
+            // Only the cross headroom changed: the window grows on its far
+            // side; the same re-placement below keeps the bar on its edge.
+            if (!crossChanged) return;
+        }
 
         // Keep the *bar* where it is. The window grows/shrinks by the headroom
         // delta on each side; the resulting SizeChanged re-places the window
