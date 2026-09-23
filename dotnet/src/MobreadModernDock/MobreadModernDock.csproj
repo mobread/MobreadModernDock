@@ -9,7 +9,7 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <!-- Single source of truth for the product version. build.ps1 reads it; the
          About text and the auto-update check use the assembly's informational version. -->
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Company>mobread</Company>
     <Product>Mobread Modern Dock</Product>
     <AssemblyTitle>Mobread Modern Dock</AssemblyTitle>
