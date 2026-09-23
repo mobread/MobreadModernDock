@@ -223,7 +223,8 @@ public partial class App : Application
             TrayIconGateway: new UiaTrayIconGateway(),
             SystemStatsGateway: new PerformanceCounterStatsGateway(),
             MediaSessionGateway: new GsmtcMediaSessionGateway(),
-            WeatherGateway: new OpenMeteoWeatherGateway()
+            WeatherGateway: new OpenMeteoWeatherGateway(),
+            JumpListGateway: new CustomDestinationsJumpListGateway()
         );
     }
 

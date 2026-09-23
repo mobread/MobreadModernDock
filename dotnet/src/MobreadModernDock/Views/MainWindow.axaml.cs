@@ -1430,6 +1430,22 @@ public partial class MainWindow : Window
         var loc = _appServices.LocalizationService;
         var menu = new ContextMenu();
 
+        // Taskbar-style: the app's jump list tasks (New window, profiles...)
+        // lead the menu. Alt+right-click shows only those, for people who
+        // want the app's menu without the dock's housekeeping under it.
+        if (vm.Item is DockProgramItemModel program)
+        {
+            bool added = AddJumpListItems(menu, program.ExecutablePath);
+            if (User32.IsAltDown())
+            {
+                if (!added)
+                    menu.Items.Add(new MenuItem { Header = loc.Text("dock.context.noJumpList"), IsEnabled = false });
+                OpenDismissableMenu(menu, button);
+                return;
+            }
+            if (added) menu.Items.Add(new Separator());
+        }
+
         if (vm.Item is DockSeparatorItemModel)
         {
             // A divider has no icon and nothing to launch; its only action is
@@ -1661,10 +1677,50 @@ public partial class MainWindow : Window
         HidePreview();
         var loc = _appServices.LocalizationService;
         var menu = new ContextMenu();
+        bool added = AddJumpListItems(menu, vm.ExecutablePath);
+        if (User32.IsAltDown())
+        {
+            if (!added)
+                menu.Items.Add(new MenuItem { Header = loc.Text("dock.context.noJumpList"), IsEnabled = false });
+            OpenDismissableMenu(menu, button);
+            return;
+        }
+        if (added) menu.Items.Add(new Separator());
         var pin = new MenuItem { Header = loc.Text("dock.context.pin") };
         pin.Click += (_, _) => mainVm.PinRunningApp(vm);
         menu.Items.Add(pin);
         OpenDismissableMenu(menu, button);
+    }
+
+    /// <summary>
+    /// Appends the app's jump list (the taskbar's right-click "Tasks" and any
+    /// custom groups) to <paramref name="menu"/>. Returns false when the app
+    /// has none. Named groups get a disabled caption row, as the taskbar does.
+    /// </summary>
+    private bool AddJumpListItems(ContextMenu menu, string executablePath)
+    {
+        if (_appServices == null) return false;
+        var categories = _appServices.JumpListGateway.GetCategories(executablePath);
+        if (categories.Count == 0) return false;
+
+        bool first = true;
+        foreach (var category in categories)
+        {
+            if (!first) menu.Items.Add(new Separator());
+            first = false;
+            if (category.Name != null)
+                menu.Items.Add(new MenuItem { Header = category.Name, IsEnabled = false });
+            foreach (var entry in category.Entries)
+            {
+                var item = new MenuItem { Header = entry.Title };
+                if (entry.Description != null) ToolTip.SetTip(item, entry.Description);
+                var captured = entry;
+                item.Click += (_, _) =>
+                    _appServices.ItemActionService.LaunchCommand(captured.ExecutablePath, captured.Title, captured.Arguments);
+                menu.Items.Add(item);
+            }
+        }
+        return true;
     }
 
     /// <summary>

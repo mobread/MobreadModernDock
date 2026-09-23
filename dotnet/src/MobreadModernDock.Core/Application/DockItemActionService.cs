@@ -60,4 +60,11 @@ public class DockItemActionService
     /// </summary>
     public bool OpenWith(DockProgramItemModel program, IReadOnlyList<string> filePaths) =>
         _programLauncher.LaunchWithFiles(program.ExecutablePath, program.Label, filePaths);
+
+    /// <summary>
+    /// Runs a program with a raw argument string - a jump list task such as
+    /// "New incognito window". Returns false when it could not be launched.
+    /// </summary>
+    public bool LaunchCommand(string executablePath, string label, string? arguments) =>
+        _programLauncher.Launch(executablePath, label, arguments);
 }

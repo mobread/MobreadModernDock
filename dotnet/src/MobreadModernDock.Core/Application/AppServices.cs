@@ -19,5 +19,6 @@ public sealed record AppServices(
     ITrayIconGateway TrayIconGateway,
     ISystemStatsGateway SystemStatsGateway,
     IMediaSessionGateway MediaSessionGateway,
-    IWeatherGateway WeatherGateway
+    IWeatherGateway WeatherGateway,
+    IJumpListGateway JumpListGateway
 );

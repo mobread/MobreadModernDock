@@ -256,6 +256,14 @@ public static class User32
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool GetCursorPos(out POINT lpPoint);
 
+    [DllImport("user32.dll")]
+    public static extern short GetKeyState(int nVirtKey);
+
+    public const int VK_MENU = 0x12;
+
+    /// <summary>True while the Alt key is held (either side).</summary>
+    public static bool IsAltDown() => (GetKeyState(VK_MENU) & 0x8000) != 0;
+
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern ushort RegisterClass(WNDCLASS lpWndClass);
 

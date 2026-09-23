@@ -34,6 +34,7 @@ A macOS-style dock for Windows 11 that can **replace the taskbar** — pinned ap
 - **System tray widget** — your notification-area icons (Discord, Steam, NVIDIA, etc.) as a free-floating panel. Left-click activates, right-click opens the app's real context menu. Horizontal or vertical, wrapped into 1–6 rows or columns, with a toggle for the system icons (volume, network, battery).
 - **Taskbar-style clicks** — click a running app to focus it, click again to minimize it, keep clicking to cycle through its windows. The mouse wheel over an icon cycles too.
 - **Running apps you haven't pinned** appear on the dock; right-click to **pin** them, or **unpin** a pinned one. A dot under an icon marks anything currently running.
+- **Jump lists** — right-clicking an app shows the same tasks the Windows taskbar would: *New window* / *New Incognito window* for Chrome, each profile for Windows Terminal, Store/Library/Friends for Steam. **Alt+right-click** shows just those, without the dock's own entries.
 
 ### Widgets
 
