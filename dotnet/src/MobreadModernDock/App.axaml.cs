@@ -240,7 +240,9 @@ public partial class App : Application
             SystemStatsGateway: new PerformanceCounterStatsGateway(),
             MediaSessionGateway: new GsmtcMediaSessionGateway(),
             WeatherGateway: new OpenMeteoWeatherGateway(),
-            JumpListGateway: new CustomDestinationsJumpListGateway()
+            JumpListGateway: new CustomDestinationsJumpListGateway(),
+            BatteryGateway: new Win32BatteryGateway(),
+            VirtualDesktopGateway: new RegistryVirtualDesktopGateway(new Win32WindowsInputSender())
         );
     }
 

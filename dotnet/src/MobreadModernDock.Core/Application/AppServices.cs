@@ -20,5 +20,7 @@ public sealed record AppServices(
     ISystemStatsGateway SystemStatsGateway,
     IMediaSessionGateway MediaSessionGateway,
     IWeatherGateway WeatherGateway,
-    IJumpListGateway JumpListGateway
+    IJumpListGateway JumpListGateway,
+    IBatteryGateway BatteryGateway,
+    IVirtualDesktopGateway VirtualDesktopGateway
 );

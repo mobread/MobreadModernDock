@@ -25,5 +25,7 @@ public sealed class WidgetRegistry
         .Register(new Media.MediaWidgetProvider())
         .Register(new Weather.WeatherWidgetProvider())
         .Register(new QuickLaunch.QuickLaunchWidgetProvider())
-        .Register(new Calendar.CalendarWidgetProvider());
+        .Register(new Calendar.CalendarWidgetProvider())
+        .Register(new Battery.BatteryWidgetProvider())
+        .Register(new VirtualDesktop.VirtualDesktopWidgetProvider());
 }

@@ -176,6 +176,21 @@ public static class WidgetTypes
     public const string Weather = "weather";
     public const string QuickLaunch = "quicklaunch";
     public const string Calendar = "calendar";
+    public const string Battery = "battery";
+    public const string VirtualDesktop = "vdesktop";
+}
+
+public static class BatteryWidgetSettings
+{
+    public const string ShowPercent = "showPercent";
+    public const string ShowTime = "showTime";
+    public const string FontSize = "fontSize";
+}
+
+public static class VirtualDesktopWidgetSettings
+{
+    public const string ShowNames = "showNames";
+    public const string FontSize = "fontSize";
 }
 
 public static class TextWidgetSettings

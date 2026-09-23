@@ -13,8 +13,22 @@ public sealed class Win32WindowsInputSender : IWindowsInputSender
     private const ushort VirtualKeyLeftWindows = 0x5B;
     private const uint InputKeyboard = 1;
     private const uint KeyEventKeyUp = 0x0002;
+    private const uint KeyEventExtended = 0x0001;
     private const uint KeyEventScanCode = 0x0008;
     private const uint MapVirtualKeyVkToScanCode = 0;
+
+    /// <summary>
+    /// Keys whose scan code collides with a numpad key unless the extended
+    /// flag is set: arrows, Home/End/PgUp/PgDn/Insert/Delete, the Windows
+    /// keys, right Ctrl/Alt. Without it Win+Ctrl+Left arrives as
+    /// Win+Ctrl+Numpad4 and the shell ignores it.
+    /// </summary>
+    private static bool IsExtendedKey(ushort vk) => vk is
+        0x21 or 0x22 or 0x23 or 0x24 or 0x25 or 0x26 or 0x27 or 0x28 // PgUp PgDn End Home Left Up Right Down
+        or 0x2D or 0x2E // Insert Delete
+        or 0x5B or 0x5C or 0x5D // LWin RWin Apps
+        or 0xA3 or 0xA5 // RControl RMenu
+        or 0x90 or 0x6F; // NumLock, numpad divide
 
     public bool SendWindowsKeyPress()
     {
@@ -48,7 +62,7 @@ public sealed class Win32WindowsInputSender : IWindowsInputSender
     {
         ushort scanCode = MapVirtualKey(virtualKey, MapVirtualKeyVkToScanCode);
         return scanCode != 0
-            ? CreateScanCodeInput(scanCode, keyUp)
+            ? CreateScanCodeInput(scanCode, keyUp, IsExtendedKey(virtualKey))
             : CreateVirtualKeyInput(virtualKey, keyUp);
     }
 
@@ -59,8 +73,8 @@ public sealed class Win32WindowsInputSender : IWindowsInputSender
             return false;
 
         var inputs = new INPUT[2];
-        inputs[0] = CreateScanCodeInput(scanCode, keyUp: false);
-        inputs[1] = CreateScanCodeInput(scanCode, keyUp: true);
+        inputs[0] = CreateScanCodeInput(scanCode, keyUp: false, extended: true);
+        inputs[1] = CreateScanCodeInput(scanCode, keyUp: true, extended: true);
         return SendInputBatch(inputs);
     }
 
@@ -86,7 +100,7 @@ public sealed class Win32WindowsInputSender : IWindowsInputSender
         return sent == inputs.Length;
     }
 
-    private static INPUT CreateScanCodeInput(ushort scanCode, bool keyUp)
+    private static INPUT CreateScanCodeInput(ushort scanCode, bool keyUp, bool extended)
     {
         return new INPUT
         {
@@ -96,7 +110,7 @@ public sealed class Win32WindowsInputSender : IWindowsInputSender
                 ki = new KEYBDINPUT
                 {
                     wScan = scanCode,
-                    dwFlags = KeyEventScanCode | (keyUp ? KeyEventKeyUp : 0)
+                    dwFlags = KeyEventScanCode | (keyUp ? KeyEventKeyUp : 0) | (extended ? KeyEventExtended : 0)
                 }
             }
         };
@@ -137,7 +151,22 @@ public sealed class Win32WindowsInputSender : IWindowsInputSender
     [StructLayout(LayoutKind.Explicit)]
     private struct InputUnion
     {
+        // The union must be as large as its largest member (MOUSEINPUT, 32
+        // bytes on x64) or cbSize is wrong and SendInput rejects the whole
+        // batch with ERROR_INVALID_PARAMETER - silently, as 0 events sent.
+        [FieldOffset(0)] public MOUSEINPUT mi;
         [FieldOffset(0)] public KEYBDINPUT ki;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
     }
 
     [StructLayout(LayoutKind.Sequential)]
