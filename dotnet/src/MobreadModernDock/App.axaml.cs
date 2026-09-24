@@ -194,7 +194,7 @@ public partial class App : Application
             widgetId);
     }
 
-    private static void HandlePositioningModeChange(DockPositioningMode mode)
+    public static void HandlePositioningModeChange(DockPositioningMode mode)
     {
         if (_appServices == null || _mainWindow == null) return;
         var currentMode = _appServices.PositioningService.GetPositioningMode();

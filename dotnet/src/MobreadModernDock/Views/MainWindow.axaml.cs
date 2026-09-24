@@ -1319,7 +1319,7 @@ public partial class MainWindow : Window
 
         _appServices.AppearanceService.SaveImportedPreset(preset);
         _appServices.AppearanceService.ApplyPreset(preset);
-        if (DataContext is MainWindowViewModel mvm) mvm.UpdateDockUI();
+        if (DataContext is MainWindowViewModel mvm) mvm.RefreshAllDocks();
         App.RefreshWidgetAppearance();
         return true;
     }
@@ -1926,15 +1926,25 @@ public partial class MainWindow : Window
             vm.StatusText = status;
     }
 
-    /// <summary>Opens the settings window.</summary>
+    /// <summary>
+    /// Opens the settings window on this dock's monitor. The callbacks always
+    /// target the <b>primary</b> dock: its refresh cascades to every mirror
+    /// (see <see cref="MainWindowViewModel.UpdateDockUI"/>), while a mirror's
+    /// own refresh deliberately doesn't recurse — so Settings opened from a
+    /// secondary monitor's gear used to update that mirror only (e.g. vertical
+    /// layout applied to the mirror, primary left horizontal). The positioning
+    /// callback likewise must persist the primary's position, never a mirror's.
+    /// </summary>
     private void OpenSettings(MainWindowViewModel vm)
     {
         if (_appServices == null) return;
         SettingsWindow.Open(
             _appServices,
             this,
-            dockRefreshAction: vm.UpdateDockUI,
-            positioningModeChangeAction: mode => HandlePositioningModeChange(mode)
+            dockRefreshAction: vm.RefreshAllDocks,
+            positioningModeChangeAction: IsMirror
+                ? App.HandlePositioningModeChange
+                : mode => HandlePositioningModeChange(mode)
         );
     }
 

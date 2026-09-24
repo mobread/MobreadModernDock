@@ -350,7 +350,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (modelFrom < 0 || modelTo < 0) return;
 
         _appServices.DockService.MoveItem(modelFrom, modelTo);
-        UpdateDockUI();
+        RefreshAllDocks();
     }
 
     /// <summary>
@@ -368,7 +368,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (alreadyPinned) return;
 
         _appServices.DockService.AddItem(new DockProgramItemModel(sel.Label, sel.ExecutablePath));
-        UpdateDockUI();
+        RefreshAllDocks();
         Task.Run(RefreshRunningApps);
     }
 
@@ -383,7 +383,7 @@ public partial class MainWindowViewModel : ViewModelBase
         int index = _appServices.DockService.GetItems().IndexOf(item.Item);
         if (index < 0) return;
         _appServices.DockService.RemoveItem(index);
-        UpdateDockUI();
+        RefreshAllDocks();
         Task.Run(RefreshRunningApps);
     }
 
@@ -397,7 +397,7 @@ public partial class MainWindowViewModel : ViewModelBase
         int index = _appServices.DockService.GetItems().IndexOf(item.Item);
         if (index < 0) return;
         _appServices.DockService.SetCustomIcon(index, iconPath);
-        UpdateDockUI();
+        RefreshAllDocks();
     }
 
     /// <summary>
@@ -410,7 +410,7 @@ public partial class MainWindowViewModel : ViewModelBase
         var items = _appServices.DockService.GetItems();
         int index = item != null ? items.IndexOf(item.Item) + 1 : items.Count;
         _appServices.DockService.InsertItem(new DockSeparatorItemModel(), index);
-        UpdateDockUI();
+        RefreshAllDocks();
     }
 
     /// <summary>Removes a divider from the dock (right-click → Remove separator).</summary>
@@ -420,7 +420,7 @@ public partial class MainWindowViewModel : ViewModelBase
         int index = _appServices.DockService.GetItems().IndexOf(item.Item);
         if (index < 0) return;
         _appServices.DockService.RemoveItem(index);
-        UpdateDockUI();
+        RefreshAllDocks();
     }
 
     /// <summary>
@@ -433,7 +433,7 @@ public partial class MainWindowViewModel : ViewModelBase
         int index = _appServices.DockService.GetItems().IndexOf(item.Item);
         if (index < 0) return;
         _appServices.DockService.SetSeparatorSpacing(index, spacing, hideLine);
-        UpdateDockUI();
+        RefreshAllDocks();
     }
 
     /// <summary>
@@ -478,7 +478,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (added > 0)
         {
-            UpdateDockUI();
+            RefreshAllDocks();
             Task.Run(RefreshRunningApps);
         }
         return added;
@@ -540,6 +540,21 @@ public partial class MainWindowViewModel : ViewModelBase
         if (item.Item is not DockProgramItemModel program) return false;
         PreviewDismissAction?.Invoke();
         return _appServices.ItemActionService.OpenWith(program, filePaths);
+    }
+
+    /// <summary>
+    /// Rebuilds <b>every</b> dock after a shared setting or item change. A
+    /// mirror's <see cref="UpdateDockUI"/> refreshes only itself (it must not
+    /// recurse into SyncMirrorDocks, which calls it), so any change made from
+    /// a mirror — its context menu, a drop, or Settings opened from its gear —
+    /// has to be routed through the primary, whose refresh cascades.
+    /// </summary>
+    public void RefreshAllDocks()
+    {
+        if (IsMirrorViewModel && App.PrimaryViewModel is { } primary && primary != this)
+            primary.UpdateDockUI();
+        else
+            UpdateDockUI();
     }
 
     public void UpdateDockUI()
