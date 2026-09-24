@@ -216,6 +216,15 @@ public sealed class DockWindowBehavior : IDisposable
         IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam,
         UIntPtr uIdSubclass, IntPtr dwRefData)
     {
+        // 0. Resize and re-place in one step. The framework resizes with the
+        //    top-left corner fixed and the dock only repositions afterwards
+        //    (SizeChanged), so every size change was drawn twice - overhanging
+        //    the screen edge, then pulled back - and dragging the Magnification
+        //    slider made the dock shake. Choosing the position here, before
+        //    the size is applied, makes the resize land where it belongs.
+        if (uMsg == WM_WINDOWPOSCHANGING && lParam != IntPtr.Zero && PlaceForSize != null)
+            AdjustResizePosition(lParam);
+
         // 1. Block explicit minimize (SC_MINIMIZE) — covers normal "Minimize"
         //    clicks and Win+D "Show Desktop" (which sends SC_MINIMIZE).
         if (uMsg == Win32Constants.WM_SYSCOMMAND)
@@ -237,6 +246,58 @@ public sealed class DockWindowBehavior : IDisposable
         }
 
         return Comctl32.DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    }
+
+    private const uint WM_WINDOWPOSCHANGING = 0x0046;
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct WINDOWPOS
+    {
+        public IntPtr hwnd;
+        public IntPtr hwndInsertAfter;
+        public int x;
+        public int y;
+        public int cx;
+        public int cy;
+        public uint flags;
+    }
+
+    /// <summary>
+    /// Given the window's new physical size, returns where its top-left
+    /// corner should be in absolute screen coordinates - or null to leave the
+    /// framework's choice alone. Consulted for every resize before it happens.
+    /// </summary>
+    public Func<int, int, (int X, int Y)?>? PlaceForSize { get; set; }
+
+    private void AdjustResizePosition(IntPtr lParam)
+    {
+        try
+        {
+            var wp = System.Runtime.InteropServices.Marshal.PtrToStructure<WINDOWPOS>(lParam);
+            if ((wp.flags & Win32Constants.SWP_NOSIZE) != 0) return;
+            if (!User32.GetWindowRect(_hwnd, out RECT cur)) return;
+            if (wp.cx == cur.Right - cur.Left && wp.cy == cur.Bottom - cur.Top) return;
+
+            if (PlaceForSize?.Invoke(wp.cx, wp.cy) is not { } target) return;
+
+            int x = target.X, y = target.Y;
+            IntPtr parent = _desktopParent;
+            if (parent != IntPtr.Zero)
+            {
+                // WINDOWPOS is in the parent's client coordinates.
+                var pt = new POINT { X = x, Y = y };
+                if (!User32.ScreenToClient(parent, ref pt)) return;
+                (x, y) = (pt.X, pt.Y);
+            }
+            wp.x = x;
+            wp.y = y;
+            wp.flags &= ~Win32Constants.SWP_NOMOVE;
+            System.Runtime.InteropServices.Marshal.StructureToPtr(wp, lParam, false);
+        }
+        catch
+        {
+            // Never let placement break the window's own message handling.
+        }
     }
 
     public void Dispose()

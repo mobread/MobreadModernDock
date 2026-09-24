@@ -232,7 +232,10 @@ public class DockPositioningService
         if (Math.Abs((oldStart + oldSize / 2) - (min + max) / 2) <= tolerance)
             start = min + (max - min - newSize) / 2;
         else if (Math.Abs((oldStart + oldSize) - max) <= tolerance)
-            start = max - newSize;
+            // Keep the same gap to the far edge: the edge snapper parks a dock
+            // a few px in (EdgeSnapMargin), and closing that gap here only for
+            // the snapper to reopen it made every resize step jump.
+            start = max - (max - (oldStart + oldSize)) - newSize;
         else
             start = oldStart;
         return Math.Max(min, Math.Min(start, max - newSize));

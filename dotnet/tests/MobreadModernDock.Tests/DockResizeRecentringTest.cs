@@ -70,6 +70,19 @@ public class DockResizeRecentringTest
     }
 
     [Fact]
+    public void ADockSnappedAFewPixelsInFromTheRightKeepsItsGap()
+    {
+        // The edge snapper parks the bar EdgeSnapMargin (3px) from the edge.
+        // Growing must keep that gap; closing it only for the snapper to
+        // reopen it made the dock jump on every magnification step.
+        var (x, _) = DockPositioningService.KeepPlacementAfterResize(
+            Screen, oldX: 2483, oldY: 116, oldWidth: 74, oldHeight: 1200,
+            newWidth: 119, newHeight: 1200);
+
+        Assert.Equal(2560 - 3 - 119, x, 3);
+    }
+
+    [Fact]
     public void ADockFlushWithTheLeftEdgeStaysOnScreen()
     {
         var (x, _) = DockPositioningService.KeepPlacementAfterResize(

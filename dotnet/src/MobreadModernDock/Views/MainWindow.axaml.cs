@@ -143,6 +143,7 @@ public partial class MainWindow : Window
         }
 
         _dockBehavior = new DockWindowBehavior(handle.Handle, UpdateStatus);
+        _dockBehavior.PlaceForSize = WindowPositionForSize;
         _dockBehavior.Apply(_appServices?.AppearanceService.GetAlwaysOnTop() ?? false);
 
         // Initialize the dock ViewModel (loads items, starts indicator watcher).
@@ -435,34 +436,13 @@ public partial class MainWindow : Window
         var newBar = CurrentBarSize();
         _lastBarSize = newBar;
 
-        // Rest position of the bar before this resize: the persisted point,
-        // read directly. NOT ResolvePosition(): its off-screen fallback checks
-        // the *work area*, which our own reserved strip has already shrunk to
-        // the bar's top edge, so a bottom-flush dock reads as off-screen and
-        // gets re-anchored a bar-height higher on every resize.
         var dock = _appServices.DockService.GetDock();
         var (ox, oy) = (dock.DockPositionX, dock.DockPositionY);
-        int bx, by;
-        if (newBar == oldBar)
+        var (bx, by) = BarPlacementForResize(oldBar, newBar);
+        if (newBar != oldBar && (bx != (int)ox || by != (int)oy))
         {
-            // Only the headroom changed: the bar stays put, the window moves.
-            (bx, by) = ((int)ox, (int)oy);
-        }
-        else
-        {
-            var centre = new PixelPoint((int)ox + oldBar.W / 2, (int)oy + oldBar.H / 2);
-            bool reserving = _appServices.AppearanceService.GetReserveScreenEdge()
-                             && !_appServices.AppearanceService.GetAutoHide();
-            var area = reserving ? ScreenGeometry.MonitorAreaAt(centre) : ScreenGeometry.WorkAreaAt(centre);
-            var bounds = new ScreenBounds(area.X, area.Y, area.Width, area.Height);
-            var (nx, ny) = DockPositioningService.KeepPlacementAfterResize(
-                bounds, ox, oy, oldBar.W, oldBar.H, newBar.W, newBar.H);
-            (bx, by) = ((int)nx, (int)ny);
-            if (bx != (int)ox || by != (int)oy)
-            {
-                _appServices.DockService.SetDockPosition(bx, by);
-                App.RepositionMirrorDocks();
-            }
+            _appServices.DockService.SetDockPosition(bx, by);
+            App.RepositionMirrorDocks();
         }
 
         if (_autoHide is { IsEnabled: true, IsHidden: true })
@@ -471,6 +451,59 @@ public partial class MainWindow : Window
             return;
         }
         SetScreenPosition(bx - inset.X, by - inset.Y);
+    }
+
+    /// <summary>
+    /// Where the visible bar goes when it changes from <paramref name="oldBar"/>
+    /// to <paramref name="newBar"/> (DYNAMIC mode). Pure: shared by the
+    /// post-resize path above and by <see cref="WindowPositionForSize"/>,
+    /// which places the window in the same step as the resize.
+    /// </summary>
+    private (int X, int Y) BarPlacementForResize((int W, int H) oldBar, (int W, int H) newBar)
+    {
+        // Rest position of the bar before this resize: the persisted point,
+        // read directly. NOT ResolvePosition(): its off-screen fallback checks
+        // the *work area*, which our own reserved strip has already shrunk to
+        // the bar's top edge, so a bottom-flush dock reads as off-screen and
+        // gets re-anchored a bar-height higher on every resize.
+        var dock = _appServices!.DockService.GetDock();
+        var (ox, oy) = (dock.DockPositionX, dock.DockPositionY);
+        // Only the headroom changed: the bar stays put, the window moves.
+        if (newBar == oldBar) return ((int)ox, (int)oy);
+
+        var centre = new PixelPoint((int)ox + oldBar.W / 2, (int)oy + oldBar.H / 2);
+        bool reserving = _appServices.AppearanceService.GetReserveScreenEdge()
+                         && !_appServices.AppearanceService.GetAutoHide();
+        var area = reserving ? ScreenGeometry.MonitorAreaAt(centre) : ScreenGeometry.WorkAreaAt(centre);
+        var bounds = new ScreenBounds(area.X, area.Y, area.Width, area.Height);
+        var (nx, ny) = DockPositioningService.KeepPlacementAfterResize(
+            bounds, ox, oy, oldBar.W, oldBar.H, newBar.W, newBar.H);
+        return ((int)nx, (int)ny);
+    }
+
+    /// <summary>
+    /// Window top-left (physical, absolute) for a window of the given
+    /// physical size, or null when the caller should not interfere (auto-hide
+    /// has the dock slid away, or startup layout has not settled). Hooked into
+    /// WM_WINDOWPOSCHANGING so a resize lands in place instead of first
+    /// overhanging the screen edge and being pulled back - which, repeated
+    /// per slider step, made the dock shake.
+    /// </summary>
+    private (int X, int Y)? WindowPositionForSize(int width, int height)
+    {
+        if (_appServices == null) return null;
+        if (_autoHide is { IsEnabled: true, IsHidden: true }) return null;
+        var inset = MagnifyInset();
+        var newBar = (W: width - 2 * inset.X, H: height - 2 * inset.Y);
+
+        if (IsMirror || !_appServices.PositioningService.IsDynamicPositioning())
+        {
+            var (bx, by) = ResolveOwnPosition(newBar.W, newBar.H);
+            return ((int)bx - inset.X, (int)by - inset.Y);
+        }
+        if (_lastBarSize is not { } oldBar) return null;
+        var (x, y) = BarPlacementForResize(oldBar, newBar);
+        return (x - inset.X, y - inset.Y);
     }
 
     /// <summary>
