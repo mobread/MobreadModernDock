@@ -84,11 +84,30 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             int dLeft = dockX - workL, dRight = workR - (dockX + dockW);
             TooltipPlacement = dLeft <= dRight ? PlacementMode.Right : PlacementMode.Left;
+            VerticalRestsOnLeft = dLeft <= dRight;
         }
         else
         {
             int dTop = dockY - workT, dBottom = workB - (dockY + dockH);
             TooltipPlacement = dTop <= dBottom ? PlacementMode.Bottom : PlacementMode.Top;
+        }
+    }
+
+    private bool _verticalRestsOnLeft;
+    /// <summary>
+    /// A vertical dock on the left half of its screen rests against the left
+    /// edge: magnified icons grow rightward and the growth headroom sits on
+    /// the bar's right. On the right half it is mirrored. Getting this wrong
+    /// puts the headroom between the bar and the screen edge, so raising
+    /// Magnification pushed a left-edge dock away from the edge.
+    /// </summary>
+    public bool VerticalRestsOnLeft
+    {
+        get => _verticalRestsOnLeft;
+        private set
+        {
+            if (SetProperty(ref _verticalRestsOnLeft, value))
+                OnPropertyChanged(nameof(DockBarMargin));
         }
     }
 
@@ -201,12 +220,14 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>
     /// Margin around the dock bar: cross-axis headroom on the far side (bounce
     /// and magnification growth), plus magnification headroom along the main
-    /// axis. A vertical dock rests on the right edge of its slot (see the
-    /// panel's RenderTransformOrigin), so its magnification headroom is on the
-    /// left; the bounce is always vertical, so it keeps its room on top.
+    /// axis. A vertical dock rests on the screen edge it is nearest (see
+    /// <see cref="VerticalRestsOnLeft"/>), so its growth headroom goes on the
+    /// opposite side; the bounce is always vertical, so it keeps its room on top.
     /// </summary>
     public Thickness DockBarMargin => IsVerticalDock
-        ? new Thickness(_crossHeadroom - BounceHeadroom, BounceHeadroom + _magnifyOverhang, 0, _magnifyOverhang)
+        ? (_verticalRestsOnLeft
+            ? new Thickness(0, BounceHeadroom + _magnifyOverhang, _crossHeadroom - BounceHeadroom, _magnifyOverhang)
+            : new Thickness(_crossHeadroom - BounceHeadroom, BounceHeadroom + _magnifyOverhang, 0, _magnifyOverhang))
         : new Thickness(_magnifyOverhang, _crossHeadroom, _magnifyOverhang, 0);
 
     private int _previewDelayMs = 400;

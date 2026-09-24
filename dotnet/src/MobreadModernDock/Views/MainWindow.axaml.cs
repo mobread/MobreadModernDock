@@ -153,6 +153,18 @@ public partial class MainWindow : Window
             vm.LayerRefreshAction = () => { ApplyAlwaysOnTop(); ApplyAutoHideSetting(); SyncPinnedPanel(); ApplyEdgeReservation(); };
             vm.ShowFolderStackAction = ShowFolderStack;
             vm.PreviewDismissAction = HidePreview;
+            // The running-apps list is hidden until the first unpinned app
+            // opens, and its DockItemsPanel is only realized then - with the
+            // panel defaults (horizontal). Re-push orientation/magnification
+            // whenever that list appears or changes, or a vertical dock lays
+            // its running apps out side by side (and widens the whole dock).
+            vm.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(MainWindowViewModel.HasRunningApps))
+                    Dispatcher.UIThread.Post(SyncPinnedPanel, DispatcherPriority.Loaded);
+            };
+            vm.RunningApps.CollectionChanged += (_, _) =>
+                Dispatcher.UIThread.Post(SyncPinnedPanel, DispatcherPriority.Loaded);
             vm.Initialize();
         }
 
@@ -365,6 +377,12 @@ public partial class MainWindow : Window
         var m = vm.DockBarMargin;
         if (vm.IsVerticalDock)
         {
+            // Growth headroom sits on the side away from the resting edge.
+            if (vm.VerticalRestsOnLeft)
+            {
+                int right = (int)Math.Round(m.Right * RenderScaling);
+                return new PixelRect(rect.X, rect.Y, Math.Max(1, rect.Width - right), rect.Height);
+            }
             int left = (int)Math.Round(m.Left * RenderScaling);
             return new PixelRect(rect.X + left, rect.Y, Math.Max(1, rect.Width - left), rect.Height);
         }
@@ -472,10 +490,19 @@ public partial class MainWindow : Window
             ? _appServices.AppearanceService.GetMagnifyScale()
             : 1.0;
 
+        // Orientation/lines on every realized panel, visible or not: a hidden
+        // running list must already be vertical the moment it appears.
+        // (Panels() below skips hidden ones - right for the magnification row.)
+        foreach (var p in new[] { pinned, running })
+        {
+            if (p == null) continue;
+            p.Lines = vm.DockLines;
+            p.IsVertical = vm.IsVerticalDock;
+            p.RestsOnLeft = vm.VerticalRestsOnLeft;
+        }
+
         foreach (var (panel, host) in Panels(pinned, running))
         {
-            panel.Lines = vm.DockLines;
-            panel.IsVertical = vm.IsVerticalDock;
             panel.MagnifyScale = scale;
             // The per-item hover zoom must stand down while the panel is scaling.
             host.Classes.Set("magnified", scale > 1.0);
@@ -620,6 +647,9 @@ public partial class MainWindow : Window
         group.Children.Add(vertical
             ? new TranslateTransform(0, offset)
             : new TranslateTransform(offset, 0));
+        // Same resting edge as the icons (DockItemsPanel.RestsOnLeft).
+        if (vertical && DataContext is MainWindowViewModel vm)
+            divider.RenderTransformOrigin = new RelativePoint(vm.VerticalRestsOnLeft ? 0 : 1, 0.5, RelativeUnit.Relative);
         divider.RenderTransform = group;
     }
 
@@ -1981,7 +2011,11 @@ public partial class MainWindow : Window
         {
             var rect = VisibleBarScreenRect();
             var work = ScreenGeometry.WorkAreaAt(new PixelPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2));
+            bool restedLeft = vm.VerticalRestsOnLeft;
             vm.UpdateTooltipPlacement(rect.X, rect.Y, rect.Width, rect.Height, work.X, work.Y, work.Right, work.Bottom);
+            // Dragged across the screen's centre line: the magnification
+            // origin and the growth headroom swap sides with the resting edge.
+            if (vm.VerticalRestsOnLeft != restedLeft) SyncPinnedPanel();
         }
         catch { }
     }

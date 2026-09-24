@@ -26,10 +26,23 @@ public class DockItemsPanel : Panel
     public static readonly StyledProperty<bool> IsVerticalProperty =
         AvaloniaProperty.Register<DockItemsPanel, bool>(nameof(IsVertical));
 
+    public static readonly StyledProperty<bool> RestsOnLeftProperty =
+        AvaloniaProperty.Register<DockItemsPanel, bool>(nameof(RestsOnLeft));
+
     static DockItemsPanel()
     {
         AffectsMeasure<DockItemsPanel>(LinesProperty, IsVerticalProperty);
-        AffectsArrange<DockItemsPanel>(LinesProperty, IsVerticalProperty);
+        AffectsArrange<DockItemsPanel>(LinesProperty, IsVerticalProperty, RestsOnLeftProperty);
+    }
+
+    /// <summary>
+    /// Vertical dock against the left screen edge: magnified icons scale from
+    /// their left side and grow rightward, into the screen. False = right edge.
+    /// </summary>
+    public bool RestsOnLeft
+    {
+        get => GetValue(RestsOnLeftProperty);
+        set => SetValue(RestsOnLeftProperty, value);
     }
 
     /// <summary>Rows for a horizontal dock, columns for a vertical one. 1 = a single line.</summary>
@@ -277,10 +290,10 @@ public class DockItemsPanel : Panel
 
             child.RenderTransform = BuildTransform(scales[lead + i], offsets[lead + i], IsVertical);
             // Anchor the scale to the edge the dock rests against: bottom for a
-            // horizontal dock, right for a vertical one on the left, etc. Using
-            // the centre would make icons grow into the screen edge instead.
+            // horizontal dock, left/right for a vertical one on that screen
+            // edge. Using the centre would make icons grow into the screen edge.
             child.RenderTransformOrigin = IsVertical
-                ? new RelativePoint(1, 0.5, RelativeUnit.Relative)
+                ? new RelativePoint(RestsOnLeft ? 0 : 1, 0.5, RelativeUnit.Relative)
                 : new RelativePoint(0.5, 1, RelativeUnit.Relative);
         }
 
