@@ -49,6 +49,11 @@ public sealed class AppearancePreset
     [JsonPropertyName("magnifyIcons")] public bool MagnifyIcons { get; set; }
     [JsonPropertyName("magnifyScale")] public double MagnifyScale { get; set; } = 1.6;
 
+    // --- Added in 1.0.5. Null (older themes) leaves the current colour alone.
+    [JsonPropertyName("separatorColor")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SeparatorColor { get; set; }
+
     public static AppearancePreset Capture(string name, DockModel d) => new()
     {
         SchemaVersion = CurrentSchema,
@@ -66,6 +71,7 @@ public sealed class AppearancePreset
         DockPadding = d.DockPadding,
         MagnifyIcons = d.MagnifyIcons,
         MagnifyScale = d.MagnifyScale,
+        SeparatorColor = d.SeparatorColor,
     };
 
     public void ApplyTo(DockModel d)
@@ -86,6 +92,7 @@ public sealed class AppearancePreset
         d.DockPadding = DockPadding;
         d.MagnifyIcons = MagnifyIcons;
         d.MagnifyScale = MagnifyScale;
+        if (SeparatorColor != null) d.SeparatorColor = SeparatorColor;
     }
 
     /// <summary>
@@ -110,6 +117,7 @@ public sealed class AppearancePreset
         MagnifyScale = Math.Clamp(MagnifyScale, 1.0, 2.5);
         DockColorRGB = SanitizeRgb(DockColorRGB, "0, 0, 0, ");
         TintColorRGB = SanitizeRgb(TintColorRGB, "0, 80, 140");
+        SeparatorColor = Application.SeparatorColors.Normalize(SeparatorColor);
     }
 
     /// <summary>

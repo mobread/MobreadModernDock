@@ -1609,6 +1609,49 @@ public partial class MainWindow : Window
             hideLine.Click += (_, _) => mainVm.SetSeparatorSpacing(vm, separator.Spacing, !separator.HideLine);
             menu.Items.Add(hideLine);
 
+            // Colour: a palette of quick picks plus "Use dock colour" to go
+            // back to the dock-wide Separator colour from Settings.
+            var colorMenu = new MenuItem { Header = loc.Text("dock.context.separatorColor") };
+            var useDefault = new MenuItem
+            {
+                Header = loc.Text("dock.context.separatorColor.default"),
+                ToggleType = MenuItemToggleType.Radio,
+                IsChecked = separator.Color == null,
+            };
+            useDefault.Click += (_, _) => mainVm.SetSeparatorColor(vm, null);
+            colorMenu.Items.Add(useDefault);
+            colorMenu.Items.Add(new Separator());
+            foreach (string hex in SeparatorColors.MenuPalette)
+            {
+                string captured = hex;
+                var (a, r, g, b) = SeparatorColors.ToArgb(hex);
+                // Drawn at its real strength over mid-grey, so "default"
+                // (faint white), bright white and dark read differently.
+                var swatch = new Border
+                {
+                    Width = 28, Height = 12, CornerRadius = new CornerRadius(3),
+                    Background = new SolidColorBrush(Color.FromRgb(128, 128, 128)),
+                    BorderBrush = new SolidColorBrush(Color.FromArgb(90, 128, 128, 128)),
+                    BorderThickness = new Thickness(1),
+                    Child = new Border
+                    {
+                        CornerRadius = new CornerRadius(2),
+                        Background = new SolidColorBrush(Color.FromArgb(a, r, g, b)),
+                    },
+                };
+                var option = new MenuItem
+                {
+                    Header = swatch,
+                    ToggleType = MenuItemToggleType.Radio,
+                    IsChecked = string.Equals(separator.Color, captured, StringComparison.OrdinalIgnoreCase),
+                };
+                // UIA/automation name: the hex, since the header is a swatch.
+                Avalonia.Automation.AutomationProperties.SetName(option, captured);
+                option.Click += (_, _) => mainVm.SetSeparatorColor(vm, captured);
+                colorMenu.Items.Add(option);
+            }
+            menu.Items.Add(colorMenu);
+
             menu.Items.Add(new Separator());
 
             var removeSep = new MenuItem { Header = loc.Text("dock.context.removeSeparator") };

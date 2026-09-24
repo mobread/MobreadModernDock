@@ -332,6 +332,18 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    // --- Separator colour ---
+
+    /// <summary>Dock-wide separator colour (<c>#AARRGGBB</c>); the default when unset or invalid.</summary>
+    public string GetSeparatorColor() =>
+        SeparatorColors.Normalize(GetDock().SeparatorColor) ?? SeparatorColors.Default;
+
+    public void SetSeparatorColor(string value)
+    {
+        GetDock().SeparatorColor = SeparatorColors.Normalize(value) ?? SeparatorColors.Default;
+        _dockService.SaveChanges();
+    }
+
     // --- macOS-style hover magnification ---
 
     /// <summary>

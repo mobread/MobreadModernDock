@@ -113,6 +113,10 @@ public class DockItemViewModel : ViewModelBase
     /// <summary>False for an invisible spacer (separator with the line hidden).</summary>
     public bool ShowSeparatorLine => Item is not DockSeparatorItemModel s || !s.HideLine;
 
+    private Avalonia.Media.IBrush? _separatorBrush;
+    /// <summary>Line colour: the separator's own colour, else the dock-wide one (set at creation).</summary>
+    public Avalonia.Media.IBrush? SeparatorBrush { get => _separatorBrush; set => SetProperty(ref _separatorBrush, value); }
+
     private void NotifySeparatorSize()
     {
         OnPropertyChanged(nameof(SeparatorWidth));

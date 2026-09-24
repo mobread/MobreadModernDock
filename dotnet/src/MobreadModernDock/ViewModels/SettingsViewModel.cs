@@ -145,6 +145,25 @@ public partial class SettingsViewModel : ViewModelBase
     }
     public IBrush TintColorBrush => new SolidColorBrush(TintColor);
 
+    // --- Separator colour (dock-wide) ---
+
+    private Color _separatorColor = Color.FromArgb(0x59, 255, 255, 255);
+    /// <summary>Dock-wide separator line colour, alpha included (strength of the line).</summary>
+    public Color SeparatorColor
+    {
+        get => _separatorColor;
+        set { if (SetProperty(ref _separatorColor, value)) OnPropertyChanged(nameof(SeparatorColorBrush)); }
+    }
+    public IBrush SeparatorColorBrush => new SolidColorBrush(SeparatorColor);
+    public string SeparatorColorTitle => T("settings.iconsCustomization.separatorColor");
+    public string SeparatorColorHelper => T("settings.iconsCustomization.separatorColor.helper");
+
+    private static Color HexToColor(string hex)
+    {
+        var (a, r, g, b) = SeparatorColors.ToArgb(hex);
+        return Color.FromArgb(a, r, g, b);
+    }
+
     public bool IsStaticMode { get => _isStaticMode; set => SetProperty(ref _isStaticMode, value); }
 
     private bool _followSystemTheme;
@@ -379,6 +398,7 @@ public partial class SettingsViewModel : ViewModelBase
         DockColor = ParseRgbColor(app.GetDockColorRGB());
         TintIcons = app.GetTintIcons();
         TintColor = ParseRgbColor(app.GetTintColorRGB());
+        SeparatorColor = HexToColor(app.GetSeparatorColor());
         IsVerticalDock = app.GetVerticalDock();
         // Added with the theme format — a preset now carries magnification
         // too, so those controls must follow it as well.
@@ -948,6 +968,7 @@ public partial class SettingsViewModel : ViewModelBase
         DockColor = ParseRgbColor(app.GetDockColorRGB());
         TintIcons = app.GetTintIcons();
         TintColor = ParseRgbColor(app.GetTintColorRGB());
+        SeparatorColor = HexToColor(app.GetSeparatorColor());
 
         var pos = _appServices.PositioningService;
         IsStaticMode = pos.GetPositioningMode() == DockPositioningMode.STATIC;
@@ -1010,6 +1031,7 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(DockColor): OnDockColorChanged(); break;
             case nameof(TintIcons): OnTintIconsChanged(); break;
             case nameof(TintColor): OnTintColorChanged(); break;
+            case nameof(SeparatorColor): _appServices.AppearanceService.SetSeparatorColor(SeparatorColors.FromArgb(SeparatorColor.A, SeparatorColor.R, SeparatorColor.G, SeparatorColor.B)); _dockRefreshAction(); break;
             case nameof(SelectedLanguage): OnLanguageChanged(SelectedLanguage); break;
             case nameof(IsAutoStartEnabled): OnAutoStartChanged(); break;
             case nameof(ShowUnpinnedRunningApps): OnShowUnpinnedRunningAppsChanged(); break;

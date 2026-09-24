@@ -457,6 +457,27 @@ public partial class MainWindowViewModel : ViewModelBase
         RefreshAllDocks();
     }
 
+    /// <summary>One separator's colour from its context menu; null = follow the dock-wide colour.</summary>
+    public void SetSeparatorColor(DockItemViewModel item, string? color)
+    {
+        if (_appServices == null || item.Item is not DockSeparatorItemModel) return;
+        int index = _appServices.DockService.GetItems().IndexOf(item.Item);
+        if (index < 0) return;
+        _appServices.DockService.SetSeparatorColor(index, color);
+        RefreshAllDocks();
+    }
+
+    private IBrush _runningDividerBrush = SeparatorBrushFor(null, SeparatorColors.Default);
+    /// <summary>Dock-wide separator colour, for the pinned↔running divider.</summary>
+    public IBrush RunningDividerBrush { get => _runningDividerBrush; private set => SetProperty(ref _runningDividerBrush, value); }
+
+    /// <summary>A separator's brush: its own colour if set, else the dock-wide one.</summary>
+    public static IBrush SeparatorBrushFor(string? own, string dockWide)
+    {
+        var (a, r, g, b) = SeparatorColors.ToArgb(SeparatorColors.Normalize(own) ?? dockWide);
+        return new SolidColorBrush(Color.FromArgb(a, r, g, b));
+    }
+
     /// <summary>
     /// Pins files or folders dropped from Explorer onto the dock at the given
     /// gap index. Executables and shortcuts become program items, directories
@@ -582,6 +603,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (_appServices == null) return;
         IsVerticalDock = _appServices.AppearanceService.GetVerticalDock();
+        RunningDividerBrush = SeparatorBrushFor(null, _appServices.AppearanceService.GetSeparatorColor());
         // The tint must be set BEFORE items are created: CreateItemViewModel
         // tints each icon immediately, and a stale value would make every
         // pinned item lag one color selection behind.
@@ -630,11 +652,12 @@ public partial class MainWindowViewModel : ViewModelBase
         var custom = IconLoader.LoadCustomIcon(item.CustomIcon);
 
         // A user-placed divider: no icon, no action, no tooltip.
-        if (item is DockSeparatorItemModel)
+        if (item is DockSeparatorItemModel sep)
         {
             return new DockItemViewModel(item, "", LaunchCommand)
             {
-                IsVerticalDock = IsVerticalDock
+                IsVerticalDock = IsVerticalDock,
+                SeparatorBrush = SeparatorBrushFor(sep.Color, _appServices!.AppearanceService.GetSeparatorColor()),
             };
         }
 

@@ -656,6 +656,19 @@
                                     <ToggleSwitch IsChecked="{Binding TintIcons}"/>
                                 </StackPanel>
                             </Grid>
+                            <Border Classes="hairline"/>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <StackPanel Classes="text">
+                                    <TextBlock Classes="label" Text="{Binding SeparatorColorTitle}"/>
+                                    <TextBlock Classes="helper" Text="{Binding SeparatorColorHelper}"/>
+                                </StackPanel>
+                                <StackPanel Classes="control" Orientation="Horizontal" Spacing="10">
+                                    <Border Classes="swatch" Background="{Binding SeparatorColorBrush}"/>
+                                    <ColorPicker Color="{Binding SeparatorColor, Mode=TwoWay}"
+                                                 ColorSpectrumShape="Ring" IsAlphaVisible="True" IsAlphaEnabled="True"
+                                                 IsColorPaletteVisible="True" PaletteColors="{Binding PresetPaletteColors}" PaletteColumnCount="6"/>
+                                </StackPanel>
+                            </Grid>
                         </StackPanel>
                     </Border>
                 </StackPanel>

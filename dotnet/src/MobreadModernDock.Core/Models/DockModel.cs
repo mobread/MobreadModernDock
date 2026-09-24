@@ -90,6 +90,14 @@ public class DockModel
     public string TintColorRGB { get; set; } = "0, 80, 140";
 
     /// <summary>
+    /// Dock-wide separator line colour, <c>#AARRGGBB</c>. Applies to every
+    /// separator without its own colour and to the divider in front of the
+    /// running apps. Default reproduces the original white at 35 %.
+    /// </summary>
+    [JsonPropertyName("separatorColor")]
+    public string SeparatorColor { get; set; } = Application.SeparatorColors.Default;
+
+    /// <summary>
     /// When true the dock and all widgets float above every other window
     /// (topmost). When false (default) they live on the desktop layer behind
     /// normal windows, like the desktop icons.
@@ -385,6 +393,7 @@ public class DockModel
         VerticalDock = other.VerticalDock;
         TintIcons = other.TintIcons;
         TintColorRGB = other.TintColorRGB;
+        SeparatorColor = other.SeparatorColor;
         AlwaysOnTop = other.AlwaysOnTop;
         DockRows = other.DockRows;
         DockPadding = other.DockPadding;

@@ -74,6 +74,15 @@ public class DockService
         SaveChanges();
     }
 
+    /// <summary>Sets one separator's own colour; null returns it to the dock-wide colour.</summary>
+    public void SetSeparatorColor(int index, string? color)
+    {
+        if (index < 0 || index >= _dock.Items.Count) return;
+        if (_dock.Items[index] is not DockSeparatorItemModel separator) return;
+        separator.Color = SeparatorColors.Normalize(color);
+        SaveChanges();
+    }
+
     /// <summary>
     /// Inserts an item at a specific gap (0..Count). Used by drag-and-drop
     /// pinning, where the drop position decides the slot. The Settings gear is

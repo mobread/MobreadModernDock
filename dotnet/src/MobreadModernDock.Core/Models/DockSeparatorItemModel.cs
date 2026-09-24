@@ -42,6 +42,14 @@ public class DockSeparatorItemModel : DockItem
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool HideLine { get; set; }
 
+    /// <summary>
+    /// This separator's own line colour (<c>#AARRGGBB</c>), or null to follow
+    /// the dock-wide separator colour. Omitted from JSON when null.
+    /// </summary>
+    [JsonPropertyName("color")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Color { get; set; }
+
     /// <summary>Presets offered in the separator's context menu, as icon-size fractions.</summary>
     public static readonly double[] SpacingPresets = { 0, 0.25, 0.5, 1.0 };
 

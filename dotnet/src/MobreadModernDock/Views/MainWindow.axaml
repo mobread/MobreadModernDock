@@ -182,8 +182,7 @@
                                     <Border IsVisible="{Binding ShowSeparatorLine}"
                                             Width="{Binding SeparatorWidth}"
                                             Height="{Binding SeparatorHeight}"
-                                            Background="White"
-                                            Opacity="0.35"
+                                            Background="{Binding SeparatorBrush}"
                                             CornerRadius="1"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center" />
@@ -206,26 +205,28 @@
             <!-- Separator between pinned items and running apps.
                  Named so the magnifier can transform it: it lives in this
                  StackPanel, not in either items panel, so no panel arranges
-                 it - the window applies the transform the row computes. -->
-            <Image x:Name="RunningDividerH"
-                   Source="/Assets/icons/open-softwares-separator-1.png"
+                 it - the window applies the transform the row computes.
+                 A 14px cell (same footprint as the old PNG) holding a 2px
+                 line in the dock-wide separator colour. -->
+            <Panel x:Name="RunningDividerH"
                    Width="14" Height="{Binding IconsSize}"
-                   Stretch="Uniform"
                    VerticalAlignment="Center"
                    RenderTransformOrigin="50%, 100%"
                    Margin="4,0"
-                   IsVisible="{Binding ShowHorizontalSeparator}"
-                   RenderOptions.BitmapInterpolationMode="HighQuality"/>
-            <Image x:Name="RunningDividerV"
-                   Source="/Assets/icons/open-softwares-separator-2.png"
+                   IsVisible="{Binding ShowHorizontalSeparator}">
+                <Border Width="2" Background="{Binding RunningDividerBrush}" CornerRadius="1"
+                        HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+            </Panel>
+            <Panel x:Name="RunningDividerV"
                    Width="{Binding IconsSize}" Height="14"
-                   Stretch="Uniform"
                    VerticalAlignment="Center"
                    HorizontalAlignment="Center"
                    RenderTransformOrigin="100%, 50%"
                    Margin="0,4"
-                   IsVisible="{Binding ShowVerticalSeparator}"
-                   RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                   IsVisible="{Binding ShowVerticalSeparator}">
+                <Border Height="2" Background="{Binding RunningDividerBrush}" CornerRadius="1"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+            </Panel>
 
             <!-- Running-but-unpinned apps (taskbar-like) -->
             <ItemsControl x:Name="RunningItems" ClipToBounds="False" ItemsSource="{Binding RunningApps}"
