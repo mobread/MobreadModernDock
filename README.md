@@ -7,17 +7,17 @@ A macOS-style dock for Windows 11 that can **replace the taskbar** — pinned ap
 <br>
 
 > ## How To Install
-> **Installer** — download **[MobreadModernDock-1.0.4-x64.msi](https://github.com/mobread/MobreadModernDock/releases/latest)** and run it. Adds Start-menu and desktop shortcuts, and uninstalls from Add/Remove Programs.
+> **Installer** — download **[MobreadModernDock-1.0.5-x64.msi](https://github.com/mobread/MobreadModernDock/releases/latest)** and run it. Adds Start-menu and desktop shortcuts, and uninstalls from Add/Remove Programs.
 >
-> **Portable** — download **[MobreadModernDock-1.0.4-x64-portable.zip](https://github.com/mobread/MobreadModernDock/releases/latest)**, unzip anywhere and run it. No install, no admin; settings live beside the exe, so the folder travels with you and deleting it leaves nothing behind.
+> **Portable** — download **[MobreadModernDock-1.0.5-x64-portable.zip](https://github.com/mobread/MobreadModernDock/releases/latest)**, unzip anywhere and run it. No install, no admin; settings live beside the exe, so the folder travels with you and deleting it leaves nothing behind.
 >
 > Either way: Windows 10/11 64-bit, no .NET install needed (the runtime is bundled).
 >
 > Neither download is code-signed, so SmartScreen will show *"Windows protected your PC"* — click **More info → Run anyway**. Verify a download if you prefer:
 > ```powershell
-> Get-FileHash MobreadModernDock-1.0.4-x64.msi -Algorithm SHA256
-> # MSI  F45E95010B4170BED6481CE178B827F50CC1ABB96DDCE897C446D889E8D4C355
-> # ZIP  8A8608D5CB96B8DB38F368DF0CD6B5C81BA89E54791AD213C55138C12E935FFB
+> Get-FileHash MobreadModernDock-1.0.5-x64.msi -Algorithm SHA256
+> # MSI  73CA3B5941717D703EBCB9C6403B4B62BE65DB113B977BF9684A8308999FB82C
+> # ZIP  2609A2C6FB47D1BBC2937883B95AF6EB5CA5977BE4DA3A808DE64695F786D0B6
 > ```
 > Prefer to build it yourself? See [How To Contribute](#how-to-contribute) below.
 >
