@@ -392,6 +392,7 @@ public partial class MainWindow : Window
 
     private void OnDockSizeChanged(object? sender, SizeChangedEventArgs e)
     {
+        EnsureAutoSize();
         RefreshTooltipPlacement();
         if (IsMirror || _appServices?.PositioningService.IsDynamicPositioning() == false)
             ApplyDockPosition();
@@ -1151,6 +1152,23 @@ public partial class MainWindow : Window
             return;
         if (IsLocked) return;
         BeginMoveDrag(e);
+        // Win32 runs the move loop synchronously, so the drag is over here.
+        EnsureAutoSize();
+    }
+
+    /// <summary>
+    /// The dock must always size to its content. Avalonia clears the
+    /// SizeToContent flag for any dimension that changes while the OS
+    /// move/size loop is active (it reads that as the user resizing), and a
+    /// drag can resize the bar mid-loop (crossing the screen's centre flips a
+    /// vertical dock's resting side and its headroom). With Height cleared the
+    /// window stays at its old height, so raising Magnification squeezed the
+    /// bar and the re-centring walked the dock down the screen.
+    /// </summary>
+    private void EnsureAutoSize()
+    {
+        if (SizeToContent != SizeToContent.WidthAndHeight)
+            SizeToContent = SizeToContent.WidthAndHeight;
     }
 
     // --- Drag-to-reorder pinned icons directly on the dock bar ---
