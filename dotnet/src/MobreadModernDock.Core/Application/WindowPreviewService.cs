@@ -26,6 +26,36 @@ public class WindowPreviewService
 
     public void Close(WindowInfo windowInfo) => _windowQueryGateway.Close(windowInfo);
 
+    /// <summary>
+    /// Taskbar "Close window" / "Close all windows": asks every open window of
+    /// the program to close (WM_CLOSE, so apps can still prompt to save).
+    /// Returns how many windows were asked.
+    /// </summary>
+    public int CloseAll(string? executablePath)
+    {
+        var windows = ClosableWindows(executablePath);
+        foreach (var w in windows) _windowQueryGateway.Close(w);
+        return windows.Count;
+    }
+
+    /// <summary>Number of windows "Close window(s)" would close (drives the menu caption).</summary>
+    public int CountOpenWindows(string? executablePath) => ClosableWindows(executablePath).Count;
+
+    /// <summary>
+    /// The program's windows that the taskbar itself would list. The plain
+    /// per-exe match also picks up titled shell surfaces (explorer.exe owns
+    /// the taskbars and desktop helpers) and owned dialogs; WM_CLOSE must
+    /// never reach those, so only windows that are also taskbar windows count.
+    /// </summary>
+    private List<WindowInfo> ClosableWindows(string? executablePath)
+    {
+        var taskbar = _windowQueryGateway.FindTaskbarWindows().Select(w => w.Handle).ToHashSet();
+        return _windowQueryGateway.FindOpenWindows(executablePath)
+            .Where(w => taskbar.Contains(w.Handle))
+            .DistinctBy(w => w.Handle)
+            .ToList();
+    }
+
     public void Minimize(WindowInfo windowInfo) => _windowQueryGateway.Minimize(windowInfo);
 
     public bool IsForeground(WindowInfo windowInfo) => _windowQueryGateway.IsForeground(windowInfo);

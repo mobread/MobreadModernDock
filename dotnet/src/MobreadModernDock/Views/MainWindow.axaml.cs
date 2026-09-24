@@ -1566,6 +1566,7 @@ public partial class MainWindow : Window
             var unpin = new MenuItem { Header = loc.Text("dock.context.unpin") };
             unpin.Click += (_, _) => mainVm.UnpinItem(vm);
             menu.Items.Add(unpin);
+            AddCloseWindowsItem(menu, programItem.ExecutablePath);
         }
 
         // The gear carries the way out. Quitting was previously only reachable
@@ -1758,7 +1759,38 @@ public partial class MainWindow : Window
         pin.Click += (_, _) => mainVm.PinRunningApp(vm);
         menu.Items.Add(pin);
         AddHideForAppItem(menu, vm.ExecutablePath);
+        AddCloseWindowsItem(menu, vm.ExecutablePath);
         OpenDismissableMenu(menu, button);
+    }
+
+    /// <summary>
+    /// Taskbar-style last entry: "Close window" (one open) or "Close all
+    /// windows" (several). Omitted when the program has no open window. Sends
+    /// WM_CLOSE like the taskbar does, so apps can still ask to save.
+    /// </summary>
+    private void AddCloseWindowsItem(ContextMenu menu, string? executablePath)
+    {
+        if (_appServices == null || string.IsNullOrEmpty(executablePath)) return;
+        // Never offer to close the dock's own windows (Settings, widgets).
+        string self = System.Diagnostics.Process.GetCurrentProcess().ProcessName + ".exe";
+        if (string.Equals(DockAppearanceService.NormalizeExeName(executablePath), self, StringComparison.OrdinalIgnoreCase)) return;
+
+        var previews = _appServices.WindowPreviewService;
+        int count = previews.CountOpenWindows(executablePath);
+        if (count == 0) return;
+
+        var loc = _appServices.LocalizationService;
+        menu.Items.Add(new Separator());
+        var close = new MenuItem
+        {
+            Header = loc.Text(count == 1 ? "dock.context.closeWindow" : "dock.context.closeAllWindows"),
+        };
+        close.Click += (_, _) =>
+        {
+            HidePreview();
+            Task.Run(() => previews.CloseAll(executablePath));
+        };
+        menu.Items.Add(close);
     }
 
     /// <summary>
