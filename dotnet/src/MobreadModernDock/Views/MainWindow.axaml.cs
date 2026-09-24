@@ -879,7 +879,8 @@ public partial class MainWindow : Window
             appearance.GetDockColorRGB(), appearance.GetDockBorderRounding(),
             appearance.GetDockTransparencyPercentage() / 100.0, button,
             verticalDock: _appServices.AppearanceService.GetVerticalDock(),
-            horizontalAnchor: _appServices.PositioningService.GetHorizontalAnchor());
+            horizontalAnchor: _appServices.PositioningService.GetHorizontalAnchor(),
+            sizePercent: appearance.GetPreviewSizePercent());
 
         // The preview wins over the tooltip: both are anchored to the same icon
         // and now open on the same delay, so they overlap. The preview already
@@ -1081,7 +1082,8 @@ public partial class MainWindow : Window
             appearance.GetDockColorRGB(), appearance.GetDockBorderRounding(),
             appearance.GetDockTransparencyPercentage() / 100.0, anchor,
             verticalDock: _appServices.AppearanceService.GetVerticalDock(),
-            horizontalAnchor: _appServices.PositioningService.GetHorizontalAnchor());
+            horizontalAnchor: _appServices.PositioningService.GetHorizontalAnchor(),
+            sizePercent: appearance.GetPreviewSizePercent());
     }
 
     protected override void OnPointerEntered(PointerEventArgs e)

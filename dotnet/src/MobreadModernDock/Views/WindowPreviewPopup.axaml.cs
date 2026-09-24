@@ -23,13 +23,13 @@ namespace MobreadModernDock.Views;
 /// </summary>
 public partial class WindowPreviewPopup : Window
 {
-    private const int ThumbWidth = 144;
-    private const int ThumbHeight = 81;
+    // Thumbnail size for the current show: the user's Preview size setting,
+    // shrunk to fit the room beside the dock (PreviewThumbnailSizing.Fit).
+    private double _thumbWidth = PreviewThumbnailSizing.BaseWidth;
+    private double _thumbHeight = PreviewThumbnailSizing.BaseHeight;
     // DWM clips live thumbnails at the system's fixed corner radius (~8px), so
     // the Avalonia rows must use the same radius for a consistent look.
     private const int MaxRounding = 8;
-    // 75% of the popup width (144 thumbnail + 2*6 row padding + 2*4 panel margin).
-    private const int TitleMaxWidth = 123;
 
     // Fast fade-in/out applied to the popup window and to each native thumbnail
     // (driven via layered-window alpha so the DWM previews fade in lock-step).
@@ -105,7 +105,8 @@ public partial class WindowPreviewPopup : Window
     /// <summary>Populates rows and positions the popup over <paramref name="anchor"/>.</summary>
     public void ShowFor(IReadOnlyList<WindowInfo> windows, string appLabel,
         string colorRgb, int rounding, double transparency, Button anchor,
-        bool verticalDock = false, DockHorizontalAnchor horizontalAnchor = DockHorizontalAnchor.LEFT)
+        bool verticalDock = false, DockHorizontalAnchor horizontalAnchor = DockHorizontalAnchor.LEFT,
+        int sizePercent = 100)
     {
         _verticalDock = verticalDock;
         _horizontalAnchor = horizontalAnchor;
@@ -114,6 +115,7 @@ public partial class WindowPreviewPopup : Window
         _rounding = rounding;
         _transparency = transparency;
         _sourceHandles = new List<IntPtr>(windows.Select(w => w.Handle));
+        (_thumbWidth, _thumbHeight) = FitThumbnail(anchor, sizePercent, windows.Count);
 
         bool wasVisible = IsVisible;
         _positionAnchor = anchor;
@@ -165,7 +167,7 @@ public partial class WindowPreviewPopup : Window
         {
             // Placeholder sizing the row; the real thumbnail is a native
             // ThumbnailWindow positioned over this area at screen coordinates.
-            var thumbArea = new Border { Width = ThumbWidth, Height = ThumbHeight, Background = Brushes.Transparent };
+            var thumbArea = new Border { Width = _thumbWidth, Height = _thumbHeight, Background = Brushes.Transparent };
             var title = new TextBlock
             {
                 Text = WindowTitleFormatter.Format(window.Title, _appLabel),
@@ -173,7 +175,7 @@ public partial class WindowPreviewPopup : Window
                 FontSize = 12,
                 // Cap the title at 75% of the popup width: long titles must
                 // never widen the popup beyond the previews it contains.
-                MaxWidth = TitleMaxWidth,
+                MaxWidth = PreviewThumbnailSizing.TitleMaxWidth(_thumbWidth),
                 TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis,
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
                 Margin = new Thickness(0, 4, 0, 4)
@@ -219,6 +221,36 @@ public partial class WindowPreviewPopup : Window
         _rows.Clear();
         RowsPanel.Children.Clear();
         _hoveredRowIndex = -1;
+    }
+
+    /// <summary>
+    /// Thumbnail size for this show: the setting, shrunk so every row fits in
+    /// the larger gap beside the dock (the popup opens on whichever side has
+    /// room). Screen rects are physical; the sizing works in the dock's DIPs.
+    /// </summary>
+    private static (double Width, double Height) FitThumbnail(Button anchor, int sizePercent, int rowCount)
+    {
+        var dockTop = TopLevel.GetTopLevel(anchor);
+        double scale = dockTop?.RenderScaling ?? 1.0;
+        var a = ScreenGeometry.ControlScreenRect(anchor);
+        var dock = dockTop is Window root ? ScreenGeometry.WindowScreenRect(root) : a;
+        var work = ScreenGeometry.WorkAreaAt(new PixelPoint(a.X + a.Width / 2, a.Y + a.Height / 2));
+
+        // Horizontal dock: the popup stacks above or below it, full work-area
+        // width. Vertical dock: beside it, full work-area height.
+        double availW, availH;
+        bool vertical = dock.Height > dock.Width;
+        if (vertical)
+        {
+            availW = Math.Max(dock.X - work.X, work.Right - dock.Right) - 8;
+            availH = work.Height - 8;
+        }
+        else
+        {
+            availW = work.Width - 8;
+            availH = Math.Max(dock.Y - work.Y, work.Bottom - dock.Bottom) - 8;
+        }
+        return PreviewThumbnailSizing.Fit(sizePercent, rowCount, availW / scale, availH / scale);
     }
 
     private void PositionNear(Button anchor)

@@ -873,6 +873,15 @@
                                 </Grid>
                                 <TextBlock Classes="helper" Text="{Binding PreviewDelayHelper}"/>
                             </StackPanel>
+                            <Border Classes="hairline"/>
+                            <StackPanel Classes="sliderRow">
+                                <TextBlock Classes="label" Text="{Binding PreviewSizeTitle}"/>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Slider Minimum="50" Maximum="300" TickFrequency="10" IsSnapToTickEnabled="True" Value="{Binding PreviewSize}"/>
+                                    <TextBlock Classes="value" MinWidth="64" Text="{Binding PreviewSizeLabel}"/>
+                                </Grid>
+                                <TextBlock Classes="helper" Text="{Binding PreviewSizeHelper}"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>

@@ -409,6 +409,21 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    // --- Window preview size ---
+
+    public const int MinPreviewSizePercent = 50;
+    public const int MaxPreviewSizePercent = 300;
+
+    /// <summary>Preview thumbnail size in percent of the stock 144×81 (100 = stock).</summary>
+    public int GetPreviewSizePercent() =>
+        Math.Clamp(GetDock().PreviewSizePercent, MinPreviewSizePercent, MaxPreviewSizePercent);
+
+    public void SetPreviewSizePercent(int value)
+    {
+        GetDock().PreviewSizePercent = Math.Clamp(value, MinPreviewSizePercent, MaxPreviewSizePercent);
+        _dockService.SaveChanges();
+    }
+
     // --- Follow system light/dark theme ---
 
     /// <summary>Dock background used when Windows is in dark mode.</summary>

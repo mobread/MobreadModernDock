@@ -186,6 +186,14 @@ public class DockModel
     public int PreviewDelayMs { get; set; } = 400;
 
     /// <summary>
+    /// Size of the hover window previews, as a percentage of the original
+    /// 144×81 thumbnail. Shrunk automatically when the stacked previews would
+    /// not fit between the dock and the screen edge.
+    /// </summary>
+    [JsonPropertyName("previewSizePercent")]
+    public int PreviewSizePercent { get; set; } = 100;
+
+    /// <summary>
     /// Follow the Windows app light/dark setting: switches the dock colour
     /// between a dark and a light preset whenever the system theme changes.
     /// </summary>
@@ -395,6 +403,7 @@ public class DockModel
         CheckUpdatesOnStartup = other.CheckUpdatesOnStartup;
         LastUpdateCheckUtc = other.LastUpdateCheckUtc;
         PreviewDelayMs = other.PreviewDelayMs;
+        PreviewSizePercent = other.PreviewSizePercent;
         FollowSystemTheme = other.FollowSystemTheme;
         CustomDockColorRGB = other.CustomDockColorRGB;
         GlobalOpacity = other.GlobalOpacity;

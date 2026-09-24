@@ -192,6 +192,20 @@ public partial class SettingsViewModel : ViewModelBase
     public string PreviewDelayTitle => T("settings.general.previewDelay");
     public string PreviewDelayHelper => T("settings.general.previewDelay.helper");
 
+    // --- Window preview size ---
+
+    private int _previewSize = 100;
+    /// <summary>Hover preview thumbnail size, percent of the stock 144×81.</summary>
+    public int PreviewSize
+    {
+        get => _previewSize;
+        set { if (SetProperty(ref _previewSize, value)) OnPropertyChanged(nameof(PreviewSizeLabel)); }
+    }
+
+    public string PreviewSizeLabel => $"{PreviewSize}%";
+    public string PreviewSizeTitle => T("settings.general.previewSize");
+    public string PreviewSizeHelper => T("settings.general.previewSize.helper");
+
     /// <summary>
     /// Magnification only works on a single-line dock, so the warning shows
     /// whenever it is enabled while more than one row is configured.
@@ -969,6 +983,7 @@ public partial class SettingsViewModel : ViewModelBase
         MagnifyIcons = app.GetMagnifyIconsSetting();
         MagnifyScale = app.GetMagnifyScalePercentage();
         PreviewDelay = app.GetPreviewDelayMs();
+        PreviewSize = app.GetPreviewSizePercent();
         CheckUpdatesOnStartup = app.GetCheckUpdatesOnStartup();
         FollowSystemTheme = app.GetFollowSystemTheme();
         ReloadPresets();
@@ -1017,6 +1032,8 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(MagnifyIcons): _appServices.AppearanceService.SetMagnifyIcons(MagnifyIcons); _dockRefreshAction(); break;
             case nameof(MagnifyScale): _appServices.AppearanceService.SetMagnifyScalePercentage(MagnifyScale); _dockRefreshAction(); break;
             case nameof(PreviewDelay): _appServices.AppearanceService.SetPreviewDelayMs(PreviewDelay); _dockRefreshAction(); break;
+            // Read on every hover, so no dock refresh is needed.
+            case nameof(PreviewSize): _appServices.AppearanceService.SetPreviewSizePercent(PreviewSize); break;
             case nameof(CheckUpdatesOnStartup): _appServices.AppearanceService.SetCheckUpdatesOnStartup(CheckUpdatesOnStartup); break;
             case nameof(FollowSystemTheme): OnFollowSystemThemeChanged(); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
